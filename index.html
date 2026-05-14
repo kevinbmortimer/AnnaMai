@@ -1,1 +1,2396 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    <h1>Hello, World!</h1>\n</body>\n</html>
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Anna Mai · Race Bridge</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#060d18;--ink2:#0a1628;--ink3:#0d2040;--ink4:#132540;
+  --gold:#D4A017;--gold2:#FFD060;
+  --flood:#1E88E5;--flood2:#90CAF9;
+  --ebb:#E53935;--ebb2:#EF9A9A;
+  --slack:#00BFA5;--slack2:#80CBC4;
+  --green:#43A047;--amber:#FF8F00;--purple:#7B1FA2;--purp2:#CE93D8;
+  --text:#c8dae8;--sub:#4a6070;--white:#fff;
+  --r:10px; /* card border radius */
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink);color:var(--text);font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:14px}
+
+/* ════════════════ HEADER ════════════════ */
+#hdr{background:linear-gradient(135deg,#07101e 0%,#0c1e36 100%);border-bottom:1px solid rgba(212,160,23,.2);padding:8px 13px 6px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+#hdr h1{font-family:‘Bebas Neue’,sans-serif;font-size:22px;letter-spacing:3px;color:#fff;line-height:1}
+.hdr-sub{font-size:8px;color:var(–gold);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:6px}
+#upd{font-size:7px;color:var(–sub);font-family:‘JetBrains Mono’,monospace;text-align:right;line-height:1.5}
+.ibtn{background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);color:var(–gold);border-radius:5px;padding:5px 9px;font-size:10px;font-family:‘JetBrains Mono’,monospace;cursor:pointer}
+.ibtn:active{background:rgba(212,160,23,.25)}
+
+/* ════════════════ NAV ════════════════ */
+#nav{display:flex;background:var(–ink2);border-bottom:1px solid var(–ink3);flex-shrink:0}
+.nt{flex:1;padding:6px 2px 4px;text-align:center;cursor:pointer;border-bottom:2px solid transparent}
+.ni{font-size:19px;display:block;line-height:1.2}
+.nl{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.nt.active{border-bottom-color:var(–gold)}
+.nt.active .nl{color:var(–gold)}
+
+/* ════════════════ SCROLL ════════════════ */
+#views{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overflow-x:hidden}
+.view{display:none;padding:10px 10px 70px}
+.view.active{display:block}
+
+/* ════════════════ CARDS ════════════════ */
+.card{background:var(–ink2);border:1px solid var(–ink3);border-radius:var(–r);padding:12px 13px;margin-bottom:9px}
+.ct{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:‘JetBrains Mono’,monospace;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.ct-r{font-size:8px;color:var(–sub);letter-spacing:0;text-transform:none;font-family:‘JetBrains Mono’,monospace}
+
+/* ════════════════ WIND VIEW ════════════════ */
+.wind-hero{display:flex;align-items:flex-end;gap:8px;margin-bottom:10px}
+.wh-num{font-family:‘Bebas Neue’,sans-serif;font-size:76px;line-height:1;color:#fff}
+.wh-side{padding-bottom:12px}
+.wh-unit{font-size:12px;color:var(–sub);display:block}
+.wh-dir{font-family:‘JetBrains Mono’,monospace;font-size:24px;font-weight:700;color:var(–gold);line-height:1.1}
+.wh-bf{font-size:10px;color:var(–sub);margin-top:1px}
+.wh-gust{font-size:12px;color:var(–ebb2);font-family:‘JetBrains Mono’,monospace;font-weight:600;margin-top:3px}
+.wgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.wc{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 6px;text-align:center}
+.wl{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.wv{font-family:‘JetBrains Mono’,monospace;font-size:21px;font-weight:700;color:#fff;line-height:1}
+.wu{font-size:8px;color:var(–sub)}
+#wr-wrap{display:flex;justify-content:center;margin:0 0 10px}
+.hscroll{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.hc{flex-shrink:0;width:54px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:6px 4px;text-align:center}
+.hc.now{border-color:var(–gold);background:rgba(212,160,23,.08)}
+.ht{font-size:7px;color:var(–sub);font-family:‘JetBrains Mono’,monospace}
+.hdir{font-size:11px;color:var(–gold);font-weight:700;margin:2px 0;line-height:1}
+.hspd{font-family:‘JetBrains Mono’,monospace;font-size:15px;font-weight:700;color:#fff;line-height:1}
+.hgst{font-size:8px;color:var(–ebb2)}
+.api-note{font-size:9px;color:var(–sub);text-align:center;padding:6px;font-family:‘JetBrains Mono’,monospace;line-height:1.5}
+.api-key-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.api-key-row input{flex:1;background:transparent;border:none;color:var(–text);font-family:‘JetBrains Mono’,monospace;font-size:11px;outline:none}
+.api-key-row input::placeholder{color:var(–sub)}
+.api-key-row .save-key{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:var(–gold);border-radius:4px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:‘JetBrains Mono’,monospace;white-space:nowrap}
+
+/* ════════════════ TIDE VIEW ════════════════ */
+.day-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding-bottom:2px}
+.day-strip::-webkit-scrollbar{display:none}
+.dp{flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;transition:all .15s}
+.dp.active{background:rgba(212,160,23,.12);border-color:rgba(212,160,23,.4)}
+.dp-d{font-size:11px;color:#fff;font-weight:600}
+.dp-n{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.4px}
+.tide-events{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.te{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px;flex:1;min-width:78px;text-align:center}
+.te-l{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.te-t{font-family:‘JetBrains Mono’,monospace;font-size:17px;font-weight:700;line-height:1}
+.te-h{font-size:10px;color:var(–sub);font-family:‘JetBrains Mono’,monospace;margin-top:2px}
+.te.hw .te-t{color:var(–flood2)}
+.te.lw .te-t{color:var(–amber)}
+.te.racing{border-color:rgba(212,160,23,.35);background:rgba(212,160,23,.06)}
+.curve-wrap{background:rgba(0,0,0,.25);border-radius:8px;padding:8px 4px 4px}
+
+/* ════════════════ STREAM VIEW ════════════════ */
+.race-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+.race-strip::-webkit-scrollbar{display:none}
+.rp{flex-shrink:0;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;border:1px solid;opacity:.6;transition:opacity .15s}
+.rp.active{opacity:1}
+.rp-n{font-family:‘JetBrains Mono’,monospace;font-size:11px;font-weight:700}
+.rp-t{font-size:9px;color:#fff}
+.stream-hero{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px 13px;margin-bottom:8px}
+.sh-arrow{font-size:44px;line-height:1}
+.sh-right .sh-state{font-family:‘Bebas Neue’,sans-serif;font-size:22px;letter-spacing:2px;color:#fff}
+.sh-right .sh-rate{font-family:‘JetBrains Mono’,monospace;font-size:16px;font-weight:700}
+.sh-right .sh-vmg{font-size:9px;color:var(–sub);margin-top:2px}
+.sh-right .sh-tac{font-size:9px;color:var(–gold);margin-top:4px;line-height:1.5;border-top:1px solid rgba(255,255,255,.07);padding-top:4px}
+.zone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.zone{border-radius:8px;padding:8px 6px;text-align:center;border:1px solid}
+.zl{font-size:7px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;font-weight:600}
+.zr{font-family:‘JetBrains Mono’,monospace;font-size:18px;font-weight:700;line-height:1}
+.zd{font-size:8px;margin-top:2px}
+.zs{font-size:8px;margin-top:1px}
+.ll-table{width:100%;border-collapse:collapse;font-size:10px}
+.ll-table th{background:var(–ink3);color:var(–gold);font-family:‘JetBrains Mono’,monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
+.ll-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:‘JetBrains Mono’,monospace;vertical-align:middle}
+.ll-table tr:last-child td{border-bottom:none}
+.imp-hi{color:var(–ebb2)}.imp-med{color:var(–amber)}.imp-lo{color:var(–slack2)}
+
+/* ════════════════ MARKS VIEW ════════════════ */
+.mark-tabs{display:flex;gap:5px;margin-bottom:10px}
+.mt-btn{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:7px 4px;text-align:center;cursor:pointer;font-size:10px;color:var(–sub);font-family:‘JetBrains Mono’,monospace}
+.mt-btn.active{background:rgba(212,160,23,.1);border-color:rgba(212,160,23,.35);color:var(–gold)}
+.mark-list{display:flex;flex-direction:column;gap:6px}
+.mk{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:10px}
+.mk.selected{border-color:var(–gold);background:rgba(212,160,23,.06)}
+.mk-dot{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:‘JetBrains Mono’,monospace;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
+.mk-dot-inner{transform:rotate(-45deg)}
+.mk-body{flex:1;min-width:0}
+.mk-code{font-family:‘JetBrains Mono’,monospace;font-size:13px;font-weight:700;color:#fff}
+.mk-name{font-size:10px;color:var(–sub);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-pos{font-size:8px;color:var(–sub);font-family:‘JetBrains Mono’,monospace;margin-top:2px}
+.mk-actions{display:flex;gap:5px}
+.mk-btn{background:rgba(255,255,255,.06);border:none;border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;color:var(–text)}
+.mk-btn:active{background:rgba(255,255,255,.12)}
+.mk-btn.del{color:var(–ebb2)}
+.add-form{background:var(–ink4);border:1px solid var(–ink3);border-radius:var(–r);padding:12px 13px;margin-bottom:9px}
+.add-form .row{display:flex;gap:7px;margin-bottom:8px;align-items:center}
+.add-form label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:52px;flex-shrink:0}
+.add-form input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(–text);font-family:‘JetBrains Mono’,monospace;font-size:11px;outline:none}
+.add-form input:focus{border-color:var(–gold)}
+.cat-sel{display:flex;gap:5px;flex-wrap:wrap}
+.cat-opt{padding:4px 9px;border-radius:4px;font-size:9px;cursor:pointer;border:1px solid;opacity:.6;font-family:‘JetBrains Mono’,monospace;font-weight:700}
+.cat-opt.active{opacity:1}
+.btn-full{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);color:var(–gold);border-radius:7px;padding:10px;font-size:12px;font-family:‘JetBrains Mono’,monospace;cursor:pointer;letter-spacing:1px;margin-top:4px}
+.btn-full:active{background:rgba(212,160,23,.25)}
+.btn-full.danger{background:rgba(229,57,53,.1);border-color:rgba(229,57,53,.3);color:var(–ebb2)}
+
+/* Course builder */
+.course-seq{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 10px;min-height:34px;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:7px;border:1px dashed rgba(255,255,255,.1);align-items:center}
+.cs-mark{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);border-radius:5px;padding:3px 8px;font-family:‘JetBrains Mono’,monospace;font-size:11px;color:var(–gold);font-weight:700;display:flex;align-items:center;gap:5px}
+.cs-mark .rm{color:var(–ebb2);cursor:pointer;font-size:13px}
+.cs-empty{font-size:10px;color:var(–sub);font-style:italic}
+.course-list{display:flex;flex-direction:column;gap:6px}
+.cl-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px}
+.cl-name{font-family:‘JetBrains Mono’,monospace;font-size:12px;color:#fff;font-weight:700;margin-bottom:4px}
+.cl-seq{font-size:10px;color:var(–gold);font-family:‘JetBrains Mono’,monospace}
+.cl-actions{display:flex;gap:5px;margin-top:7px}
+.cl-btn{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:10px;cursor:pointer;color:var(–text);font-family:‘JetBrains Mono’,monospace}
+.cl-btn.del{color:var(–ebb2)}
+
+/* ════════════════ START VIEW ════════════════ */
+.countdown-card{background:linear-gradient(135deg,#0a1e36,#0d2a40);border:1px solid rgba(212,160,23,.25);border-radius:var(–r);padding:18px 14px;text-align:center;margin-bottom:9px}
+.cd-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:6px;font-family:‘JetBrains Mono’,monospace}
+.cd-time{font-family:‘Bebas Neue’,sans-serif;font-size:80px;letter-spacing:4px;color:#fff;line-height:1;transition:color .3s}
+.cd-time.warn{color:var(–amber)}
+.cd-time.go{color:var(–green)}
+.cd-time.over{color:var(–ebb)}
+.cd-status{font-size:10px;color:var(–sub);margin-top:5px;font-family:‘JetBrains Mono’,monospace}
+.seq-row{display:flex;gap:6px;margin-bottom:9px}
+.seq-pill{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:7px 5px;text-align:center;cursor:pointer}
+.seq-pill.active{border-color:var(–gold);background:rgba(212,160,23,.1)}
+.seq-n{font-size:8px;color:var(–gold);font-family:‘JetBrains Mono’,monospace;font-weight:700}
+.seq-t{font-size:14px;color:#fff;font-family:‘JetBrains Mono’,monospace;font-weight:700}
+.seq-s{font-size:8px;color:var(–sub)}
+.ctrl-row{display:flex;gap:7px;margin-bottom:9px}
+.ctrl{flex:1;border-radius:8px;padding:12px 6px;text-align:center;cursor:pointer;font-family:‘JetBrains Mono’,monospace;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid}
+.ctrl:active{transform:scale(.97)}
+.ctrl.set{background:rgba(30,136,229,.12);border-color:rgba(30,136,229,.35);color:var(–flood2)}
+.ctrl.sync{background:rgba(212,160,23,.12);border-color:rgba(212,160,23,.35);color:var(–gold)}
+.ctrl.rst{background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.2);color:var(–ebb2)}
+.ctrl.go-btn{background:rgba(67,160,71,.15);border-color:rgba(67,160,71,.4);color:#81C784}
+.bias-section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;margin-bottom:9px}
+.bs-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:‘JetBrains Mono’,monospace;margin-bottom:8px}
+.bs-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.bs-label{font-size:9px;color:var(–sub);min-width:58px}
+.bs-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;background:linear-gradient(to right,var(–flood),#666,var(–ebb))}
+.bs-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(–gold);border:2px solid var(–ink)}
+.bs-val{font-family:‘JetBrains Mono’,monospace;font-size:11px;color:#fff;min-width:36px;text-align:right}
+.bias-result{background:rgba(0,0,0,.2);border-radius:7px;padding:9px 11px;font-family:‘JetBrains Mono’,monospace;font-size:11px;color:var(–text);line-height:1.7}
+.bias-result .br-hi{color:var(–gold);font-weight:700;font-size:13px}
+
+/* ════════════════ UTILS ════════════════ */
+.loading{text-align:center;padding:20px;font-size:11px;color:var(–sub);font-family:‘JetBrains Mono’,monospace}
+.err{background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.25);border-radius:7px;padding:8px 10px;font-size:10px;color:var(–ebb2);font-family:‘JetBrains Mono’,monospace;margin-bottom:8px}
+.pill{display:inline-block;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:700;font-family:‘JetBrains Mono’,monospace}
+hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
+
+/* ════════════════ ROUTE OPTIMISER ════════════════ */
+.route-race-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+.route-race-strip::-webkit-scrollbar{display:none}
+.rrp{flex-shrink:0;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;border:1px solid;opacity:.6;transition:opacity .15s}
+.rrp.active{opacity:1}
+.rrp-n{font-family:‘JetBrains Mono’,monospace;font-size:11px;font-weight:700}
+.rrp-t{font-size:9px;color:#fff}
+.opt-card{border-radius:10px;padding:12px 13px;margin-bottom:9px;border:1px solid}
+.opt-score{font-family:‘Bebas Neue’,sans-serif;font-size:48px;line-height:1}
+.opt-grade{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:‘JetBrains Mono’,monospace}
+.leg-row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;margin-bottom:7px}
+.leg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.leg-name{font-family:‘JetBrains Mono’,monospace;font-size:12px;font-weight:700;color:#fff}
+.leg-badge{font-size:8px;font-family:‘JetBrains Mono’,monospace;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:1px}
+.leg-rec{background:rgba(212,160,23,.08);border-left:3px solid var(–gold);padding:7px 9px;border-radius:0 6px 6px 0;margin-bottom:5px}
+.leg-rec-title{font-size:8px;color:var(–gold);letter-spacing:1px;text-transform:uppercase;font-family:‘JetBrains Mono’,monospace;margin-bottom:3px}
+.leg-rec-body{font-size:10px;color:var(–text);line-height:1.5}
+.leg-tack{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.tack-pill{font-size:9px;font-family:‘JetBrains Mono’,monospace;padding:3px 8px;border-radius:4px;border:1px solid}
+.hist-bar{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.hist-label{font-size:9px;color:var(–sub);min-width:60px;font-family:‘JetBrains Mono’,monospace}
+.hist-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.hist-fill{height:100%;border-radius:3px}
+.hist-val{font-size:9px;font-family:‘JetBrains Mono’,monospace;color:#fff;min-width:24px;text-align:right}
+.mark-sel{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+.ms-pill{font-size:9px;font-family:‘JetBrains Mono’,monospace;font-weight:700;padding:4px 9px;border-radius:5px;border:1px solid;cursor:pointer;opacity:.6}
+.ms-pill.active{opacity:1}
+.input-row{display:flex;gap:7px;align-items:center;margin-bottom:7px}
+.input-row label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
+.input-row select,.input-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(–text);font-family:‘JetBrains Mono’,monospace;font-size:11px;outline:none}
+
+/* ════════════════ NAV TAB ════════════════ */
+.nav-hero{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+.nav-big{background:var(–ink2);border:1px solid var(–ink3);border-radius:10px;padding:12px 13px;text-align:center}
+.nav-big .nb-label{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:1.5px;font-family:‘JetBrains Mono’,monospace;margin-bottom:4px}
+.nav-big .nb-val{font-family:‘Bebas Neue’,sans-serif;font-size:52px;line-height:1;color:#fff}
+.nav-big .nb-unit{font-size:11px;color:var(–sub)}
+.nav-big .nb-sub{font-size:10px;color:var(–gold);font-family:‘JetBrains Mono’,monospace;margin-top:2px}
+.compass-wrap{display:flex;justify-content:center;margin-bottom:9px}
+.perm-btn{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.4);color:var(–gold);border-radius:8px;padding:14px;font-size:13px;font-family:‘JetBrains Mono’,monospace;font-weight:700;cursor:pointer;letter-spacing:1px;margin-bottom:9px;text-align:center}
+.perm-btn:active{background:rgba(212,160,23,.28)}
+.perm-btn.granted{background:rgba(67,160,71,.12);border-color:rgba(67,160,71,.35);color:#81C784}
+.mark-waypoint-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:9px}
+.mark-waypoint-strip::-webkit-scrollbar{display:none}
+.wp-pill{flex-shrink:0;border-radius:5px;padding:4px 9px;cursor:pointer;font-family:‘JetBrains Mono’,monospace;font-size:10px;font-weight:700;border:1px solid;opacity:.6}
+.wp-pill.active{opacity:1}
+.shift-log{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
+.shift-entry{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border-radius:6px;padding:6px 9px;border:1px solid rgba(255,255,255,.06)}
+.shift-tack{font-family:‘JetBrains Mono’,monospace;font-size:10px;font-weight:700;min-width:28px}
+.shift-hdg{font-family:‘JetBrains Mono’,monospace;font-size:13px;color:#fff;min-width:36px}
+.shift-delta{font-size:11px;font-family:‘JetBrains Mono’,monospace;font-weight:700;min-width:40px}
+.shift-type{font-size:9px;padding:2px 6px;border-radius:3px;font-family:‘JetBrains Mono’,monospace;font-weight:700}
+.shift-time{font-size:8px;color:var(–sub);font-family:‘JetBrains Mono’,monospace;margin-left:auto}
+.tack-btns{display:flex;gap:7px;margin-bottom:9px}
+.tack-btn{flex:1;border-radius:8px;padding:14px 8px;text-align:center;cursor:pointer;font-family:‘JetBrains Mono’,monospace;font-size:13px;font-weight:700;border:1px solid;letter-spacing:1px}
+.tack-btn:active{transform:scale(.97)}
+.tack-port{background:rgba(30,136,229,.15);border-color:rgba(30,136,229,.4);color:var(–flood2)}
+.tack-stbd{background:rgba(229,57,53,.12);border-color:rgba(229,57,53,.3);color:var(–ebb2)}
+.set-arrow-wrap{display:flex;justify-content:center;margin:4px 0 8px}
+.stat-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.stat-cell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 8px;flex:1;min-width:70px;text-align:center}
+.sc-label{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px}
+.sc-val{font-family:‘JetBrains Mono’,monospace;font-size:16px;font-weight:700;color:#fff;line-height:1}
+.sc-sub{font-size:8px;color:var(–sub);margin-top:1px}
+
+/* ════════ COURSE SETUP ════════ */
+
+.course-builder-marks{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;margin-bottom:8px}
+.cbm{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 10px;cursor:pointer}
+.cbm:active{background:rgba(255,255,255,.07)}
+.cbm-dot{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:‘JetBrains Mono’,monospace;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
+.cbm-inner{transform:rotate(-45deg)}
+.cbm-body{flex:1}
+.cbm-code{font-family:‘JetBrains Mono’,monospace;font-size:12px;font-weight:700;color:#fff}
+.cbm-name{font-size:9px;color:var(–sub)}
+.cbm-add{font-size:18px;color:var(–gold);padding-right:4px}
+.active-course-seq{display:flex;gap:5px;flex-wrap:wrap;padding:8px;background:rgba(0,0,0,.25);border-radius:7px;border:1px solid rgba(255,255,255,.08);min-height:38px;align-items:center;margin-bottom:8px}
+.acs-item{display:flex;align-items:center;gap:3px;background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.3);border-radius:5px;padding:3px 7px}
+.acs-arrow{color:var(–sub);font-size:10px}
+.acs-code{font-family:‘JetBrains Mono’,monospace;font-size:11px;font-weight:700;color:var(–gold)}
+.acs-rm{color:var(–ebb2);cursor:pointer;font-size:13px;margin-left:2px;line-height:1}
+.course-legs-table{width:100%;border-collapse:collapse;font-size:10px}
+.course-legs-table th{background:var(–ink3);color:var(–gold);font-family:‘JetBrains Mono’,monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
+.course-legs-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:‘JetBrains Mono’,monospace;vertical-align:middle}
+.course-legs-table tr:last-child td{border-bottom:none}
+.leg-type-beat{color:var(–flood2)}.leg-type-run{color:var(–ebb2)}.leg-type-reach{color:var(–amber)}
+.active-course-banner{background:linear-gradient(135deg,rgba(30,136,229,.15),rgba(212,160,23,.08));border:1px solid rgba(212,160,23,.3);border-radius:10px;padding:12px 14px;margin-bottom:9px}
+.acb-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:‘JetBrains Mono’,monospace;margin-bottom:6px}
+.acb-seq{font-family:‘JetBrains Mono’,monospace;font-size:11px;color:#fff;line-height:1.6;word-break:break-all}
+.acb-stats{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.acb-stat{background:rgba(0,0,0,.2);border-radius:5px;padding:4px 9px;font-size:9px;font-family:‘JetBrains Mono’,monospace;color:var(–sub)}
+.acb-stat span{color:#fff;font-weight:700}
+
+.rnd-row{display:flex;gap:5px;margin-bottom:8px;align-items:center}
+.rnd-label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
+.rnd-btn{flex:1;border-radius:5px;padding:6px 4px;font-size:10px;font-family:‘JetBrains Mono’,monospace;font-weight:700;border:1px solid;cursor:pointer;text-align:center;opacity:.5;letter-spacing:.5px;transition:opacity .15s}
+.rnd-btn.active{opacity:1}
+.rnd-port{color:var(–flood2);border-color:rgba(30,136,229,.4);background:rgba(30,136,229,.1)}
+.rnd-stbd{color:var(–ebb2);border-color:rgba(229,57,53,.3);background:rgba(229,57,53,.08)}
+.acs-rnd{font-size:8px;font-family:‘JetBrains Mono’,monospace;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:2px;cursor:pointer}
+.acs-rnd.port{color:var(–flood2);background:rgba(30,136,229,.2);border:1px solid rgba(30,136,229,.3)}
+.acs-rnd.stbd{color:var(–ebb2);background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.25)}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+
+<div id="hdr">
+  <div>
+    <h1>RACE BRIDGE</h1>
+    <div class="hdr-sub">Anna Mai · Swan 36 · IRC Europeans 2026</div>
+  </div>
+  <div class="hdr-r">
+    <div id="upd">Poole Bay<br>50.67°N 1.87°W</div>
+    <button class="ibtn" onclick="refreshAll()">↻</button>
+  </div>
+</div>
+
+<!-- NAV -->
+
+<div id="nav">
+  <div class="nt active" onclick="showView('wind',this)"><span class="ni">💨</span><span class="nl">Wind</span></div>
+  <div class="nt" onclick="showView('tides',this)"><span class="ni">🌊</span><span class="nl">Tides</span></div>
+  <div class="nt" onclick="showView('stream',this)"><span class="ni">⬌</span><span class="nl">Stream</span></div>
+  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Marks</span></div>
+  <div class="nt" onclick="showView('start',this)"><span class="ni">🏁</span><span class="nl">Start</span></div>
+  <div class="nt" onclick="showView('route',this)"><span class="ni">🧭</span><span class="nl">Route</span></div>
+  <div class="nt" onclick="showView('nav',this)"><span class="ni">📍</span><span class="nl">Nav</span></div>
+</div>
+
+<!-- VIEWS -->
+
+<div id="views">
+
+  <!-- ═══════════ WIND ═══════════ -->
+
+  <div class="view active" id="v-wind">
+
+```
+<div id="wind-content">
+  <div class="loading">Loading wind data…</div>
+</div>
+```
+
+  </div>
+
+  <!-- ═══════════ TIDES ═══════════ -->
+
+  <div class="view" id="v-tides">
+    <div class="day-strip" id="day-strip"></div>
+    <div id="tide-content"><div class="loading">Loading tide data…</div></div>
+  </div>
+
+  <!-- ═══════════ STREAM ═══════════ -->
+
+  <div class="view" id="v-stream">
+    <div class="race-strip" id="race-strip"></div>
+    <div id="stream-content"><div class="loading">Select a race above</div></div>
+  </div>
+
+  <!-- ═══════════ MARKS ═══════════ -->
+
+  <div class="view" id="v-marks">
+    <div class="mark-tabs">
+      <div class="mt-btn active" onclick="showMarkTab('fixed',this)">Fixed Marks</div>
+      <div class="mt-btn" onclick="showMarkTab('add',this)">Add Mark</div>
+      <div class="mt-btn" onclick="showMarkTab('course',this)">Course Setup</div>
+    </div>
+    <div id="mark-content"></div>
+  </div>
+
+  <!-- ═══════════ START ═══════════ -->
+
+  <div class="view" id="v-start">
+    <div class="countdown-card">
+      <div class="cd-label">Time to Start</div>
+      <div class="cd-time" id="cd-display">--:--</div>
+      <div class="cd-status" id="cd-status">No sequence set</div>
+    </div>
+
+```
+<div class="seq-row" id="seq-row">
+  <div class="seq-pill active" onclick="selectSeq(0,this)">
+    <div class="seq-n">WARN</div><div class="seq-t" id="sq0">--:--</div><div class="seq-s">5 min</div>
+  </div>
+  <div class="seq-pill" onclick="selectSeq(1,this)">
+    <div class="seq-n">PREP</div><div class="seq-t" id="sq1">--:--</div><div class="seq-s">4 min</div>
+  </div>
+  <div class="seq-pill" onclick="selectSeq(2,this)">
+    <div class="seq-n">GUN</div><div class="seq-t" id="sq2">--:--</div><div class="seq-s">0 min</div>
+  </div>
+</div>
+
+<div class="ctrl-row">
+  <div class="ctrl set" onclick="setStartNow()">SET<br>NOW</div>
+  <div class="ctrl sync" onclick="syncMinute()">SYNC<br>MIN</div>
+  <div class="ctrl rst" onclick="resetStart()">RESET</div>
+  <div class="ctrl go-btn" onclick="toggleStart()"><span id="go-label">START</span></div>
+</div>
+
+<div class="bias-section">
+  <div class="bs-title">Start Line Bias Calculator</div>
+  <div class="bs-row">
+    <span class="bs-label">Wind dir</span>
+    <input type="range" class="bs-slider" id="sl-wind" min="0" max="359" value="225" oninput="calcBias()"/>
+    <span class="bs-val" id="sv-wind">225°</span>
+  </div>
+  <div class="bs-row">
+    <span class="bs-label">Line bearing</span>
+    <input type="range" class="bs-slider" id="sl-line" min="0" max="359" value="270" oninput="calcBias()"/>
+    <span class="bs-val" id="sv-line">270°</span>
+  </div>
+  <div class="bs-row">
+    <span class="bs-label">Stream</span>
+    <input type="range" class="bs-slider" id="sl-stream" min="-15" max="15" value="0" oninput="calcBias()"/>
+    <span class="bs-val" id="sv-stream">0°</span>
+  </div>
+  <div class="bias-result" id="bias-result">Set sliders above to calculate line bias</div>
+</div>
+
+<div class="card">
+  <div class="ct">Layline Tide Corrections <span class="ct-r">Anna Mai 5kn boat speed</span></div>
+  <table class="ll-table">
+    <thead><tr><th>Race</th><th>Time</th><th>Stream</th><th>Port tack</th><th>Stbd tack</th></tr></thead>
+    <tbody>
+      <tr><td>R1</td><td>11:31</td><td class="imp-lo">0.5kn E</td><td>Tack early</td><td>Tack late</td></tr>
+      <tr><td>R2</td><td>13:05</td><td class="imp-med">0.9kn W</td><td>Tack late</td><td>Tack early</td></tr>
+      <tr><td>R3</td><td>14:35</td><td class="imp-hi">1.1kn W</td><td class="imp-hi">~10° late</td><td class="imp-hi">~10° early</td></tr>
+      <tr><td>R4</td><td>10:31</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
+      <tr><td>R5</td><td>12:15</td><td class="imp-hi">1.0kn E</td><td class="imp-hi">~8° early</td><td class="imp-hi">~8° late</td></tr>
+      <tr><td>R6</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
+      <tr><td>R7</td><td>10:31</td><td class="imp-lo">0.2kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
+      <tr><td>R8</td><td>12:15</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
+      <tr><td>R9</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
+      <tr><td>R10</td><td>10:31</td><td class="imp-med">0.6kn W</td><td>Tack late</td><td>Tack early</td></tr>
+      <tr><td>R11</td><td>12:00</td><td class="imp-lo">0.1kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
+    </tbody>
+  </table>
+</div>
+```
+
+  </div>
+
+  <!-- ═══════════ ROUTE OPTIMISER ═══════════ -->
+
+  <div class="view" id="v-route"></div>
+  <div class="view" id="v-nav"></div>
+
+</div><!-- /views -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════
+const LAT = 50.67, LON = -1.87; // Poole Bay racing area
+
+// ══════════════════════════════════════════════════════════════
+// TIDE DATA — Bournemouth (Poole Bay reference) 22-25 May 2026
+// ══════════════════════════════════════════════════════════════
+const TIDE_DAYS = [
+  { date:"Fri 22 May", key:"22", dayLabel:"Day 1", signal:"11:25", races:3,
+    col:"#1a6b8a", sn:"Neap→Spring",
+    tides:[{t:"01:20",type:"HW",h:1.94},{t:"08:43",type:"LW",h:0.72},{t:"14:33",type:"HW",h:1.79},{t:"18:09",type:"HW",h:1.97},{t:"21:17",type:"LW",h:1.12}],
+    hourly:[1.85,1.94,1.88,1.70,1.50,1.22,0.92,0.75,0.72,0.82,1.02,1.28,1.55,1.73,1.79,1.85,1.92,1.97,1.90,1.72,1.45,1.12,1.05,1.10]
+  },
+  { date:"Sat 23 May", key:"23", dayLabel:"Day 2", signal:"10:25", races:3,
+    col:"#1a5276", sn:"Building Springs",
+    tides:[{t:"02:30",type:"HW",h:1.79},{t:"09:46",type:"LW",h:0.84},{t:"19:09",type:"HW",h:2.00},{t:"22:24",type:"LW",h:1.21}],
+    hourly:[1.55,1.45,1.79,1.70,1.52,1.28,1.05,0.88,0.84,0.90,1.10,1.38,1.62,1.80,1.92,1.97,2.00,2.00,1.95,1.80,1.55,1.32,1.21,1.18]
+  },
+  { date:"Sun 24 May", key:"24", dayLabel:"Day 3", signal:"10:25", races:3,
+    col:"#154360", sn:"Near Springs",
+    tides:[{t:"03:42",type:"HW",h:1.71},{t:"10:52",type:"LW",h:0.93},{t:"20:05",type:"HW",h:2.00},{t:"23:36",type:"LW",h:1.24}],
+    hourly:[1.42,1.28,1.12,1.71,1.58,1.35,1.12,0.97,0.93,0.93,0.95,1.05,1.28,1.52,1.70,1.85,1.94,2.00,2.00,1.96,1.82,1.60,1.38,1.24]
+  },
+  { date:"Mon 25 May", key:"25", dayLabel:"Day 4", signal:"10:25", races:2,
+    col:"#0d2b4e", sn:"Springs",
+    tides:[{t:"04:37",type:"HW",h:1.67},{t:"12:01",type:"LW",h:0.97},{t:"21:00",type:"HW",h:1.97}],
+    hourly:[1.28,1.10,1.02,1.15,1.67,1.52,1.30,1.10,0.97,0.97,0.97,0.97,0.99,1.12,1.32,1.55,1.72,1.88,1.97,1.97,1.92,1.82,1.65,1.45]
+  },
+];
+
+// ══════════════════════════════════════════════════════════════
+// RACE STREAM DATA
+// ══════════════════════════════════════════════════════════════
+const RACES = [
+  { n:"R1",  time:"11:31", dayKey:"22", dir:"E",  rate:0.5, state:"Flood→Slack", col:"#42A5F5",
+    note:"Flood just turning. Modest E stream. Port tack slight favour. Plan for reversal.",
+    tac:"Relatively even start. Watch stream dying mid-race. Reversal coming — be ready to switch.",
+    in_rate:0.15, mid_rate:0.32, off_rate:0.5 },
+  { n:"R2",  time:"13:05", dayKey:"22", dir:"W",  rate:0.9, state:"Ebb",         col:"#EF5350",
+    note:"W ebb established 0.9kn offshore. Starboard tack favoured. Go INSHORE.",
+    tac:"Get inshore early on beats — saves 0.6kn vs offshore. Large W set on runs. Allow for it at leeward marks.",
+    in_rate:0.27, mid_rate:0.58, off_rate:0.9 },
+  { n:"R3",  time:"14:35", dayKey:"22", dir:"W",  rate:1.1, state:"Max Ebb",     col:"#C62828",
+    note:"MAX EBB — 1.1kn W offshore = 22% VMG. Biggest tidal race of regatta.",
+    tac:"STAY INSHORE on every beat. Inshore saves 0.77kn vs offshore. Massive gains available. Allow large W set on runs.",
+    in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
+  { n:"R4",  time:"10:31", dayKey:"23", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
+    note:"Building E flood 0.8kn. Port tack favoured. Single direction all day.",
+    tac:"Port tack lifted all day. No reversals — cleanest tidal day. Offshore on runs for E boost.",
+    in_rate:0.24, mid_rate:0.52, off_rate:0.8 },
+  { n:"R5",  time:"12:15", dayKey:"23", dir:"E",  rate:1.0, state:"Flood",       col:"#1565C0",
+    note:"Strong E flood 1.0kn. Port favoured. Inshore saves 0.7kn on beats.",
+    tac:"Laylines shift to port. Allow big E set at leeward marks. Inshore on beats worth significant time.",
+    in_rate:0.30, mid_rate:0.65, off_rate:1.0 },
+  { n:"R6",  time:"13:45", dayKey:"23", dir:"E",  rate:1.1, state:"Near Max",    col:"#0D47A1",
+    note:"Near max flood 1.1kn E. Port strongly favoured. Best day to go inshore on beats.",
+    tac:"Port dominant. Boats going starboard heavily set W. Inshore route now worth serious time.",
+    in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
+  { n:"R7",  time:"10:31", dayKey:"24", dir:"→",  rate:0.2, state:"Slack",       col:"#69F0AE",
+    note:"Near LW — slack water 0.2kn. LEVEL PLAYING FIELD. Boat speed rules.",
+    tac:"Equal conditions for all. Focus on start line bias, windshifts, clean boat handling. The equaliser.",
+    in_rate:0.06, mid_rate:0.13, off_rate:0.2 },
+  { n:"R8",  time:"12:15", dayKey:"24", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
+    note:"Flood building 0.8kn E. Port favoured. Adjust laylines from R7.",
+    tac:"Port tack advantage growing. Overstand windward mark slightly. Tide still building through the race.",
+    in_rate:0.24, mid_rate:0.52, off_rate:0.8 },
+  { n:"R9",  time:"13:45", dayKey:"24", dir:"E",  rate:1.1, state:"Strong",      col:"#0D47A1",
+    note:"Strong near-springs flood 1.1kn. Completely different to R7 two hours earlier.",
+    tac:"Port, inshore on beats, E boost on runs. Boats using R7 tactics here will lose badly. Adjust everything.",
+    in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
+  { n:"R10", time:"10:31", dayKey:"25", dir:"W",  rate:0.6, state:"Ebb",         col:"#EF5350",
+    note:"W ebb 0.6kn. Starboard favoured. Tide turns between R10 and R11.",
+    tac:"Starboard upwind. W set on runs — lay marks further E than you think. RESET tactics for R11.",
+    in_rate:0.18, mid_rate:0.39, off_rate:0.6 },
+  { n:"R11", time:"12:00", dayKey:"25", dir:"→",  rate:0.1, state:"REVERSAL",    col:"#D4A017",
+    note:"TIDAL REVERSAL — LW 12:01. Tide turning W→E between races. Near slack.",
+    tac:"RESET ALL TACTICS from R10. Watch weed/debris on surface for true stream direction. First to read it wins.",
+    in_rate:0.03, mid_rate:0.06, off_rate:0.1 },
+];
+
+// ══════════════════════════════════════════════════════════════
+// MARKS DATA
+// ══════════════════════════════════════════════════════════════
+const MARK_CATS = {
+  swash:  { col:"#FF6F00", label:"Swash/Bar" },
+  shore:  { col:"#43A047", label:"Inshore" },
+  midbay: { col:"#9C27B0", label:"Mid-Bay" },
+  danger: { col:"#E53935", label:"Caution" },
+  far:    { col:"#00ACC1", label:"Far/Coastal" },
+  rc:     { col:"#D4A017", label:"Committee" },
+  temp:   { col:"#F06292", label:"Temp/Laid" },
+};
+
+const FIXED_MARKS = [
+  {code:"RC", name:"Committee Boat",        lat:50.6550, lon:-1.9000, cat:"rc",     fixed:true, note:"IRC Europeans starts. Check briefing for exact position."},
+  {code:"B",  name:"Bar Buoy No.1",         lat:50.6555, lon:-1.9195, cat:"swash",  fixed:true, note:"Near Swash Channel. Strong localised streams. Up to 4.5kn ebb."},
+  {code:"Q",  name:"Swash Channel No.3",    lat:50.6627, lon:-1.9248, cat:"swash",  fixed:true, note:"Swash Channel approach. Harbour ebb jet deflects bay stream."},
+  {code:"SW", name:"Swash Channel No.2",    lat:50.6538, lon:-1.9207, cat:"swash",  fixed:true, note:"S Swash Channel. Watch for S-going harbour ebb current."},
+  {code:"E",  name:"Branksome Outfall",     lat:50.7042, lon:-1.9052, cat:"shore",  fixed:true, note:"Inshore N shore. Stream ~30% of offshore. Prime tide relief."},
+  {code:"D",  name:"Bournemouth Outfall",   lat:50.7100, lon:-1.8718, cat:"shore",  fixed:true, note:"Central Bournemouth. Good tide relief in <5m water."},
+  {code:"C",  name:"Boscombe Outfall",      lat:50.7148, lon:-1.8398, cat:"shore",  fixed:true, note:"Far NE inshore. Maximum tide relief zone in the bay."},
+  {code:"O",  name:"Southbourne Outfall",   lat:50.7153, lon:-1.8185, cat:"shore",  fixed:true, note:"Far E inshore. Used on longer bay courses."},
+  {code:"N",  name:"Rig Shop",              lat:50.6847, lon:-1.9043, cat:"midbay", fixed:true, note:"Mid-bay NW. Full offshore tidal stream applies."},
+  {code:"I",  name:"Stoneways Insurance",   lat:50.6718, lon:-1.9003, cat:"midbay", fixed:true, note:"Mid-bay W. Full offshore stream + Swash influence."},
+  {code:"F",  name:"Magnum",                lat:50.6718, lon:-1.8742, cat:"midbay", fixed:true, note:"Mid-bay central. Classic reference mark. Often leeward gate."},
+  {code:"S",  name:"Jenkins Marine",        lat:50.6873, lon:-1.8778, cat:"midbay", fixed:true, note:"Mid-bay. Watch weed/debris for actual stream direction."},
+  {code:"K",  name:"Peveril Ledge",         lat:50.6062, lon:-1.9350, cat:"danger", fixed:true, note:"CAUTION: Old Harry direction. Tidal race on ebb 1.8-2.5kn."},
+  {code:"V",  name:"Christchurch Ledge",    lat:50.6917, lon:-1.6933, cat:"far",    fixed:true, note:"Far E. Coastal courses only."},
+  {code:"W",  name:"Christchurch Inshore",  lat:50.7058, lon:-1.7403, cat:"far",    fixed:true, note:"Far E inshore. Coastal/passage races."},
+];
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let userMarks     = JSON.parse(localStorage.getItem('user_marks') || '[]');
+let savedCourses  = JSON.parse(localStorage.getItem('courses') || '[]');
+let activeCourse  = []; // [{code, rounding:'port'|'stbd'}]
+let pendingRounding = 'port';
+let activeCourseSeq = []; // [{code, name, lat, lon, legBrg, legDist, estTime, streamRate}]
+let courseType    = 'wl';   // 'wl' or 'cans'
+let courseLaps    = 1;
+let courseWindDir = null;   // wind direction at race start (degrees)
+let activeRaceCourse = null; // the full built course object driving all tabs
+let navWpIndex    = 0;      // current waypoint index in Nav tab
+let selectedDayIdx= 0;
+let selectedRaceIdx= 0;
+let markTabActive = 'fixed';
+let windData      = null;
+let startTime     = null;
+let cdInterval    = null;
+let cdRunning     = false;
+let seqIdx        = 0; // which signal we're counting to
+
+// ══════════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════════
+function showView(id, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nt').forEach(n=>n.classList.remove('active'));
+  document.getElementById('v-'+id).classList.add('active');
+  el.classList.add('active');
+  if (id==='route') renderRouteView();
+  if (id==='nav') renderNavView();
+}
+
+// ══════════════════════════════════════════════════════════════
+// WIND — Open-Meteo (free, no key, CORS-friendly)
+// UK Met Office model · Poole Bay 50.67°N 1.87°W
+// ══════════════════════════════════════════════════════════════
+function degToCard(d) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(d/22.5)%16];
+}
+function beaufort(kts) {
+  const b=[0,1,4,7,11,17,22,28,34,41,48,56];
+  for(let i=b.length-1;i>=0;i--) if(kts>=b[i]) return i;
+  return 0;
+}
+function msToKnots(ms) { return (ms*1.94384).toFixed(1); }
+
+async function fetchWind() {
+  document.getElementById('wind-content').innerHTML = '<div class="loading">Fetching wind from Open-Meteo…</div>';
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`
+      + `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m`
+      + `&wind_speed_unit=kn&timezone=Europe%2FLondon&forecast_days=3`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    windData = await res.json();
+    renderWind();
+    document.getElementById('upd').innerHTML = `Poole Bay<br>${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} BST`;
+  } catch(e) {
+    document.getElementById('wind-content').innerHTML =
+      `<div class="err">Wind fetch failed: ${e.message}<br>Check internet connection and try ↻</div>`;
+  }
+}
+
+function renderWind() {
+  if (!windData) return;
+  const times = windData.hourly.time;
+  const speeds = windData.hourly.wind_speed_10m;       // already in knots
+  const dirs   = windData.hourly.wind_direction_10m;   // degrees
+  const gusts  = windData.hourly.wind_gusts_10m;       // knots
+
+  // Find current hour
+  const now = new Date();
+  const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:00`;
+  let ci = times.findIndex(t=>t===nowStr);
+  if (ci < 0) ci = 0;
+
+  const spd  = parseFloat(speeds[ci]).toFixed(1);
+  const dir  = dirs[ci];
+  const gust = parseFloat(gusts[ci]).toFixed(1);
+  const card = degToCard(dir);
+  const bf   = beaufort(parseFloat(spd));
+  const wr   = renderWindRose(dir, parseFloat(spd));
+
+  // Next 12 hours
+  let hourly = '';
+  for (let i=ci; i<Math.min(ci+13,times.length); i++) {
+    const hLabel = times[i].slice(11,16);
+    const isNow  = i===ci;
+    hourly += `<div class="hc${isNow?' now':''}">
+      <div class="ht">${hLabel}</div>
+      <div class="hdir">${degToCard(dirs[i])}</div>
+      <div class="hspd">${parseFloat(speeds[i]).toFixed(0)}</div>
+      <div class="hgst">↑${parseFloat(gusts[i]).toFixed(0)}</div>
+    </div>`;
+  }
+
+  document.getElementById('wind-content').innerHTML = `
+    <div class="card">
+      <div class="ct">WIND — POOLE BAY <span class="ct-r">Open-Meteo UK Met Office · ${times[ci].slice(11,16)} BST</span></div>
+      <div class="wind-hero">
+        <div class="wh-num">${spd}</div>
+        <div class="wh-side">
+          <span class="wh-unit">knots</span>
+          <div class="wh-dir">${card} ${dir}°</div>
+          <div class="wh-bf">Beaufort F${bf}</div>
+          <div class="wh-gust">Gusts ${gust}kn</div>
+        </div>
+      </div>
+      <div id="wr-wrap">${wr}</div>
+      <div class="wgrid">
+        <div class="wc"><div class="wl">Direction</div><div class="wv">${dir}°</div><div class="wu">${card}</div></div>
+        <div class="wc"><div class="wl">Beaufort</div><div class="wv">F${bf}</div><div class="wu">Force</div></div>
+        <div class="wc"><div class="wl">Gusts</div><div class="wv">${gust}</div><div class="wu">knots</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">NEXT 12 HOURS</div>
+      <div class="hscroll">${hourly}</div>
+    </div>
+    <div class="api-note">Open-Meteo · UK Met Office model · 50.67°N 1.87°W · No API key required · Updates hourly</div>`;
+}
+
+function renderWindRose(dir, spd) {
+  const sz = 120, cx=sz/2, cy=sz/2, r=44;
+  const rad = (dir-90)*Math.PI/180;
+  const ax = cx + r*Math.cos(rad), ay = cy + r*Math.sin(rad);
+  const perp = rad + Math.PI/2;
+  const hw = 7;
+  const p1 = `${ax},${ay}`;
+  const p2 = `${cx+hw*Math.cos(perp)},${cy+hw*Math.sin(perp)}`;
+  const p3 = `${cx-hw*Math.cos(perp)},${cy-hw*Math.sin(perp)}`;
+  const dirs = ['N','E','S','W'];
+  const labels = dirs.map((d,i)=>{
+    const a = i*90*Math.PI/180 - Math.PI/2;
+    const lx = cx + 52*Math.cos(a), ly = cy + 52*Math.sin(a);
+    return `<text x="${lx}" y="${ly+3}" text-anchor="middle" fill="#546E7A" font-size="9" font-family="JetBrains Mono">${d}</text>`;
+  }).join('');
+  const rings = [20,32,44].map(rr=>`<circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="0.5"/>`).join('');
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+    ${rings}
+    <line x1="${cx}" y1="${cy-44}" x2="${cx}" y2="${cy+44}" stroke="rgba(255,255,255,.06)" stroke-width="0.5"/>
+    <line x1="${cx-44}" y1="${cy}" x2="${cx+44}" y2="${cy}" stroke="rgba(255,255,255,.06)" stroke-width="0.5"/>
+    ${labels}
+    <polygon points="${p1} ${p2} ${p3}" fill="#D4A017" opacity="0.9"/>
+    <line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#D4A017" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="#D4A017"/>
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8" font-family="JetBrains Mono">${spd}kn</text>
+  </svg>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TIDES
+// ══════════════════════════════════════════════════════════════
+function buildDayStrip() {
+  const strip = document.getElementById('day-strip');
+  strip.innerHTML = TIDE_DAYS.map((d,i)=>`
+    <div class="dp ${i===0?'active':''}" onclick="selectDay(${i},this)">
+      <div class="dp-d">${d.date.replace(' May','')}</div>
+      <div class="dp-n">${d.dayLabel}</div>
+    </div>`).join('');
+  renderTides(0);
+}
+
+function selectDay(i, el) {
+  selectedDayIdx = i;
+  document.querySelectorAll('.dp').forEach(d=>d.classList.remove('active'));
+  el.classList.add('active');
+  renderTides(i);
+}
+
+function heightAt(hourly, h) {
+  const i = Math.floor(h), f = h-i;
+  return hourly[Math.min(i,23)] + (hourly[Math.min(i+1,23)]-hourly[Math.min(i,23)])*f;
+}
+
+function renderTides(idx) {
+  const d = TIDE_DAYS[idx];
+  const sigH = parseInt(d.signal);
+  const events = d.tides.map(t=>{
+    const th = parseInt(t.t);
+    const racing = th>=sigH && th<=sigH+7;
+    return `<div class="te ${t.type.toLowerCase()} ${racing?'racing':''}">
+      <div class="te-l">${t.type} ${racing?'⚡':''}</div>
+      <div class="te-t">${t.t}</div>
+      <div class="te-h">${t.h.toFixed(2)}m · ${(t.h*3.281).toFixed(1)}ft</div>
+    </div>`;
+  }).join('');
+
+  const curve = renderTideCurve(d);
+
+  document.getElementById('tide-content').innerHTML = `
+    <div class="card">
+      <div class="ct">${d.date} · ${d.sn} <span class="ct-r">⚑ First warning: ${d.signal}</span></div>
+      <div class="tide-events">${events}</div>
+      <div class="api-note">⚡ = during racing  ·  Reference: Bournemouth (Poole Bay)  ·  NOT FOR NAVIGATION</div>
+    </div>
+    <div class="card">
+      <div class="ct">TIDAL CURVE <span class="ct-r">Times BST · Heights in metres</span></div>
+      <div class="curve-wrap">${curve}</div>
+    </div>`;
+}
+
+function renderTideCurve(d) {
+  const W=340, H=110, pl=28, pr=6, pt=10, pb=22;
+  const pw=W-pl-pr, ph=H-pt-pb;
+  const HI=2.12, LO=0.55;
+  const xS = i => pl+(i/23)*pw;
+  const yS = v => pt+(1-(Math.max(LO,Math.min(HI,v))-LO)/(HI-LO))*ph;
+  const pts = d.hourly.map((v,i)=>({x:xS(i),y:yS(v)}));
+  const line = pts.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const fill = line+` L${xS(23).toFixed(1)},${H-pb} L${xS(0).toFixed(1)},${H-pb} Z`;
+  const sigH = parseInt(d.signal)+parseFloat(d.signal.slice(3))/60;
+  const sx = pl+(sigH/23)*pw;
+  const ticks = [0,3,6,9,12,15,18,21,23].map(t=>{
+    const tx=xS(t);
+    return `<line x1="${tx}" y1="${H-pb}" x2="${tx}" y2="${H-pb+3}" stroke="#2a3a4a" stroke-width="0.5"/>
+            <text x="${tx}" y="${H-pb+11}" text-anchor="middle" font-size="7" fill="#4a6070" font-family="JetBrains Mono">${String(t).padStart(2,'0')}</text>`;
+  }).join('');
+  const yticks = [0.6,0.9,1.2,1.5,1.8].map(v=>{
+    const ty=yS(v);
+    return `<line x1="${pl-3}" y1="${ty}" x2="${pl}" y2="${ty}" stroke="#2a3a4a" stroke-width="0.5"/>
+            <text x="${pl-4}" y="${ty+2.5}" text-anchor="end" font-size="6.5" fill="#4a6070" font-family="JetBrains Mono">${v.toFixed(1)}</text>`;
+  }).join('');
+  const dots = d.tides.map(t=>{
+    const th=parseInt(t.t)+parseInt(t.t.slice(3))/60;
+    const tx=xS(th), ty=yS(t.h);
+    const c = t.type==='HW'?'#90CAF9':'#FFB74D';
+    return `<circle cx="${tx}" cy="${ty}" r="4" fill="${c}" stroke="#060d18" stroke-width="1.5"/>
+            <text x="${tx}" y="${t.type==='HW'?ty-7:ty+13}" text-anchor="middle" font-size="7.5" fill="${c}" font-family="JetBrains Mono" font-weight="bold">${t.h.toFixed(2)}m</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px">
+    <path d="${fill}" fill="rgba(30,136,229,.15)"/>
+    <path d="${line}" fill="none" stroke="#1E88E5" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+    <line x1="${sx}" y1="${pt}" x2="${sx}" y2="${H-pb}" stroke="#E53935" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="${sx+2}" y="${pt+9}" font-size="7.5" fill="#EF9A9A" font-family="JetBrains Mono">W/S ${d.signal}</text>
+    <line x1="${pl}" y1="${H-pb}" x2="${W-pr}" y2="${H-pb}" stroke="#1a2a3a" stroke-width="0.5"/>
+    ${ticks}${yticks}
+  </svg>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// STREAM
+// ══════════════════════════════════════════════════════════════
+function buildRaceStrip() {
+  const strip = document.getElementById('race-strip');
+  strip.innerHTML = RACES.map((r,i)=>`
+    <div class="rp ${i===0?'active':''}" style="color:${r.col};border-color:${r.col}" onclick="selectRace(${i},this)">
+      <div class="rp-n">${r.n}</div>
+      <div class="rp-t">${r.time}</div>
+    </div>`).join('');
+  renderStream(0);
+}
+
+function selectRace(i, el) {
+  selectedRaceIdx = i;
+  document.querySelectorAll('.rp').forEach(r=>r.classList.remove('active'));
+  el.classList.add('active');
+  renderStream(i);
+}
+
+function renderStream(idx) {
+  const r = RACES[idx];
+  const isFlood = r.dir==='E', isSlack = r.dir==='→';
+  const sc = isSlack?'var(--slack)':isFlood?'var(--flood)':'var(--ebb)';
+  const sbc = isSlack?'rgba(0,191,165,.1)':isFlood?'rgba(30,136,229,.1)':'rgba(229,57,53,.1)';
+  const arrow = isSlack?'≈':isFlood?'→':'←';
+  const vmg = (r.rate/5.0*100).toFixed(0);
+  const impCol = r.rate>0.9?'var(--ebb2)':r.rate>0.5?'var(--amber)':'var(--slack2)';
+  const saving = (r.off_rate - r.in_rate).toFixed(1);
+
+  const zoneStyle = (rate, bgc, bdc) =>
+    `background:${bgc};border-color:${bdc};`;
+
+  document.getElementById('stream-content').innerHTML = `
+    <div class="card" style="border-left:3px solid ${r.col}">
+      <div class="ct">${r.n} · ${r.time} BST <span class="ct-r">${r.state}</span></div>
+      <div class="stream-hero" style="background:${sbc};border-color:${r.col}33">
+        <div class="sh-arrow" style="color:${r.col}">${arrow}</div>
+        <div class="sh-right">
+          <div class="sh-state">${isSlack?'SLACK':isFlood?'E FLOOD':'W EBB'}</div>
+          <div class="sh-rate" style="color:${r.col}">${r.rate}kn offshore</div>
+          <div class="sh-vmg"><span style="color:${impCol};font-weight:700">${vmg}% VMG</span> impact at 5kn boat speed</div>
+          <div class="sh-tac">🎯 ${r.tac}</div>
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--sub);margin-bottom:8px;line-height:1.5">${r.note}</div>
+    </div>
+
+    <div class="card">
+      <div class="ct">STREAM BY ZONE <span class="ct-r">Springs estimate</span></div>
+      <div class="zone-grid">
+        <div class="zone" style="${zoneStyle(r.in_rate,'rgba(67,160,71,.1)','rgba(67,160,71,.3)')}">
+          <div class="zl" style="color:var(--green)">Inshore</div>
+          <div class="zr" style="color:var(--green)">${r.in_rate.toFixed(2)}</div>
+          <div class="zd" style="color:var(--green)">kn</div>
+          <div class="zs" style="color:var(--sub)">&lt;0.5nm</div>
+        </div>
+        <div class="zone" style="${zoneStyle(r.mid_rate,'rgba(123,31,162,.1)','rgba(123,31,162,.3)')}">
+          <div class="zl" style="color:var(--purp2)">Mid-Bay</div>
+          <div class="zr" style="color:var(--purp2)">${r.mid_rate.toFixed(2)}</div>
+          <div class="zd" style="color:var(--purp2)">kn</div>
+          <div class="zs" style="color:var(--sub)">0.5-1.5nm</div>
+        </div>
+        <div class="zone" style="${zoneStyle(r.off_rate,'rgba(30,136,229,.1)','rgba(30,136,229,.3)')}">
+          <div class="zl" style="color:var(--flood2)">Offshore</div>
+          <div class="zr" style="color:var(--flood2)">${r.off_rate.toFixed(2)}</div>
+          <div class="zd" style="color:var(--flood2)">kn</div>
+          <div class="zs" style="color:var(--sub)">&gt;1.5nm</div>
+        </div>
+      </div>
+      <div style="background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:7px;padding:8px 10px;font-size:10px;color:var(--text);font-family:'JetBrains Mono',monospace">
+        💰 Inshore saves <strong style="color:var(--gold)">${saving}kn</strong> vs offshore on every beat
+        ${parseFloat(saving)>0.5?' — <span style="color:var(--gold)">SIGNIFICANT advantage</span>':''}
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// MARKS
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// COURSE SETUP — drives all other tabs
+// ══════════════════════════════════════════════════════════════
+
+// Anna Mai polar approximation (TWS → {beatVMG, runVMG} in knots)
+function annaMAIPolar(tws) {
+  const polars = [
+    {tws:4,  beat:2.8, run:2.5},
+    {tws:6,  beat:3.8, run:3.6},
+    {tws:8,  beat:4.3, run:4.2},
+    {tws:10, beat:4.8, run:4.9},
+    {tws:12, beat:5.1, run:5.4},
+    {tws:14, beat:5.2, run:5.8},
+    {tws:16, beat:5.3, run:6.1},
+    {tws:18, beat:5.3, run:6.2},
+    {tws:20, beat:5.2, run:6.0},
+  ];
+  const t = Math.max(4, Math.min(20, tws));
+  for (let i=1; i<polars.length; i++) {
+    if (t <= polars[i].tws) {
+      const f = (t - polars[i-1].tws) / (polars[i].tws - polars[i-1].tws);
+      return {
+        beat: polars[i-1].beat + f*(polars[i].beat - polars[i-1].beat),
+        run:  polars[i-1].run  + f*(polars[i].run  - polars[i-1].run),
+      };
+    }
+  }
+  return polars[polars.length-1];
+}
+
+// Determine leg type from bearing relative to wind direction
+function legType(legBrg, windDir) {
+  if (windDir === null) return 'unknown';
+  const rel = Math.abs(angDiff(legBrg, (windDir+180)%360));
+  if (rel < 55)  return 'beat';
+  if (rel > 125) return 'run';
+  return 'reach';
+}
+
+// Get current wind speed from Open-Meteo data
+function getLiveWindSpeed() {
+  const w = getLiveWind();
+  return w ? parseFloat(w.spd) : 12; // default 12kn if no data
+}
+
+// Build the full course object from mark sequence
+function buildCourse(seq, type, laps, windDir, raceIdx) {
+  const marks = allMarks();
+  const race  = RACES[raceIdx||0];
+  const tws   = getLiveWindSpeed();
+  const polar = annaMAIPolar(tws);
+
+  // Expand sequence for laps: RC → [seq] × laps → finish (last mark of seq)
+  // For W/L: RC → W → L → W → L → ... (laps)
+  // For cans: RC → m1 → m2 → ... → mn → m1 → ... (laps)
+  const rcMark = marks.find(m=>m.code==='RC') || {code:'RC',lat:50.655,lon:-1.900,name:'Committee Boat'};
+  let fullSeq = [rcMark];
+  for (let lap=0; lap<laps; lap++) {
+    seq.forEach(item => {
+      const code = item.code || item;
+      const m = marks.find(m=>m.code===code);
+      if (m) fullSeq.push(m);
+    });
+  }
+
+  // Build legs
+  let cumTime = 0; // minutes from start gun
+  const legs = [];
+  for (let i=0; i<fullSeq.length-1; i++) {
+    const from = fullSeq[i];
+    const to   = fullSeq[i+1];
+    const legBrg  = bearing(from.lat, from.lon, to.lat, to.lon);
+    const legDist = distNm(from.lat, from.lon, to.lat, to.lon);
+    const type_l  = legType(legBrg, windDir);
+
+    // VMG for this leg type
+    const vmg = type_l==='beat' ? polar.beat : type_l==='run' ? polar.run : (polar.beat+polar.run)/2;
+
+    // Stream at this time: interpolate from hourly data
+    const raceStartH = parseInt(race.time.slice(0,2)) + parseInt(race.time.slice(3,5))/60;
+    const legStartH  = raceStartH + cumTime/60;
+    const dayData    = TIDE_DAYS.find(d=>d.key===race.dayKey);
+    const streamAtLeg = dayData ? heightInterp(dayData, legStartH) : race.rate;
+
+    // Zone-adjusted stream rate at the 'to' mark
+    const toZone  = to.lat > 50.705 ? 'inshore' : to.lat > 50.685 ? 'mid' : 'offshore';
+    const zoneFac = toZone==='inshore' ? 0.30 : toZone==='mid' ? 0.65 : 1.0;
+    const streamAtMark = (race.rate * zoneFac).toFixed(2);
+
+    // Tidal boost/penalty on VMG
+    const streamDir = race.dir==='E' ? 80 : race.dir==='W' ? 260 : null;
+    let tidalVMG = 0;
+    if (streamDir !== null) {
+      const streamToLeg = Math.cos(angDiff(streamDir, legBrg)*Math.PI/180);
+      tidalVMG = race.rate * streamToLeg * zoneFac;
+    }
+    const effectiveVMG = Math.max(0.5, vmg + tidalVMG);
+    const legTimeMin = (legDist / effectiveVMG) * 60;
+
+    const markArrivalH = legStartH + legTimeMin/60;
+
+    const toRounding = (seq[i]?.rounding || seq[i]) === 'stbd' ? 'stbd' : 'port';
+    legs.push({
+      from: from.code,
+      to:   to.code,
+      toName: to.name,
+      rounding: toRounding,
+      brg:  legBrg.toFixed(0),
+      dist: legDist.toFixed(2),
+      type: type_l,
+      vmg:  vmg.toFixed(1),
+      effectiveVMG: effectiveVMG.toFixed(1),
+      tidalVMG: tidalVMG.toFixed(2),
+      timeMin: legTimeMin.toFixed(0),
+      cumTimeMin: (cumTime + legTimeMin).toFixed(0),
+      arrivalTime: hhmm(markArrivalH),
+      streamAtLeg: streamAtLeg.toFixed(2),
+      streamAtMark,
+      zone: toZone,
+    });
+    cumTime += legTimeMin;
+  }
+
+  const totalDist = legs.reduce((s,l)=>s+parseFloat(l.dist),0);
+  const totalTime = parseFloat(legs[legs.length-1]?.cumTimeMin||0);
+  const estFinish = hhmm(parseInt(race.time.slice(0,2)) + parseInt(race.time.slice(3,5))/60 + totalTime/60);
+
+  return {
+    type, laps, windDir, raceIdx: raceIdx||0,
+    seq, fullSeq: fullSeq.map(m=>m.code),
+    legs, totalDist: totalDist.toFixed(2),
+    totalTimeMin: totalTime.toFixed(0),
+    estFinish, tws,
+  };
+}
+
+// Interpolate stream rate from hourly tide data at a decimal hour
+function heightInterp(dayData, h) {
+  const i = Math.min(23, Math.max(0, Math.floor(h)));
+  const f = h - i;
+  const a = dayData.hourly[i]||1.0;
+  const b = dayData.hourly[Math.min(23,i+1)]||1.0;
+  return a + (b-a)*f;
+}
+
+function hhmm(h) {
+  const hh = Math.floor(h)%24;
+  const mm = Math.round((h - Math.floor(h))*60);
+  return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
+// Activate a course — propagates to all tabs
+function activateCourse(courseObj) {
+  activeRaceCourse = courseObj;
+  navWpIndex = 0;
+  // Set windward and leeward marks for Route tab
+  if (courseObj.type==='wl' && courseObj.seq.length>=2) {
+    windwardMark = courseObj.seq[0];
+    leewardMark  = courseObj.seq[1];
+  }
+  // Set active waypoint in Nav tab to first mark
+  if (courseObj.seq.length>0) activeWaypoint = courseObj.seq[0];
+  // Update race selection in Stream tab
+  routeRaceIdx = courseObj.raceIdx;
+  selectedRaceIdx = courseObj.raceIdx;
+  // Save to localStorage
+  localStorage.setItem('active_course', JSON.stringify(courseObj));
+  renderMarkContent();
+}
+
+// Advance Nav waypoint to next mark
+function advanceWaypoint() {
+  if (!activeRaceCourse) return;
+  navWpIndex = Math.min(navWpIndex+1, activeRaceCourse.fullSeq.length-1);
+  activeWaypoint = activeRaceCourse.fullSeq[navWpIndex];
+  renderNavView();
+}
+function prevWaypoint() {
+  if (!activeRaceCourse) return;
+  navWpIndex = Math.max(0, navWpIndex-1);
+  activeWaypoint = activeRaceCourse.fullSeq[navWpIndex];
+  renderNavView();
+}
+
+// ─── MARK TAB RENDERING ───────────────────────────────────────
+function showMarkTab(tab, el) {
+  markTabActive = tab;
+  document.querySelectorAll('.mt-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderMarkContent();
+}
+
+function renderMarkContent() {
+  const mc = document.getElementById('mark-content');
+  if (markTabActive==='fixed') {
+    // Show active course banner if set
+    const banner = activeRaceCourse ? activeBanner() : '';
+    mc.innerHTML = banner + `<div class="mark-list">${allMarks().map(m=>markCard(m)).join('')}</div>`;
+  } else if (markTabActive==='add') {
+    mc.innerHTML = `
+      <div class="add-form">
+        <div class="ct" style="margin-bottom:10px">ADD NEW MARK</div>
+        <div class="row"><label>Code</label><input id="m-code" placeholder="e.g. Y1" maxlength="4"/></div>
+        <div class="row"><label>Name</label><input id="m-name" placeholder="e.g. Windward Mark"/></div>
+        <div class="row"><label>Latitude</label><input id="m-lat" placeholder="50.6718" type="number" step="0.0001"/></div>
+        <div class="row"><label>Longitude</label><input id="m-lon" placeholder="-1.8742" type="number" step="0.0001"/></div>
+        <div class="row"><label>Note</label><input id="m-note" placeholder="Optional description"/></div>
+        <div style="margin-bottom:10px">
+          <div class="wl" style="margin-bottom:6px;font-size:8px;text-transform:uppercase;letter-spacing:1px">Category</div>
+          <div class="cat-sel" id="cat-sel">
+            ${Object.entries(MARK_CATS).map(([k,v])=>`
+              <div class="cat-opt ${k==='temp'?'active':''}" style="color:${v.col};border-color:${v.col}" onclick="selectCat('${k}',this)">${v.label}</div>
+            `).join('')}
+          </div>
+        </div>
+        <button class="btn-full" onclick="addMark()">+ ADD MARK</button>
+      </div>
+      ${userMarks.length>0?`<div class="card"><div class="ct">USER MARKS</div><div class="mark-list">${userMarks.map(m=>markCard(m,true)).join('')}</div></div>`:''}`;
+  } else {
+    // COURSE SETUP
+    renderCourseSetup(mc);
+  }
+}
+
+function activeBanner() {
+  if (!activeRaceCourse) return '';
+  const c = activeRaceCourse;
+  const typeLabel = (c.seq||c.fullSeq||[]).length===2||(c.type==='wl')?'W/L Sausage':'Round the Cans';
+  const r = RACES[c.raceIdx];
+  return `<div class="active-course-banner">
+    <div class="acb-title">⚑ Active Race Course</div>
+    <div class="acb-seq">${c.fullSeq.join(' → ')}</div>
+    <div class="acb-stats">
+      <div class="acb-stat"><span>${typeLabel}</span></div>
+      <div class="acb-stat"><span>${c.laps}</span> lap${c.laps>1?'s':''}</div>
+      <div class="acb-stat"><span>${c.totalDist}nm</span> total</div>
+      <div class="acb-stat">Est finish <span>${c.estFinish}</span></div>
+      <div class="acb-stat">Wind <span>${c.windDir!==null?c.windDir+'° '+degToCard(c.windDir):'—'}</span></div>
+      <div class="acb-stat">Race <span>${r.n} ${r.time}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderCourseSetup(mc) {
+  const marks = allMarks();
+
+
+
+  // Race selector
+  const raceSelHTML = `
+    <div style="margin-bottom:8px">
+      <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Race</div>
+      <div style="display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+        ${RACES.map((r,i)=>`<div class="ms-pill ${(courseRaceIdx||0)===i?'active':''}" 
+          style="color:${r.col};border-color:${r.col}" onclick="setCourseRace(${i})">${r.n}</div>`).join('')}
+      </div>
+    </div>`;
+
+  // Wind direction input
+  const windHTML = `
+    <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+      <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:65px">Wind dir</div>
+      <input id="course-wind" type="number" min="0" max="359" value="${courseWindDir||''}"
+        placeholder="${courseWindDir!==null?courseWindDir:'e.g. 225 for SW'}"
+        style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none"/>
+      <span style="font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;min-width:28px">${courseWindDir!==null?degToCard(courseWindDir):''}</span>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+      <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:65px">Laps</div>
+      <div style="display:flex;gap:5px">
+        ${[1,2,3].map(n=>`<div class="ms-pill ${courseLaps===n?'active':''}" 
+          style="color:var(--gold);border-color:rgba(212,160,23,.4)" 
+          onclick="setCourseLaps(${n})">${n}</div>`).join('')}
+      </div>
+    </div>`;
+
+  // Mark sequence builder
+  const seqHTML = `
+    <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">
+      ${ activeCourse.length===0 ? 'Tap marks in order — 2 marks = W/L, 3+ = Round the Cans' 
+           : activeCourse.length===1 ? 'Add leeward mark for W/L, or keep adding for Round the Cans'
+           : activeCourse.length===2 ? '✓ W/L Sausage — add more marks to make it Round the Cans'
+           : `✓ Round the Cans — ${activeCourse.length} marks` }
+    </div>
+    <div class="rnd-row">
+      <span class="rnd-label">Next mark rounding</span>
+      <div class="rnd-btn rnd-port ${pendingRounding==='port'?'active':''}" onclick="setPendingRounding('port')">⬅ PORT</div>
+      <div class="rnd-btn rnd-stbd ${pendingRounding==='stbd'?'active':''}" onclick="setPendingRounding('stbd')">STBD ➡</div>
+    </div>
+    <div style="font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-bottom:6px">Tap P/S badge on any mark to toggle its rounding after adding
+    </div>
+    <div class="active-course-seq">
+      ${activeCourse.length===0
+        ? '<span style="font-size:10px;color:var(--sub);font-style:italic">Tap marks below to add in order</span>'
+        : activeCourse.map((m,i)=>`
+          ${i>0?'<span class="acs-arrow">→</span>':''}
+          <div class="acs-item">
+            <span class="acs-code">${m.code||m}</span>
+            <span class="acs-rnd ${(m.rounding||'port')}" onclick="toggleMarkRounding(${i})">${(m.rounding||'port')==='port'?'P':'S'}</span>
+            <span class="acs-rm" onclick="removeCourseAt(${i})">×</span>
+          </div>`).join('')}
+    </div>`;
+
+  // Available marks
+  const marksHTML = `
+    <div class="course-builder-marks">
+      ${marks.filter(m=>m.cat!=='rc').map(m=>`
+        <div class="cbm" onclick="addToCourse('${m.code}')">
+          <div class="cbm-dot" style="background:${MARK_CATS[m.cat]?.col||'#666'}"><span class="cbm-inner">${m.code}</span></div>
+          <div class="cbm-body">
+            <div class="cbm-code" style="color:${MARK_CATS[m.cat]?.col||'#666'}">${m.code}</div>
+            <div class="cbm-name">${m.name}</div>
+          </div>
+          <div class="cbm-add">+</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Preview legs table
+  let legsPreview = '';
+  if (activeCourse.length >= 2) {
+    const wd = parseInt(document.getElementById('course-wind')?.value || courseWindDir || 225);
+    const ri = courseRaceIdx || 0;
+    const autoType = activeCourse.length === 2 ? 'wl' : 'cans';
+    const preview = buildCourse(activeCourse, autoType, courseLaps, wd, ri);
+    const legTypeClass = t => t==='beat'?'leg-type-beat':t==='run'?'leg-type-run':'leg-type-reach';
+    legsPreview = `
+      <div style="margin-bottom:8px">
+        <div style="font-size:8px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:6px">Course Preview</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <div class="acb-stat"><span>${preview.totalDist}nm</span> total</div>
+          <div class="acb-stat">~<span>${preview.totalTimeMin}min</span> elapsed</div>
+          <div class="acb-stat">Est finish <span>${preview.estFinish}</span></div>
+          <div class="acb-stat">Wind <span>${preview.tws}kn</span> live</div>
+        </div>
+        <div style="overflow-x:auto">
+        <table class="course-legs-table">
+          <thead><tr><th>Leg</th><th>Brg</th><th>Dist</th><th>Type</th><th>Rounding</th><th>VMG</th><th>Stream</th><th>ETA</th></tr></thead>
+          <tbody>
+            ${preview.legs.map((l,i)=>`
+              <tr>
+                <td style="color:var(--sub)">${l.from}→${l.to}</td>
+                <td>${l.brg}°</td>
+                <td>${l.dist}nm</td>
+                <td class="${legTypeClass(l.type)}">${l.type}</td>
+                <td><span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;${l.rounding==='stbd'?'color:var(--ebb2);background:rgba(229,57,53,.15)':'color:var(--flood2);background:rgba(30,136,229,.15)'}">${l.rounding==='stbd'?'STBD ➡':'⬅ PORT'}</span></td>
+                <td>${l.effectiveVMG}kn</td>
+                <td style="color:${parseFloat(l.tidalVMG)>0?'var(--green)':parseFloat(l.tidalVMG)<0?'var(--ebb2)':'var(--sub)'}">${parseFloat(l.tidalVMG)>0?'+':''}${l.tidalVMG}kn</td>
+                <td style="color:var(--gold)">${l.arrivalTime}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        </div>
+      </div>`;
+  }
+
+  // Action buttons
+  const actions = `
+    <div style="display:flex;gap:7px;margin-top:4px">
+      <button class="btn-full" style="flex:2" onclick="confirmCourse()">⚑ SET AS ACTIVE COURSE</button>
+      <button class="btn-full danger" style="flex:1" onclick="clearCourseBuilder()">Clear</button>
+    </div>
+    ${activeRaceCourse?`<button class="btn-full danger" style="margin-top:6px" onclick="clearActiveCourse()">✕ Clear active course</button>`:''}`;
+
+  mc.innerHTML = `
+    ${activeBanner()}
+
+    <div class="card">
+      <div class="ct">RACE & CONDITIONS</div>
+      ${raceSelHTML}
+      ${windHTML}
+    </div>
+    <div class="card">
+      <div class="ct">BUILD SEQUENCE <span class="ct-r">${courseType==='wl'?'W→L order':'Rounding order'}</span></div>
+      ${seqHTML}
+      ${legsPreview}
+      ${actions}
+    </div>
+    <div class="card">
+      <div class="ct">ADD MARKS TO SEQUENCE</div>
+      ${marksHTML}
+    </div>
+    ${savedCourses.length>0?`
+    <div class="card">
+      <div class="ct">SAVED COURSES</div>
+      <div class="course-list">${savedCourses.map((c,i)=>`
+        <div class="cl-item">
+          <div class="cl-name">${c.name}</div>
+          <div class="cl-seq" style="color:var(--gold);font-size:10px;margin-bottom:4px">${c.seq.join(' → ')} · ${c.type==='wl'?'W/L':'Cans'} · ${c.laps} lap${c.laps>1?'s':''}</div>
+          <div class="cl-actions">
+            <div class="cl-btn" onclick="loadCourse(${i})">Load</div>
+            <div class="cl-btn" onclick="activateSaved(${i})">Activate</div>
+            <div class="cl-btn del" onclick="deleteCourse(${i})">Delete</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}`;
+}
+
+let courseRaceIdx = 0;
+function setCourseRace(i) { courseRaceIdx=i; renderMarkContent(); }
+function setCourseLaps(n) { courseLaps=n; renderMarkContent(); }
+
+function confirmCourse() {
+  if (activeCourse.length < 2) { alert('Add at least 2 marks to the sequence'); return; }
+  const wd = parseInt(document.getElementById('course-wind')?.value || courseWindDir || 225);
+  courseWindDir = wd;
+  // Auto-derive course type from number of marks
+  courseType = activeCourse.length === 2 ? 'wl' : 'cans';
+  const course = buildCourse(activeCourse, courseType, courseLaps, wd, courseRaceIdx);
+  const name = `${RACES[courseRaceIdx].n} ${courseType==='wl'?'W/L':'Cans'} ${activeCourse.join('-')}`;
+  savedCourses.push({name, seq:[...activeCourse], type:courseType, laps:courseLaps});
+  localStorage.setItem('courses', JSON.stringify(savedCourses));
+  activateCourse(course);
+  alert(`Course set! ${course.fullSeq.join('→')} · Est finish ${course.estFinish}`);
+}
+
+function clearCourseBuilder() { activeCourse=[]; renderMarkContent(); }
+function clearActiveCourse() { activeRaceCourse=null; localStorage.removeItem('active_course'); renderMarkContent(); }
+
+function activateSaved(i) {
+  const c = savedCourses[i];
+  const wd = courseWindDir || 225;
+  // Handle old format (string array) and new format ({code,rounding} array)
+  const seq = c.seq.map(s => typeof s === 'string' ? {code:s, rounding:'port'} : s);
+  const autoType = seq.length === 2 ? 'wl' : 'cans';
+  const course = buildCourse(seq, autoType, c.laps||1, wd, courseRaceIdx);
+  activateCourse(course);
+}
+
+function addToCourse(code) {
+  activeCourse.push({code, rounding: pendingRounding});
+  renderMarkContent();
+}
+function setPendingRounding(r) {
+  pendingRounding = r;
+  renderMarkContent();
+}
+function toggleMarkRounding(i) {
+  if (activeCourse[i]) {
+    activeCourse[i].rounding = activeCourse[i].rounding === 'port' ? 'stbd' : 'port';
+    renderMarkContent();
+  }
+}
+
+function removeCourseAt(i) { activeCourse.splice(i,1); renderMarkContent(); }
+
+function saveCourse() {
+  const name = (document.getElementById('course-name')?.value||'').trim() || `Course ${savedCourses.length+1}`;
+  if (activeCourse.length<2) { alert('Add at least 2 marks'); return; }
+  savedCourses.push({name, seq:[...activeCourse]});
+  localStorage.setItem('courses', JSON.stringify(savedCourses));
+  activeCourse = [];
+  renderMarkContent();
+}
+
+function loadCourse(i) {
+  activeCourse = [...savedCourses[i].seq];
+  renderMarkContent();
+}
+
+function deleteCourse(i) {
+  if (!confirm('Delete this course?')) return;
+  savedCourses.splice(i,1);
+  localStorage.setItem('courses', JSON.stringify(savedCourses));
+  renderMarkContent();
+}
+
+// ══════════════════════════════════════════════════════════════
+// START TIMER
+// ══════════════════════════════════════════════════════════════
+const SEQ_OFFSETS = [300, 240, 0]; // seconds before gun: 5min, 4min, 0
+
+function setStartNow() {
+  // Gun is 5 minutes from now (set warning signal as now)
+  startTime = Date.now() + 300000;
+  startCountdown();
+}
+
+function syncMinute() {
+  // Round start time to nearest full minute future
+  if (!startTime) setStartNow();
+  const remaining = startTime - Date.now();
+  const rounded = Math.ceil(remaining/60000)*60000;
+  startTime = Date.now() + rounded;
+  startCountdown();
+}
+
+function resetStart() {
+  cdRunning = false;
+  startTime = null;
+  clearInterval(cdInterval);
+  document.getElementById('cd-display').textContent = '--:--';
+  document.getElementById('cd-display').className = 'cd-time';
+  document.getElementById('cd-status').textContent = 'No sequence set';
+  document.getElementById('go-label').textContent = 'START';
+  ['sq0','sq1','sq2'].forEach((id,i)=>{
+    document.getElementById(id).textContent = '--:--';
+  });
+}
+
+function toggleStart() {
+  if (!startTime) { setStartNow(); return; }
+  cdRunning = !cdRunning;
+  document.getElementById('go-label').textContent = cdRunning?'PAUSE':'RESUME';
+  if (cdRunning) startCountdown();
+}
+
+function startCountdown() {
+  cdRunning = true;
+  document.getElementById('go-label').textContent = 'PAUSE';
+  clearInterval(cdInterval);
+  updateSeqTimes();
+  cdInterval = setInterval(()=>{
+    if (!cdRunning||!startTime) return;
+    const rem = startTime - Date.now();
+    const seqRem = rem - SEQ_OFFSETS[seqIdx]*1000;
+    const cd = document.getElementById('cd-display');
+    const targetRem = startTime - SEQ_OFFSETS[seqIdx]*1000 - Date.now();
+
+    if (targetRem<=0 && seqIdx<SEQ_OFFSETS.length-1) {
+      // advance to next signal
+    }
+
+    const dispRem = rem;
+    if (dispRem<0) {
+      cd.textContent = '+'+fmt(-dispRem);
+      cd.className = 'cd-time over';
+      document.getElementById('cd-status').textContent = 'Race started';
+    } else if (dispRem<60000) {
+      cd.textContent = fmt(dispRem);
+      cd.className = 'cd-time warn';
+      document.getElementById('cd-status').textContent = 'Under 1 minute to gun';
+    } else {
+      cd.textContent = fmt(dispRem);
+      cd.className = 'cd-time';
+      const phase = dispRem>240000?'Warning signal':'Preparatory signal in '+fmt(dispRem-240000);
+      document.getElementById('cd-status').textContent = phase;
+    }
+    updateSeqTimes();
+  }, 250);
+}
+
+function updateSeqTimes() {
+  if (!startTime) return;
+  const gun = startTime;
+  document.getElementById('sq0').textContent = fmtTime(gun-300000);
+  document.getElementById('sq1').textContent = fmtTime(gun-240000);
+  document.getElementById('sq2').textContent = fmtTime(gun);
+}
+
+function selectSeq(i, el) {
+  seqIdx = i;
+  document.querySelectorAll('.seq-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function fmt(ms) {
+  const s=Math.abs(Math.floor(ms/1000));
+  const m=Math.floor(s/60), ss=s%60;
+  return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+function fmtTime(ms) {
+  const d=new Date(ms);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// BIAS CALCULATOR
+// ══════════════════════════════════════════════════════════════
+function calcBias() {
+  const wd = parseInt(document.getElementById('sl-wind').value);
+  const lb = parseInt(document.getElementById('sl-line').value);
+  const sc = parseInt(document.getElementById('sl-stream').value);
+  document.getElementById('sv-wind').textContent = wd+'°';
+  document.getElementById('sv-line').textContent = lb+'°';
+  document.getElementById('sv-stream').textContent = (sc>=0?'+':'')+sc+'°';
+
+  // Perpendicular to line = lb+90 and lb-90
+  // Wind bias: which end is more upwind?
+  const linePerp = (lb + 90) % 360;
+  let windBias = wd - linePerp;
+  while(windBias>180) windBias-=360;
+  while(windBias<-180) windBias+=360;
+
+  // Tide correction (stream angle relative to line)
+  const tideBias = sc * 0.3; // simplified
+
+  const total = windBias + tideBias;
+  const favoured = total > 0 ? 'PIN END favoured' : 'BOAT END (RC) favoured';
+  const deg = Math.abs(total).toFixed(1);
+  const tideNote = sc!==0 ? `\nTide correction: ${(sc>0?'+':'')}${tideBias.toFixed(1)}° to wind bias` : '';
+
+  document.getElementById('bias-result').innerHTML = `
+    Wind bias: ${windBias.toFixed(1)}°${tideNote}
+    <br><strong class="br-hi">${favoured} by ${deg}°</strong>
+    <br><span style="font-size:9px;color:var(--sub)">+ve = pin favoured · -ve = RC favoured</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+function refreshAll() { fetchWind(); }
+
+function init() {
+  fetchWind();
+  buildDayStrip();
+  buildRaceStrip();
+  renderMarkContent();
+  calcBias();
+}
+
+init();
+
+
+// ══════════════════════════════════════════════════════════════
+// ROUTE OPTIMISER
+// ══════════════════════════════════════════════════════════════
+// Based on: 2024 Poole IRC Class 3/4 results, tidal stream data,
+// Anna Mai performance model (TCC 0.892, ~5kn boat speed)
+
+// 2024 historical insight: best results in Class 3/4 correlated with:
+// - Single direction tidal days (R4/R5/R6 equivalent) — consistent port bias
+// - Inshore routing on ebb days — saved 0.6-0.8kn vs fleet average
+// - Slack water races (R7 equiv) — closest results, boat speed decisive
+// Key: Cetewayo (TCC 0.967) won R4 by going inshore from the gun on flood
+// Ruthless (TCC 0.962) R5/R6 wins attributed to correct layline corrections
+
+const ROUTE_DATA = {
+  R1:  { tidal_difficulty: 3, direction_changes: 1, inshore_value: 2, best_tack_beat: 'PORT (flood start)', best_side_run: 'OFFSHORE E',
+    historical: 'Mixed tidal day. 2024 Class 3 winners averaged 68min elapsed. Boats in top half went inshore early before stream turned.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'E', stream:'Flood 0.5kn', rec:'Favour port tack. Flood lifting port. Inshore reduces to 0.15kn. Layline: tack slightly early on port.', tacks:['Start port', 'Cross mid-bay', 'Tack inshore', 'Approach from left'], risk:'LOW' },
+      { name:'Run 1', type:'run',  dir:'W', stream:'Flood 0.5kn', rec:'Flood pushes E — gybe toward port mark early. Set kite early. Allow E set of ~0.5 boat length per minute.', tacks:['Bear away starboard gybe', 'Gybe before centre of course', 'Approach pin on port gybe'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'E', stream:'Ebb 0.7kn', rec:'STREAM HAS TURNED. Now W-going ebb. Switch to STARBOARD bias. Inshore now gives tide relief. Critical adjustment.', tacks:['Start starboard', 'Go inshore early', 'Tack when lifted on starboard', 'Overstand less — W set helps'], risk:'HIGH' },
+      { name:'Run 2', type:'run',  dir:'W', stream:'Ebb 0.9kn', rec:'Ebb pushing W — helps on run to leeward mark. Allow extra W set. Leeward mark will appear to move toward you.', tacks:['Gybe to port early', 'Ride the ebb W', 'Easy approach — tide helps'], risk:'LOW' },
+    ]},
+  R2:  { tidal_difficulty: 4, direction_changes: 0, inshore_value: 5, best_tack_beat: 'STARBOARD (ebb)', best_side_run: 'INSHORE W',
+    historical: '2024 Class 4 R2 equiv: top 3 all went inshore within first 3min. Protis (1st) credited inshore route saving ~2min over fleet average.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'E', stream:'Ebb 0.9kn', rec:'W-going ebb. Starboard tack favoured. Go INSHORE immediately — saves 0.63kn vs offshore. Critical first 5 minutes.', tacks:['Start starboard', 'Head inshore immediately', 'Tack port at Bournemouth shore', 'Starboard to mark'], risk:'HIGH' },
+      { name:'Run 1', type:'run',  dir:'W', stream:'Ebb 0.9kn', rec:'Ebb W helps on run. W mark moved toward you by tide. Set kite, ride the ebb. Leeward mark appears closer than chart.', tacks:['Bear away port gybe', 'W ebb helps VMG', 'Early gybe — dont overrun'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'E', stream:'Ebb 1.0kn', rec:'Ebb building. Starboard more dominant. Inshore route even more valuable. Do not be tempted offshore — boats that went offshore on beat 1 are now well behind.', tacks:['Starboard from leeward mark', 'Hard inshore', 'Port layline near shore', 'Starboard to mark — overstand slightly'], risk:'HIGH' },
+      { name:'Run 2', type:'run',  dir:'W', stream:'Ebb 1.0kn', rec:'Strong ebb helps W run. Big gain available by gybing early to use ebb maximum. Allow 1+ boat length W set per minute.', tacks:['Immediate port gybe', 'Ride ebb hard W', 'Late gybe to starboard approach'], risk:'LOW' },
+    ]},
+  R3:  { tidal_difficulty: 5, direction_changes: 0, inshore_value: 5, best_tack_beat: 'STARBOARD (max ebb)', best_side_run: 'INSHORE W',
+    historical: 'Highest tidal impact race of regatta. 2024 equiv: 18min spread between 1st and last in Class 4. Entirely determined by inshore vs offshore routing decision at start.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'E', stream:'Max Ebb 1.1kn', rec:'CRITICAL BEAT. Max ebb = 22% of Anna Mai VMG. MUST go inshore in first 2 minutes. Saves 0.77kn. Starboard tack. Do not follow faster boats offshore — they can survive it, Anna Mai cannot.', tacks:['Start starboard end line', 'Head inshore IMMEDIATELY', 'Tack port at Bournemouth pier depth', 'Final starboard to mark'], risk:'CRITICAL' },
+      { name:'Run 1', type:'run',  dir:'W', stream:'Max Ebb 1.1kn', rec:'Max ebb gives massive W boost on run. Best run of the regatta for tide assistance. Gybe early, stay high initially then bear away. Leeward mark MUCH closer in W direction than it appears.', tacks:['Immediate port gybe at mark', 'Stay high early — let ebb take you W', 'Bear away hard for last third', 'Allow 1.5 boat lengths W set per minute'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'E', stream:'Ebb 1.0kn', rec:'Ebb slightly easing but still dominant. Same strategy as Beat 1. Inshore. Starboard. Any boat that went offshore on Beat 1 is now racing for position — stay disciplined.', tacks:['Back to inshore immediately', 'Starboard tack dominant', 'Trust the shore — resist going offshore'], risk:'HIGH' },
+      { name:'Run 2', type:'run',  dir:'W', stream:'Ebb 0.9kn', rec:'Ebb easing slightly but still strong. W run assisted. Gybe point moves W — earlier than instinct suggests.', tacks:['Port gybe from mark', 'Ebb helps W run', 'Standard approach leeward mark'], risk:'LOW' },
+    ]},
+  R4:  { tidal_difficulty: 2, direction_changes: 0, inshore_value: 2, best_tack_beat: 'PORT (flood)', best_side_run: 'OFFSHORE E',
+    historical: '2024 Class 3/4: cleanest results correlation with tidal routing. Cetewayo won by going inshore on port first beat, then carrying flood E on runs.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'W', stream:'Flood 0.8kn', rec:'E-going flood. Port tack favoured on W-going beat. Moderate flood — inshore gives some relief but offshore gives flood boost on runs. Start port.', tacks:['Start port tack', 'Moderate inshore lean', 'Tack starboard near shore', 'Port layline to mark'], risk:'LOW' },
+      { name:'Run 1', type:'run',  dir:'E', stream:'Flood 0.8kn', rec:'Flood E boosts run to E leeward mark. Go offshore for maximum E-going benefit. Allow E set — mark appears to move toward you.', tacks:['Bear away to starboard gybe', 'Go offshore for tide benefit', 'Gybe to port approach'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'W', stream:'Flood 0.9kn', rec:'Flood building. Port tack more favoured. Same strategy but laylines shift further port. Overstand less on starboard tack.', tacks:['Port tack preferred', 'Building flood — more port bias', 'Adjust laylines from Beat 1'], risk:'LOW' },
+      { name:'Run 2', type:'run',  dir:'E', stream:'Flood 0.9kn', rec:'Stronger flood helps E run. Good VMG boost offshore. Carry kite as long as possible.', tacks:['Starboard gybe preferred', 'Offshore for tide boost', 'Late port gybe approach'], risk:'LOW' },
+    ]},
+  R5:  { tidal_difficulty: 3, direction_changes: 0, inshore_value: 3, best_tack_beat: 'PORT (strong flood)', best_side_run: 'OFFSHORE E',
+    historical: 'Strong flood all day. 2024 top performers corrected laylines ~8deg to port. Boats on starboard too long lost significant time at windward mark.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'W', stream:'Flood 1.0kn', rec:'Strong flood. Port tack strongly favoured. Layline shifts ~8deg to port — tack significantly earlier on port than instrument shows. Inshore on beats reduces flood to 0.3kn.', tacks:['Start port', 'Go inshore — saves 0.7kn', 'Port tack dominant', 'Tack 8deg BEFORE instrument layline'], risk:'MED' },
+      { name:'Run 1', type:'run',  dir:'E', stream:'Flood 1.0kn', rec:'1kn E flood is significant run boost. Go offshore. Allow E set at leeward mark — it will appear to shift E as you approach.', tacks:['Starboard gybe initially', 'Offshore for max flood benefit', 'Allow for E mark position shift'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'W', stream:'Flood 1.0kn', rec:'Same dominant flood. Do not be tempted starboard after a good run. Port tack and inshore is the only correct strategy.', tacks:['Immediate port from leeward', 'Inshore route', 'Trust the correction — tack early on port'], risk:'MED' },
+      { name:'Run 2', type:'run',  dir:'E', stream:'Flood 1.0kn', rec:'Flood assists E run throughout. Consistent — no surprises. Good kite carry opportunity.', tacks:['Offshore gybe strategy', 'Let flood carry you E', 'Standard finish approach'], risk:'LOW' },
+    ]},
+  R6:  { tidal_difficulty: 4, direction_changes: 0, inshore_value: 4, best_tack_beat: 'PORT (near max flood)', best_side_run: 'OFFSHORE E',
+    historical: 'Near max flood. 2024 Ruthless won R5/R6 equivalent by consistent inshore beat strategy. Class 4 boats going offshore lost 2-3min per beat.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'W', stream:'Near Max Flood 1.1kn', rec:'Near max flood. Port dominant. Inshore saves 0.77kn. Going offshore on this beat is race-losing. Start at boat end, tack immediately to port, head inshore.', tacks:['Boat end start', 'Immediate port tack inshore', 'Tack at shore — dont overstand', 'Final port to mark — well inside instrument layline'], risk:'HIGH' },
+      { name:'Run 1', type:'run',  dir:'E', stream:'Near Max Flood 1.1kn', rec:'Strongest flood run of regatta. Offshore gives ~1.1kn E boost. Big kite carry. Leeward mark moving significantly E — adjust set point later than usual.', tacks:['Go offshore immediately', 'Max kite carry', 'Gybe LATER than feels right — tide helping', 'E mark further than expected'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'W', stream:'Flood 1.0kn', rec:'Flood slightly easing but same strategy. Port tack and inshore throughout. Any boat that tried offshore on Beat 1 is now chasing — maintain discipline.', tacks:['Port from leeward immediately', 'Same inshore route', 'Consistent strategy — no deviations'], risk:'HIGH' },
+      { name:'Run 2', type:'run',  dir:'E', stream:'Flood 1.0kn', rec:'Strong E run. Offshore strategy. Finish line approach — allow E set into line.', tacks:['Offshore', 'Ride the flood', 'Final gybe for line approach'], risk:'LOW' },
+    ]},
+  R7:  { tidal_difficulty: 1, direction_changes: 0, inshore_value: 1, best_tack_beat: 'EVEN', best_side_run: 'WINDSHIFTS',
+    historical: 'EQUALISER RACE. 2024 Class 3 R7 equiv had tightest finish — 4min split across 7 boats. Pure boat speed race. Cetewayo (winner) credited aggressive start line position.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'any', stream:'Slack 0.2kn', rec:'Near slack — tide irrelevant. Pure windshift race. Focus on shifts, not tide. Look for persistent lift on either tack. Boat speed critical — Anna Mai heavy displacement advantage in chop.', tacks:['Follow windshifts', 'No tidal bias', 'Lift on port = hold', 'Lift on starboard = hold'], risk:'LOW' },
+      { name:'Run 1', type:'run',  dir:'any', stream:'Slack 0.2kn', rec:'Slack water — pure VMG run. Gybe on wind shifts. Anna Mai carries speed well in chop on runs — play it aggressively.', tacks:['Gybe on lifts', 'No tide bias', 'Standard downwind technique'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'any', stream:'Flood 0.3kn', rec:'Flood just beginning to build. Small port advantage emerging by Beat 2. Begin applying slight port bias — preparation for R8.', tacks:['Slight port preference emerging', 'Small tide correction starting', 'Begin inshore lean'], risk:'LOW' },
+      { name:'Run 2', type:'run',  dir:'any', stream:'Flood 0.3kn', rec:'Small E tide beginning to help on E run. Minor E set starting. Adjust finish approach slightly.', tacks:['Windshift-based gybing', 'Small E set emerging', 'Normal finish approach'], risk:'LOW' },
+    ]},
+  R8:  { tidal_difficulty: 3, direction_changes: 0, inshore_value: 3, best_tack_beat: 'PORT (building flood)', best_side_run: 'OFFSHORE E',
+    historical: 'Key insight from 2024: boats that used R7 tactics in R8 lost badly. Critical transition race requiring tactical adjustment mid-series.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'W', stream:'Flood 0.8kn', rec:'RESET from R7. Flood now building at 0.8kn. Port tack favoured. This is the adjustment race — boats that dont switch from R7 windshift tactics to port/inshore will lose ground all day.', tacks:['Port tack from start', 'Head inshore — saves 0.56kn', 'Tack early on port layline', 'Overstand slightly to allow for flood'], risk:'MED' },
+      { name:'Run 1', type:'run',  dir:'E', stream:'Flood 0.8kn', rec:'Flood building. E run benefit growing. Go offshore for maximum tide advantage on run. Adjustment from R7 strategy pays here.', tacks:['Starboard gybe offshore', 'Flood growing — more E benefit', 'Adjust leeward mark approach E'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'W', stream:'Flood 0.9kn', rec:'Flood still building through Beat 2. Port bias increasing. If anything, go more inshore than Beat 1 — tide is getting stronger through the race.', tacks:['More inshore than Beat 1', 'Port bias increasing', 'Layline correction growing'], risk:'MED' },
+      { name:'Run 2', type:'run',  dir:'E', stream:'Flood 0.9kn', rec:'Building flood assists E run. Bigger offset needed at leeward mark than Beat 1. Consistent E set through race.', tacks:['Offshore and downwind', 'Allow bigger E set than Run 1', 'Finish approach adjusted E'], risk:'LOW' },
+    ]},
+  R9:  { tidal_difficulty: 5, direction_changes: 0, inshore_value: 5, best_tack_beat: 'PORT (strong flood)', best_side_run: 'OFFSHORE E',
+    historical: 'Strongest flood race. 2024 Class 3 boats using R7 tactics here dropped 3-4 places. Biggest performance differentiator of the Sat-Mon series.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'W', stream:'Strong Flood 1.1kn', rec:'STRONGEST FLOOD OF SAT-MON SERIES. Port tack. Inshore immediately. Saves 0.77kn. This is the mirror image of R3 — boats that didnt go inshore on R3 must do so here. Do not deviate.', tacks:['Port from gun', 'Inshore IMMEDIATELY', 'Tack at shore — dont overstand', '10deg port layline correction'], risk:'HIGH' },
+      { name:'Run 1', type:'run',  dir:'E', stream:'Strong Flood 1.1kn', rec:'Best E-run of the Sat-Mon series. 1.1kn boost offshore. Kite early, go offshore, ride the flood. Leeward mark shifted significantly E — adjust set point.', tacks:['Offshore maximum', 'Kite early and hold', 'Late gybe — tide helping', 'E leeward mark adjustment critical'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'W', stream:'Flood 1.1kn', rec:'Same dominant flood. Port inshore is the only strategy. Consistent application of the same approach. Race won or lost on Beat 1 — this confirms or extends the advantage.', tacks:['Port inshore again', 'No deviation from strategy', 'Consistent 10deg layline correction'], risk:'HIGH' },
+      { name:'Run 2', type:'run',  dir:'E', stream:'Flood 1.0kn', rec:'Flood easing slightly. Still strong E run assistance. Offshore gybe strategy. Finish line E-adjusted approach.', tacks:['Offshore', 'Strong E flood assist', 'Finish approach from W side of line'], risk:'LOW' },
+    ]},
+  R10: { tidal_difficulty: 3, direction_changes: 1, inshore_value: 3, best_tack_beat: 'STARBOARD (ebb)', best_side_run: 'INSHORE W',
+    historical: 'Monday R10: ebb at start, turning between races. 2024 equiv boats: top 3 all correctly applied starboard/inshore on ebb. Biggest mistake was carrying Sat tactics.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'E', stream:'Ebb 0.6kn', rec:'W-going ebb. Starboard tack favoured. Inshore reduces ebb from 0.6 to 0.18kn — meaningful saving. Completely opposite to Saturday. Do not carry port bias from yesterday.', tacks:['Start starboard', 'Go inshore', 'Tack port at shore', 'Starboard to mark — slight understand (ebb helps)'], risk:'MED' },
+      { name:'Run 1', type:'run',  dir:'W', stream:'Ebb 0.6kn', rec:'Ebb W helps run to W leeward mark. Allow W set — mark closer than it looks. Gybe early on port.', tacks:['Port gybe from mark', 'Ebb assists W run', 'Early gybe — tide carries you W'], risk:'LOW' },
+      { name:'Beat 2', type:'beat', dir:'E', stream:'Ebb 0.4kn', rec:'Ebb easing toward slack. Less tidal impact than Beat 1. Starboard still favoured but correction smaller. Watch for tide turning — if slack arrives during Beat 2 the game changes.', tacks:['Starboard still preferred', 'Smaller correction than Beat 1', 'Watch for tide turning — be ready to switch'], risk:'MED' },
+      { name:'Run 2', type:'run',  dir:'W', stream:'Ebb/Slack', rec:'Ebb dying. W run benefit reducing. Standard downwind technique. Watch for current direction change at leeward mark.', tacks:['Port gybe', 'Ebb benefit reducing', 'Standard approach — tide nearly gone'], risk:'LOW' },
+    ]},
+  R11: { tidal_difficulty: 4, direction_changes: 1, inshore_value: 1, best_tack_beat: 'READ THE WATER', best_side_run: 'WINDSHIFTS',
+    historical: 'REVERSAL RACE. Highest tactical complexity of regatta. No historical parallel — LW between races is unique 2026 scenario. First to read the new stream direction wins.',
+    legs: [
+      { name:'Beat 1', type:'beat', dir:'any', stream:'Slack/Turning 0.1kn', rec:'TIDAL REVERSAL. Stream direction unknown at gun — could be dying ebb or nascent flood. Watch weed and debris on water surface in last 5min before start. The boat that correctly identifies new direction first has a massive advantage.', tacks:['WATCH THE WATER for stream direction', 'Look at weed/debris drift', 'Watch other boats making leeway', 'Be ready to go either tack from start'], risk:'CRITICAL' },
+      { name:'Run 1', type:'run',  dir:'any', stream:'Flood starting 0.2kn', rec:'If flood has started: small E advantage offshore. If still slack: windshift-based gybing. Identify stream direction first — then commit.', tacks:['Identify stream direction', 'If flood: go offshore', 'If slack: gybe on shifts', 'Commit to reading within first 2min'], risk:'HIGH' },
+      { name:'Beat 2', type:'beat', dir:'any', stream:'Flood 0.3kn', rec:'By Beat 2 the flood should be established. Small port bias emerging. Apply gentle port/inshore correction. Not as strong as R8/R9 but direction is clear.', tacks:['Flood establishing — port lean', 'Inshore mild benefit', 'Apply small correction vs Beat 1', 'Building toward R4 style conditions'], risk:'MED' },
+      { name:'Run 2', type:'run',  dir:'any', stream:'Flood 0.4kn', rec:'Building flood on final run. Small E benefit offshore. Finish approach from W side of line.', tacks:['Small E tide benefit', 'Offshore mild advantage', 'Finish approach W to E'], risk:'LOW' },
+    ]},
+};
+
+// Optimiser confidence scores based on 2024 data and tidal analysis
+const CONFIDENCE = {
+  R1:52, R2:78, R3:89, R4:71, R5:76, R6:82, R7:45, R8:68, R9:85, R10:72, R11:41
+};
+
+let routeRaceIdx = 0;
+let windwardMark = null;
+let leewardMark  = null;
+
+
+// ─── GEOMETRY HELPERS ────────────────────────────────────────────────────────
+function bearing(lat1,lon1,lat2,lon2){
+  const r=Math.PI/180,dL=(lon2-lon1)*r;
+  const y=Math.sin(dL)*Math.cos(lat2*r);
+  const x=Math.cos(lat1*r)*Math.sin(lat2*r)-Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos(dL);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+function distNm(lat1,lon1,lat2,lon2){
+  const R=3440.065,r=Math.PI/180,dLa=(lat2-lat1)*r,dLo=(lon2-lon1)*r;
+  const a=Math.sin(dLa/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function angDiff(a,b){let d=((a-b)+360)%360;return d>180?d-360:d;}
+
+// ─── LIVE WIND EXTRACTION ────────────────────────────────────────────────────
+function getLiveWind(){
+  // Returns {spd, dir, card} from windData if available, else null
+  if(!windData) return null;
+  const times=windData.hourly.time, speeds=windData.hourly.wind_speed_10m, dirs=windData.hourly.wind_direction_10m;
+  const now=new Date();
+  const nowStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:00`;
+  let ci=times.findIndex(t=>t===nowStr);
+  if(ci<0) ci=0;
+  return {spd:parseFloat(speeds[ci]).toFixed(1), dir:dirs[ci], card:degToCard(dirs[ci])};
+}
+
+// ─── DYNAMIC ROUTE CALCULATOR ─────────────────────────────────────────────────
+function calcRoute(race, wm, lm, wind){
+  // race = RACES entry, wm/lm = mark objects, wind = {spd,dir} or null
+  const r = race;
+  const isFlood=r.dir==='E', isEbb=r.dir==='W', isSlack=r.dir==='→';
+  const streamRate = r.rate;
+
+  // Course geometry
+  const beatBrg  = bearing(lm.lat,lm.lon,wm.lat,wm.lon); // leeward → windward
+  const runBrg   = bearing(wm.lat,wm.lon,lm.lat,lm.lon);
+  const courseDist= distNm(wm.lat,wm.lon,lm.lat,wm.lon).toFixed(1);
+
+  // Wind direction (use live if available, else use beat bearing as proxy upwind)
+  const windDir = wind ? wind.dir : (beatBrg + 180) % 360;
+  const windSpd = wind ? parseFloat(wind.spd) : null;
+
+  // True wind angle to beat bearing (how square or skewed is the beat?)
+  // Beat axis = beatBrg. Wind from windDir. If windDir~opposite of beatBrg = square beat.
+  const beatSkew = angDiff(windDir, (beatBrg+180)%360); // +ve = wind left of beat axis, -ve = right
+  const beatSquare = Math.abs(beatSkew) < 15;
+  const windLeftOfCourse = beatSkew > 5;
+  const windRightOfCourse = beatSkew < -5;
+
+  // Tidal stream direction relative to beat axis
+  // Flood=080, Ebb=260. Angle of stream relative to beat.
+  const streamAbsDir = isFlood ? 80 : isEbb ? 260 : null;
+  const streamToBeat = streamAbsDir !== null ? angDiff(streamAbsDir, beatBrg) : 0;
+  // Positive = stream pushes you toward starboard side of beat
+  // Negative = stream pushes you toward port side of beat
+  const streamFavoursPort = streamToBeat > 10;
+  const streamFavoursStbd = streamToBeat < -10;
+
+  // Wind bias: if wind left of course → port tack is lifted (you get to windward mark faster on port)
+  const windFavoursPort = windLeftOfCourse;
+  const windFavoursStbd = windRightOfCourse;
+
+  // Combined beat bias
+  let portScore = 0, stbdScore = 0;
+  if(streamFavoursPort) portScore += streamRate * 2;
+  if(streamFavoursStbd) stbdScore += streamRate * 2;
+  if(windFavoursPort)   portScore += 1.5;
+  if(windFavoursStbd)   stbdScore += 1.5;
+
+  const favTack = isSlack
+    ? (windFavoursPort ? 'PORT (wind)' : windFavoursStbd ? 'STARBOARD (wind)' : 'EVEN')
+    : portScore > stbdScore ? 'PORT' : stbdScore > portScore ? 'STARBOARD' : 'EVEN';
+
+  const portAdv = Math.max(0, portScore - stbdScore).toFixed(1);
+  const stbdAdv = Math.max(0, stbdScore - portScore).toFixed(1);
+
+  // Layline correction: stream pushes boat laterally → overstands on one tack
+  const corrDeg = isSlack ? 0 : Math.round(Math.atan2(streamRate, 5.0) * 180/Math.PI);
+  const portCorr = favTack==='PORT'
+    ? `Tack ${corrDeg}° BEFORE instrument layline (stream helps approach)`
+    : `Tack ${corrDeg}° AFTER instrument layline (stream pushes you short)`;
+  const stbdCorr = favTack==='STARBOARD'
+    ? `Tack ${corrDeg}° BEFORE instrument layline (stream helps approach)`
+    : `Tack ${corrDeg}° AFTER instrument layline (stream pushes you short)`;
+
+  // Inshore value: if adverse stream on beat, inshore reduces it
+  const inshoreRate = (streamRate * 0.30).toFixed(2);
+  const midRate     = (streamRate * 0.65).toFixed(2);
+  const inshoreKnSaving = (streamRate - streamRate*0.30).toFixed(2);
+  const inshoreWorth = parseFloat(inshoreKnSaving) > 0.3;
+  const inshoreOnBeat = !isSlack && parseFloat(inshoreKnSaving) > 0.2;
+
+  // Run: if stream pushes same direction as run → go offshore for boost
+  //      if stream against run → go inshore to reduce
+  const runWithStream = (isFlood && runBrg > 20 && runBrg < 160) ||
+                        (isEbb  && (runBrg > 200 || runBrg < 340));
+  const runSetDist = (streamRate * 0.8).toFixed(1); // boat lengths per minute of set
+
+  // Mark zone: affects local stream rate
+  const wmZone = wm.lat > 50.705 ? 'inshore' : wm.lat > 50.685 ? 'mid-bay' : 'offshore';
+  const lmZone = lm.lat > 50.705 ? 'inshore' : lm.lat > 50.685 ? 'mid-bay' : 'offshore';
+  const wmRate = wm.lat > 50.705 ? streamRate*0.30 : wm.lat > 50.685 ? streamRate*0.65 : streamRate;
+  const lmRate = lm.lat > 50.705 ? streamRate*0.30 : lm.lat > 50.685 ? streamRate*0.65 : streamRate;
+
+  // Build leg recommendations
+  const streamDesc = isSlack ? 'Slack ≈0kn' : isFlood ? `E Flood ${streamRate}kn` : `W Ebb ${streamRate}kn`;
+  const windDesc   = wind ? `${wind.card} ${wind.spd}kn` : 'Wind not loaded';
+
+  const beatRec1 = isSlack
+    ? `Near slack water — tide negligible. ${windFavoursPort?'Wind left of course: PORT tack favoured.':windFavoursStbd?'Wind right of course: STARBOARD tack favoured.':'Square beat — follow windshifts. No tidal bias.'} Course bearing ${beatBrg.toFixed(0)}°. ${windSpd?`Wind ${wind.card} ${wind.spd}kn — ${Math.abs(beatSkew).toFixed(0)}° ${beatSkew>0?'left':'right'} of beat axis.`:''}`
+    : `Beat bearing ${beatBrg.toFixed(0)}° — ${wmZone} windward mark (${wmRate.toFixed(2)}kn stream at mark). Stream ${isFlood?'E':'W'}-going ${streamRate}kn offshore. ${favTack} tack favoured${portScore>0||stbdScore>0?` (tidal advantage: ${Math.max(portScore,stbdScore).toFixed(1)})`:''}.${windFavoursPort&&favTack!=='PORT'?' NOTE: Wind favours PORT but tide favours STARBOARD — tide wins at this stream rate.':windFavoursStbd&&favTack!=='STARBOARD'?' NOTE: Wind favours STARBOARD but tide favours PORT — tide wins at this stream rate.':''} ${inshoreOnBeat?`Go INSHORE — saves ${inshoreKnSaving}kn vs offshore (${inshoreRate}kn vs ${streamRate}kn). Worth ${(parseFloat(inshoreKnSaving)/5*100).toFixed(0)}% of boat speed.`:'Tide moderate — inshore benefit small, windshifts may matter more.'}`;
+
+  const portLaylineRec = `Port layline: ${portCorr}`;
+  const stbdLaylineRec = `Starboard layline: ${stbdCorr}`;
+
+  const runRec1 = isSlack
+    ? `Slack — pure downwind technique. Gybe on wind lifts. No tidal bias. Anna Mai carries speed well in chop.`
+    : runWithStream
+      ? `Stream assists run — go OFFSHORE for maximum ${isFlood?'E':'W'}-going boost. ${streamRate}kn boost = ~${runSetDist} boat length set per minute. ${lmZone==='inshore'?`Leeward mark ${lm.code} is inshore (${(lmRate).toFixed(2)}kn) — stream weaker at mark than mid-course.`:''} Allow set: leeward mark appears to move ${isFlood?'east':'west'}.`
+      : `Stream against run — inshore reduces adverse stream from ${streamRate}kn to ${inshoreRate}kn. Hug inshore on run. ${lmZone==='inshore'?`Leeward mark ${lm.code} already inshore — easier approach.`:''}`;
+
+  const beatRec2 = isSlack
+    ? `Build ${favTack!=='EVEN'?favTack+' bias':'port or starboard'} starting — small tide building. ${beatRec1.split('.')[0]}.`
+    : `Same tidal conditions as Beat 1. ${favTack} tack. ${inshoreOnBeat?'Inshore route again — do not be tempted offshore.':'Follow windshifts with gentle '+favTack+' lean.'} Stream ${streamRate>0.8?'strong':'moderate'} — maintain discipline from Beat 1.`;
+
+  const runRec2 = runRec1 + (streamRate>0.8?' Stream still strong on Run 2 — same strategy.':' Stream easing slightly — adjust set point.');
+
+  return {
+    beatBrg, runBrg, courseDist, favTack, portAdv, stbdAdv,
+    corrDeg, windDir, windDesc, beatSkew, beatSquare,
+    streamFavoursPort, streamFavoursStbd, windFavoursPort, windFavoursStbd,
+    inshoreKnSaving, inshoreRate, inshoreOnBeat, runWithStream, runSetDist,
+    wmZone, lmZone, wmRate, lmRate, streamDesc,
+    legs: [
+      { name:`Beat 1 (${lm.code}→${wm.code})`, type:'beat', bearing:beatBrg.toFixed(0)+'°',
+        stream:streamDesc, wind:windDesc,
+        rec:beatRec1,
+        tacks:[
+          `${favTack} tack favoured`,
+          inshoreOnBeat?`Go inshore — saves ${inshoreKnSaving}kn`:`Follow windshifts`,
+          portLaylineRec, stbdLaylineRec,
+          `Windward mark ${wm.code}: ${wmZone} (${wmRate.toFixed(2)}kn at mark)`
+        ],
+        risk: streamRate>0.9&&!isSlack?'HIGH':streamRate>0.5&&!isSlack?'MED':'LOW'
+      },
+      { name:`Run 1 (${wm.code}→${lm.code})`, type:'run', bearing:runBrg.toFixed(0)+'°',
+        stream:streamDesc, wind:windDesc,
+        rec:runRec1,
+        tacks:[
+          runWithStream&&!isSlack?`Offshore — ${streamRate}kn stream boost`:`Inshore — reduce adverse stream`,
+          `Allow ${runSetDist} BL/min ${isFlood?'E':'W'} set`,
+          `Leeward mark ${lm.code}: ${lmZone} (${lmRate.toFixed(2)}kn at mark)`,
+          `Set gybe point accounting for ${isFlood?'E':'W'} drift`
+        ],
+        risk:'LOW'
+      },
+      { name:`Beat 2 (${lm.code}→${wm.code})`, type:'beat', bearing:beatBrg.toFixed(0)+'°',
+        stream:streamDesc, wind:windDesc,
+        rec:beatRec2,
+        tacks:[
+          `Same strategy as Beat 1`,
+          `${favTack} tack`,
+          inshoreOnBeat?`Inshore again — consistent`:`Windshifts + ${favTack.toLowerCase()} lean`,
+          `${corrDeg}° layline correction`
+        ],
+        risk: streamRate>0.9&&!isSlack?'HIGH':streamRate>0.5&&!isSlack?'MED':'LOW'
+      },
+      { name:`Run 2 (${wm.code}→${lm.code})`, type:'run', bearing:runBrg.toFixed(0)+'°',
+        stream:streamDesc, wind:windDesc,
+        rec:runRec2,
+        tacks:[
+          runWithStream&&!isSlack?'Offshore — carry tide boost':'Inshore — reduce foul stream',
+          `Allow ${runSetDist} BL/min set`,
+          `Approach finish from ${isFlood?'W':'E'} side of line`
+        ],
+        risk:'LOW'
+      }
+    ]
+  };
+}
+
+// ─── RENDER ROUTE VIEW ────────────────────────────────────────────────────────
+function renderRouteView() {
+  const el = document.getElementById('v-route');
+  const r  = RACES[routeRaceIdx];
+  const rd = ROUTE_DATA[r.n];
+  const conf = CONFIDENCE[r.n];
+  const confCol = conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--ebb2)';
+  const confLabel = conf>=80?'HIGH CONFIDENCE':conf>=60?'MODERATE':'LOW — read water carefully';
+  const isFlood=r.dir==='E', isSlack=r.dir==='→';
+  const streamCol = isSlack?'var(--slack)':isFlood?'var(--flood)':'var(--ebb)';
+  const wind = getLiveWind();
+
+  // Race strip
+  const strip = RACES.map((rc,i)=>`
+    <div class="rrp ${i===routeRaceIdx?'active':''}" style="color:${rc.col};border-color:${rc.col}" onclick="selectRouteRace(${i})">
+      <div class="rrp-n">${rc.n}</div><div class="rrp-t">${rc.time}</div>
+    </div>`).join('');
+
+  // Mark selectors
+  const allM = allMarks();
+  const wmSel = allM.map(m=>`<div class="ms-pill ${windwardMark===m.code?'active':''}" style="color:${MARK_CATS[m.cat]?.col||'#666'};border-color:${MARK_CATS[m.cat]?.col||'#666'}" onclick="setWMark('${m.code}')">${m.code}</div>`).join('');
+  const lmSel = allM.map(m=>`<div class="ms-pill ${leewardMark===m.code?'active':''}" style="color:${MARK_CATS[m.cat]?.col||'#666'};border-color:${MARK_CATS[m.cat]?.col||'#666'}" onclick="setLMark('${m.code}')">${m.code}</div>`).join('');
+
+  // Dynamic route if marks set
+  const wm = allM.find(m=>m.code===windwardMark);
+  const lm = allM.find(m=>m.code===leewardMark);
+  const route = (wm && lm) ? calcRoute(r, wm, lm, wind) : null;
+
+  // Wind status badge
+  const windBadge = wind
+    ? `<span style="background:rgba(30,136,229,.15);border:1px solid rgba(30,136,229,.3);border-radius:4px;padding:2px 7px;font-size:8px;color:var(--flood2);font-family:'JetBrains Mono',monospace">💨 ${wind.card} ${wind.spd}kn LIVE</span>`
+    : `<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:2px 7px;font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace">Wind: load Wind tab first</span>`;
+
+  // Course info panel (when marks set)
+  const coursePanel = route ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
+        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Beat bearing</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#fff">${route.beatBrg.toFixed(0)}°</div>
+        <div style="font-size:8px;color:var(--sub)">${degToCard(route.beatBrg)}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
+        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Fav tack</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--gold)">${route.favTack}</div>
+        <div style="font-size:8px;color:var(--sub)">${route.corrDeg}° correction</div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
+        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Inshore saves</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${route.inshoreKnSaving}kn</div>
+        <div style="font-size:8px;color:var(--sub)">vs offshore</div>
+      </div>
+    </div>
+    ${route.windFavoursPort!==route.streamFavoursPort && !isSlack?`
+    <div style="background:rgba(255,143,0,.1);border:1px solid rgba(255,143,0,.3);border-radius:7px;padding:7px 9px;margin-bottom:8px;font-size:9px;color:var(--amber);font-family:'JetBrains Mono',monospace">
+      ⚠️ WIND vs TIDE CONFLICT: Wind favours ${route.windFavoursPort?'PORT':'STARBOARD'} but tide favours ${route.streamFavoursPort?'PORT':'STARBOARD'}. At ${r.rate}kn stream, tide wins. Favour ${route.favTack}.
+    </div>`:''}
+    ${wind?`<div style="background:rgba(30,136,229,.08);border:1px solid rgba(30,136,229,.2);border-radius:7px;padding:7px 9px;margin-bottom:8px;font-size:9px;color:var(--flood2);font-family:'JetBrains Mono',monospace">
+      💨 Wind ${wind.card} ${wind.dir}° — ${Math.abs(route.beatSkew).toFixed(0)}° ${route.beatSkew>0?'left':'right'} of beat axis → ${route.beatSquare?'Square beat':'Skewed beat: '+( route.windFavoursPort?'port tack lifted':'starboard tack lifted')}
+    </div>`:''}` : '';
+
+  // Legs HTML
+  const riskCols = {LOW:'var(--green)',MED:'var(--amber)',HIGH:'var(--ebb2)',CRITICAL:'var(--ebb)'};
+  const legsHTML = route ? route.legs.map(leg=>`
+    <div class="leg-row">
+      <div class="leg-hdr">
+        <div class="leg-name">${leg.name} <span style="font-size:8px;color:var(--sub);font-weight:400">${leg.bearing}</span></div>
+        <span class="leg-badge" style="background:${riskCols[leg.risk]||'#333'}22;color:${riskCols[leg.risk]||'#888'};border:1px solid ${riskCols[leg.risk]||'#888'}44">${leg.risk}</span>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:5px;flex-wrap:wrap">
+        <span style="font-size:8px;font-family:'JetBrains Mono',monospace;padding:2px 6px;background:rgba(255,255,255,.04);border-radius:3px;color:${streamCol}">${leg.stream}</span>
+        <span style="font-size:8px;font-family:'JetBrains Mono',monospace;padding:2px 6px;background:rgba(30,136,229,.08);border-radius:3px;color:var(--flood2)">${leg.wind}</span>
+      </div>
+      <div class="leg-rec"><div class="leg-rec-title">Recommendation</div><div class="leg-rec-body">${leg.rec}</div></div>
+      <div class="leg-tack">${leg.tacks.map(t=>`<div class="tack-pill" style="color:var(--steel);border-color:rgba(126,184,212,.2);background:rgba(126,184,212,.04)">${t}</div>`).join('')}</div>
+    </div>`).join('')
+  : rd.legs.map(leg=>`
+    <div class="leg-row">
+      <div class="leg-hdr">
+        <div class="leg-name">${leg.name} <span style="font-size:8px;color:var(--sub);font-weight:400;font-style:italic">Set marks for live calc</span></div>
+        <span class="leg-badge" style="background:${riskCols[leg.risk]||'#333'}22;color:${riskCols[leg.risk]||'#888'};border:1px solid ${riskCols[leg.risk]||'#888'}44">${leg.risk}</span>
+      </div>
+      <div class="leg-rec"><div class="leg-rec-title">Default recommendation (no marks set)</div><div class="leg-rec-body">${leg.rec}</div></div>
+      <div class="leg-tack">${leg.tacks.map(t=>`<div class="tack-pill" style="color:var(--steel);border-color:rgba(126,184,212,.2);background:rgba(126,184,212,.04)">${t}</div>`).join('')}</div>
+    </div>`).join('');
+
+  const histBars = `
+    <div class="hist-bar"><span class="hist-label">Tidal impact</span><div class="hist-track"><div class="hist-fill" style="width:${rd.tidal_difficulty*20}%;background:${rd.tidal_difficulty>=4?'var(--ebb)':'var(--amber)'}"></div></div><span class="hist-val">${rd.tidal_difficulty}/5</span></div>
+    <div class="hist-bar"><span class="hist-label">Inshore value</span><div class="hist-track"><div class="hist-fill" style="width:${rd.inshore_value*20}%;background:var(--green)"></div></div><span class="hist-val">${rd.inshore_value}/5</span></div>
+    <div class="hist-bar"><span class="hist-label">Confidence</span><div class="hist-track"><div class="hist-fill" style="width:${conf}%;background:${confCol}"></div></div><span class="hist-val">${conf}%</span></div>`;
+
+  el.innerHTML = `<div style="padding:10px 10px 70px">
+    <div class="route-race-strip">${strip}</div>
+
+    <div class="opt-card" style="background:${r.col}18;border-color:${r.col}44">
+      <div class="ct" style="margin-bottom:5px">${r.n} · ${r.time} <span class="ct-r" style="color:${streamCol}">${r.dir==='→'?'≈ SLACK':r.dir==='E'?'→ E FLOOD':'← W EBB'} ${r.rate}kn</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        ${windBadge}
+        <span style="font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace">${route?`Course: ${windwardMark}↔${leewardMark}`:'No marks set'}</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px">
+        <div class="opt-score" style="color:${confCol}">${conf}</div>
+        <div style="padding-bottom:8px">
+          <div class="opt-grade" style="color:${confCol}">${confLabel}</div>
+          <div style="font-size:9px;color:var(--sub);margin-top:1px">${route?'Live calc: marks + wind + tide':'Set marks above for live calculation'}</div>
+        </div>
+      </div>
+      ${histBars}
+    </div>
+
+    <div class="card">
+      <div class="ct">COURSE SETUP <span class="ct-r">${route?'✓ Live calculation active':'Set marks to activate'}</span></div>
+      <div style="font-size:8px;color:var(--sub);margin-bottom:5px">Windward mark</div>
+      <div class="mark-sel">${wmSel}</div>
+      <div style="font-size:8px;color:var(--sub);margin-bottom:5px;margin-top:4px">Leeward mark</div>
+      <div class="mark-sel">${lmSel}</div>
+      ${coursePanel}
+      ${!route?'<div style="font-size:9px;color:var(--sub);font-style:italic;margin-top:4px">Tap marks above — recommendations update with live wind + course geometry</div>':''}
+    </div>
+
+    <div class="card">
+      <div class="ct">LEG-BY-LEG ROUTE <span class="ct-r">${route?'Live: wind + tide + marks':'Default: tide only'}</span></div>
+      ${legsHTML}
+    </div>
+
+    <div class="card">
+      <div class="ct">HISTORICAL INSIGHT</div>
+      <div style="font-size:10px;color:var(--text);line-height:1.6;background:rgba(255,255,255,.03);border-radius:7px;padding:9px 10px">${rd.historical}</div>
+      <div style="margin-top:8px;font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace;line-height:1.5">Sources: 2024 Poole IRC Class 3/4 Sailwave results · Bournemouth tidal stream data · Anna Mai TCC 0.892 · 5kn boat speed model · Live wind: Open-Meteo UK Met Office</div>
+    </div>
+  </div>`;
+}
+
+function selectRouteRace(i) { routeRaceIdx=i; renderRouteView(); }
+function setWMark(code) { windwardMark=windwardMark===code?null:code; renderRouteView(); }
+function setLMark(code) { leewardMark=leewardMark===code?null:code; renderRouteView(); }
+
+// Init route
+renderRouteView();
+
+
+// ══════════════════════════════════════════════════════════════
+// NAV TAB — GPS + Compass + Wind Shift Logger
+// ══════════════════════════════════════════════════════════════
+let gpsWatchId    = null;
+let gpsPos        = null;       // latest {lat,lon,acc,spd,ts}
+let gpsPrev       = null;       // previous position for COG calc
+let compassHdg    = null;       // latest webkitCompassHeading (true)
+let cogDeg        = null;       // course over ground from GPS
+let sogKn         = null;       // speed over ground in knots
+let activeWaypoint= null;       // mark code selected as active waypoint
+let refWindDir    = null;       // reference wind direction (set manually)
+let shiftLog      = [];         // [{tack,hdg,delta,type,time}]
+let navPermsGranted= false;
+let compassActive = false;
+let navInterval   = null;
+
+// ─── PERMISSIONS ─────────────────────────────────────────────
+async function requestNavPerms() {
+  let gpsOk = false, compassOk = false;
+
+  // GPS
+  try {
+    await new Promise((res,rej)=>{
+      navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:8000});
+    });
+    gpsOk = true;
+  } catch(e) { console.warn('GPS denied:', e.message); }
+
+  // Compass
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const state = await DeviceOrientationEvent.requestPermission();
+      compassOk = state === 'granted';
+    } else {
+      compassOk = true; // non-iOS, no permission needed
+    }
+  } catch(e) { console.warn('Compass denied:', e.message); }
+
+  navPermsGranted = gpsOk || compassOk;
+
+  if (gpsOk) startGPS();
+  if (compassOk) startCompass();
+
+  renderNavView();
+}
+
+// ─── GPS ─────────────────────────────────────────────────────
+function startGPS() {
+  if (gpsWatchId !== null) return;
+  gpsWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      gpsPrev = gpsPos;
+      gpsPos = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        acc: pos.coords.accuracy,
+        spd: pos.coords.speed,
+        ts:  pos.timestamp,
+      };
+      // COG + SOG from sequential fixes
+      if (gpsPrev && gpsPos.ts - gpsPrev.ts > 500) {
+        const dt = (gpsPos.ts - gpsPrev.ts) / 1000; // seconds
+        const brg = bearing(gpsPrev.lat, gpsPrev.lon, gpsPos.lat, gpsPos.lon);
+        const dist = distNm(gpsPrev.lat, gpsPrev.lon, gpsPos.lat, gpsPos.lon);
+        cogDeg = brg;
+        sogKn  = (dist / (dt/3600)).toFixed(1);
+      }
+      updateNavDisplay();
+    },
+    err => console.warn('GPS error:', err.message),
+    { enableHighAccuracy:true, maximumAge:0, timeout:10000 }
+  );
+}
+
+function stopGPS() {
+  if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; }
+}
+
+// ─── COMPASS ─────────────────────────────────────────────────
+function startCompass() {
+  if (compassActive) return;
+  compassActive = true;
+  window.addEventListener('deviceorientation', onCompass, true);
+}
+
+function onCompass(e) {
+  // webkitCompassHeading: 0=N, 90=E, clockwise (iOS)
+  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+    compassHdg = Math.round(e.webkitCompassHeading);
+  } else if (e.absolute && e.alpha !== null) {
+    // Android fallback
+    compassHdg = Math.round((360 - e.alpha) % 360);
+  }
+  updateNavDisplay();
+}
+
+// ─── COG / SET / DRIFT ───────────────────────────────────────
+function getSetDrift() {
+  if (cogDeg === null || compassHdg === null) return null;
+  const diff = angDiff(cogDeg, compassHdg);
+  // diff +ve = tide setting to starboard, -ve = to port
+  const setDir = (compassHdg + diff + 360) % 360;
+  const driftKn = sogKn ? (parseFloat(sogKn) * Math.sin(Math.abs(diff)*Math.PI/180)).toFixed(2) : null;
+  return { angleDeg: diff.toFixed(0), setDir: setDir.toFixed(0), driftKn };
+}
+
+// ─── WAYPOINT ────────────────────────────────────────────────
+function setWaypoint(code) {
+  activeWaypoint = activeWaypoint===code ? null : code;
+  renderNavView();
+}
+
+function getWaypointData() {
+  if (!activeWaypoint || !gpsPos) return null;
+  const m = allMarks().find(m=>m.code===activeWaypoint);
+  if (!m) return null;
+  const brg  = bearing(gpsPos.lat, gpsPos.lon, m.lat, m.lon);
+  const dist = distNm(gpsPos.lat, gpsPos.lon, m.lat, m.lon);
+  // Relative bearing to mark (0=dead ahead if we know heading)
+  const relBrg = compassHdg !== null ? ((brg - compassHdg + 360) % 360) : null;
+  return { code:m.code, name:m.name, brg:brg.toFixed(0), dist:dist.toFixed(2), relBrg };
+}
+
+// ─── WIND SHIFT LOGGER ───────────────────────────────────────
+function setRefWind() {
+  const val = document.getElementById('ref-wind-input')?.value;
+  if (!val) return;
+  refWindDir = ((parseInt(val) % 360) + 360) % 360;
+  renderNavView();
+}
+
+function logTack(tack) {
+  const hdg = compassHdg !== null ? compassHdg : null;
+  if (hdg === null) { alert('No compass heading available — grant permissions first'); return; }
+
+  // Calculate shift: on port tack, lifted = hdg higher than ref; on stbd, lifted = hdg lower
+  let delta = null, type = '—';
+  if (refWindDir !== null) {
+    // Wind direction from which wind is blowing
+    // On port tack: boat heading ~= windDir + 45 (approx). Lift = heading goes UP (further from wind)
+    // On stbd tack: boat heading ~= windDir - 45. Lift = heading goes DOWN
+    const expectedHdg = tack==='PORT'
+      ? (refWindDir + 45 + 360) % 360
+      : (refWindDir - 45 + 360) % 360;
+    delta = angDiff(hdg, expectedHdg);
+    if (tack==='PORT')  type = delta > 3 ? '⬆ LIFT' : delta < -3 ? '⬇ HDR' : '➡ EVEN';
+    if (tack==='STBD')  type = delta < -3 ? '⬆ LIFT' : delta > 3 ? '⬇ HDR' : '➡ EVEN';
+  }
+
+  shiftLog.unshift({
+    tack, hdg,
+    delta: delta !== null ? (delta > 0 ? '+'+delta : ''+delta)+'°' : '—',
+    type,
+    time: new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    isLift: type.includes('LIFT'),
+    isHdr:  type.includes('HDR'),
+  });
+  if (shiftLog.length > 20) shiftLog.pop();
+  renderNavView();
+}
+
+function clearShifts() { shiftLog=[]; renderNavView(); }
+
+// Shift pattern analysis
+function analyseShifts() {
+  if (shiftLog.length < 3) return null;
+  const lifts = shiftLog.filter(s=>s.isLift).length;
+  const hdrs  = shiftLog.filter(s=>s.isHdr).length;
+  const total = lifts + hdrs;
+  if (total < 2) return null;
+  const liftRatio = lifts/total;
+  if (liftRatio > 0.65) return { pattern:'PERSISTENT LIFT', rec:'Stay on current tack — wind has shifted in your favour', col:'var(--green)' };
+  if (liftRatio < 0.35) return { pattern:'PERSISTENT HEADER', rec:'Tack immediately — you are in a persistent header', col:'var(--ebb2)' };
+  return { pattern:'OSCILLATING', rec:'Wait for the next lift before tacking — wind is shifting both ways', col:'var(--amber)' };
+}
+
+// ─── COMPASS ROSE SVG ─────────────────────────────────────────
+function compassRoseSVG(hdg, cogD, wpBrg) {
+  const sz=180, cx=sz/2, cy=sz/2, r=72;
+  // Rotate everything so hdg is at top
+  const rot = hdg !== null ? -hdg : 0;
+
+  // Cardinal labels
+  const cards = ['N','E','S','W'].map((c,i)=>{
+    const a = (i*90 + rot) * Math.PI/180;
+    const lx = cx + (r+14)*Math.sin(a);
+    const ly = cy - (r+14)*Math.cos(a);
+    return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle"
+      font-size="10" fill="${c==='N'?'var(--gold)':'#4a6070'}" font-family="JetBrains Mono" font-weight="bold">${c}</text>`;
+  }).join('');
+
+  // Tick marks every 10 deg
+  const ticks = Array.from({length:36},(_,i)=>{
+    const a = (i*10 + rot)*Math.PI/180;
+    const inner = i%9===0 ? r-12 : i%3===0 ? r-7 : r-4;
+    const x1=cx+(inner)*Math.sin(a), y1=cy-(inner)*Math.cos(a);
+    const x2=cx+r*Math.sin(a),       y2=cy-r*Math.cos(a);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+      stroke="${i%9===0?'#2a4a60':'#162430'}" stroke-width="${i%9===0?1:0.5}"/>`;
+  }).join('');
+
+  // Heading arrow (always points up — boat's bow)
+  const hdgArrow = hdg !== null ? `
+    <polygon points="${cx},${cy-r+8} ${cx+6},${cy-r+24} ${cx-6},${cy-r+24}"
+      fill="var(--gold)" opacity="0.9"/>
+    <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-r+10}"
+      stroke="var(--gold)" stroke-width="2"/>` : '';
+
+  // COG arrow (red, rotated by cog-hdg diff)
+  const cogArrow = cogD !== null && hdg !== null ? (()=>{
+    const cogRel = (cogD - hdg + 360) % 360;
+    const a = cogRel * Math.PI / 180;
+    const ex = cx + (r-8)*Math.sin(a);
+    const ey = cy - (r-8)*Math.cos(a);
+    const px = cx + 7*Math.cos(a), py = cy + 7*Math.sin(a);
+    const mx = cx - 7*Math.cos(a), my = cy - 7*Math.sin(a);
+    return `<line x1="${cx}" y1="${cy}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}"
+      stroke="var(--ebb)" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>
+    <polygon points="${ex.toFixed(1)},${ey.toFixed(1)} ${px.toFixed(1)},${py.toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}"
+      fill="var(--ebb)" opacity="0.7"/>`;
+  })() : '';
+
+  // Waypoint bearing (blue arrow)
+  const wpArrow = wpBrg !== null && hdg !== null ? (()=>{
+    const wpRel = (parseFloat(wpBrg) - hdg + 360) % 360;
+    const a = wpRel * Math.PI / 180;
+    const ex = cx + (r-4)*Math.sin(a);
+    const ey = cy - (r-4)*Math.cos(a);
+    return `<line x1="${cx}" y1="${cy}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}"
+      stroke="var(--flood)" stroke-width="2.5" opacity="0.9"/>
+    <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="4"
+      fill="var(--flood)" opacity="0.9"/>`;
+  })() : '';
+
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#080f1a" stroke="#0d2040" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${r-20}" fill="none" stroke="#0d2040" stroke-width="0.5"/>
+    ${ticks}${cards}${cogArrow}${wpArrow}${hdgArrow}
+    <circle cx="${cx}" cy="${cy}" r="4" fill="var(--gold)"/>
+    <text x="${cx}" y="${cy+r+12}" text-anchor="middle" font-size="8" fill="var(--sub)" font-family="JetBrains Mono">
+      ${hdg!==null?`HDG ${hdg}°T`:'Awaiting compass…'}
+    </text>
+  </svg>`;
+}
+
+// Set/drift arrow SVG
+function setDriftSVG(sd) {
+  if (!sd) return '';
+  const sz=60, cx=sz/2, cy=sz/2, r=22;
+  const a = parseFloat(sd.setDir)*Math.PI/180;
+  const ex=cx+r*Math.sin(a), ey=cy-r*Math.cos(a);
+  const col = Math.abs(parseFloat(sd.angleDeg)) > 10 ? 'var(--amber)' : 'var(--slack)';
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.1)" stroke-width="0.5"/>
+    <line x1="${cx}" y1="${cy}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="2.5"/>
+    <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="4" fill="${col}"/>
+    <text x="${cx}" y="${sz-3}" text-anchor="middle" font-size="7" fill="var(--sub)" font-family="JetBrains Mono">${sd.driftKn||'—'}kn</text>
+  </svg>`;
+}
+
+// ─── UPDATE LIVE DISPLAY ─────────────────────────────────────
+function updateNavDisplay() {
+  // Only update if nav view is active — avoid unnecessary DOM writes
+  const navView = document.getElementById('v-nav');
+  if (!navView || !navView.classList.contains('active')) return;
+
+  // Update individual elements rather than full re-render (smoother)
+  const wp = getWaypointData();
+  const sd = getSetDrift();
+
+  // Bearing to mark
+  if (wp) {
+    const el = document.getElementById('nd-brg');
+    if (el) el.innerHTML = `<div class="nb-val">${wp.brg}°</div><div class="nb-sub">${degToCard(parseFloat(wp.brg))} to ${wp.code}</div>`;
+    const el2 = document.getElementById('nd-dist');
+    if (el2) el2.innerHTML = `<div class="nb-val" style="font-size:38px">${wp.dist}</div><div class="nb-sub">nm to ${wp.code}</div>`;
+  }
+
+  // SOG
+  const sogEl = document.getElementById('nd-sog');
+  if (sogEl && sogKn) sogEl.innerHTML = `<div class="sc-val">${sogKn}</div><div class="sc-sub">kn SOG</div>`;
+
+  // COG
+  const cogEl = document.getElementById('nd-cog');
+  if (cogEl && cogDeg!==null) cogEl.innerHTML = `<div class="sc-val">${cogDeg.toFixed(0)}°</div><div class="sc-sub">COG</div>`;
+
+  // Heading
+  const hdgEl = document.getElementById('nd-hdg');
+  if (hdgEl && compassHdg!==null) hdgEl.innerHTML = `<div class="sc-val">${compassHdg}°</div><div class="sc-sub">Heading</div>`;
+
+  // Acc
+  const accEl = document.getElementById('nd-acc');
+  if (accEl && gpsPos) accEl.innerHTML = `<div class="sc-val">${Math.round(gpsPos.acc)}</div><div class="sc-sub">m GPS acc</div>`;
+
+  // Set/drift
+  const sdEl = document.getElementById('nd-set');
+  if (sdEl && sd) {
+    sdEl.innerHTML = `
+      ${setDriftSVG(sd)}
+      <div style="font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:3px">
+        Set ${sd.setDir}° · ${Math.abs(sd.angleDeg)}° ${parseFloat(sd.angleDeg)>0?'stbd':'port'}
+      </div>`;
+  }
+
+  // Compass rose
+  const roseEl = document.getElementById('nd-rose');
+  if (roseEl) roseEl.innerHTML = compassRoseSVG(compassHdg, cogDeg, wp?parseFloat(wp.brg):null);
+}
+
+// ─── RENDER NAV VIEW ─────────────────────────────────────────
+function renderNavView() {
+  const el = document.getElementById('v-nav');
+  if (!el) return;
+
+  const wp = getWaypointData();
+  const sd = getSetDrift();
+  const pattern = analyseShifts();
+
+  // Permission button
+  const permLabel = navPermsGranted
+    ? '✓ GPS + Compass Active'
+    : '⚑ Tap to Enable GPS & Compass';
+  const permClass = navPermsGranted ? 'perm-btn granted' : 'perm-btn';
+
+  // Waypoint selector
+  const wpPills = allMarks().map(m=>`
+    <div class="wp-pill ${activeWaypoint===m.code?'active':''}"
+      style="color:${MARK_CATS[m.cat]?.col||'#666'};border-color:${MARK_CATS[m.cat]?.col||'#666'}"
+      onclick="setWaypoint('${m.code}')">${m.code}</div>`).join('');
+
+  // Shift log entries
+  const shiftEntries = shiftLog.length === 0
+    ? '<div style="font-size:10px;color:var(--sub);font-style:italic;padding:8px">Tap PORT TACK or STBD TACK when you tack to log wind shifts</div>'
+    : shiftLog.map(s=>`
+      <div class="shift-entry">
+        <span class="shift-tack" style="color:${s.tack==='PORT'?'var(--flood2)':'var(--ebb2)'}">${s.tack==='PORT'?'P':'S'}</span>
+        <span class="shift-hdg">${s.hdg}°</span>
+        <span class="shift-delta" style="color:${s.isLift?'var(--green)':s.isHdr?'var(--ebb2)':'var(--sub)'}">${s.delta}</span>
+        <span class="shift-type" style="background:${s.isLift?'rgba(67,160,71,.15)':s.isHdr?'rgba(229,57,53,.1)':'rgba(255,255,255,.05)'};color:${s.isLift?'#81C784':s.isHdr?'var(--ebb2)':'var(--sub)'}">${s.type}</span>
+        <span class="shift-time">${s.time}</span>
+      </div>`).join('');
+
+  el.innerHTML = `<div style="padding:10px 10px 70px">
+
+    <button class="${permClass}" onclick="requestNavPerms()">${permLabel}</button>
+
+    ${!navPermsGranted?`<div class="api-note" style="margin-bottom:9px">Tap above — iPhone will ask permission for Location and Motion & Orientation.<br>Grant both for full functionality.</div>`:''}
+
+    <!-- COMPASS ROSE -->
+    <div class="card">
+      <div class="ct">HEADING & COURSE <span class="ct-r">${compassHdg!==null?compassHdg+'°T':'No compass'} ${cogDeg!==null?'· COG '+cogDeg.toFixed(0)+'°':''}</span></div>
+      <div class="compass-wrap" id="nd-rose">${compassRoseSVG(compassHdg, cogDeg, wp?parseFloat(wp.brg):null)}</div>
+      <div style="display:flex;justify-content:center;gap:12px;font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--sub)">
+        <span><span style="color:var(--gold)">▲</span> Heading</span>
+        <span><span style="color:var(--ebb)">- -</span> COG</span>
+        <span><span style="color:var(--flood)">●</span> Mark</span>
+      </div>
+    </div>
+
+    <!-- ACTIVE WAYPOINT -->
+    <div class="card">
+      <div class="ct">ACTIVE WAYPOINT <span class="ct-r">${activeWaypoint||'None selected'}</span></div>
+      <div class="mark-waypoint-strip">${wpPills}</div>
+      ${wp?`
+        <div class="nav-hero">
+          <div class="nav-big" id="nd-brg">
+            <div class="nb-label">Bearing to mark</div>
+            <div class="nb-val">${wp.brg}°</div>
+            <div class="nb-sub">${degToCard(parseFloat(wp.brg))} to ${wp.code}</div>
+          </div>
+          <div class="nav-big" id="nd-dist">
+            <div class="nb-label">Distance</div>
+            <div class="nb-val" style="font-size:38px">${wp.dist}</div>
+            <div class="nb-sub">nautical miles</div>
+          </div>
+        </div>
+        ${wp.relBrg!==null?`<div style="background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:7px;padding:7px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text)">
+          Relative bearing: <strong style="color:var(--gold)">${wp.relBrg}°</strong>
+          ${wp.relBrg<30||wp.relBrg>330?'<span style="color:var(--green)"> Dead ahead</span>':
+            wp.relBrg<90||wp.relBrg>270?'<span style="color:var(--amber)"> On the bow</span>':
+            '<span style="color:var(--ebb2)"> On the beam / behind</span>'}
+        </div>`:''}
+      `:`<div style="font-size:10px;color:var(--sub);font-style:italic">Select a mark above to get live bearing and distance · Requires GPS permission</div>`}
+    </div>
+
+    <!-- POSITION STATS -->
+    <div class="card">
+      <div class="ct">POSITION & MOVEMENT</div>
+      <div class="stat-row">
+        <div class="stat-cell" id="nd-sog">
+          <div class="sc-label">SOG</div>
+          <div class="sc-val">${sogKn||'—'}</div>
+          <div class="sc-sub">kn</div>
+        </div>
+        <div class="stat-cell" id="nd-cog">
+          <div class="sc-label">COG</div>
+          <div class="sc-val">${cogDeg!==null?cogDeg.toFixed(0)+'°':'—'}</div>
+          <div class="sc-sub">true</div>
+        </div>
+        <div class="stat-cell" id="nd-hdg">
+          <div class="sc-label">Heading</div>
+          <div class="sc-val">${compassHdg!==null?compassHdg+'°':'—'}</div>
+          <div class="sc-sub">compass</div>
+        </div>
+        <div class="stat-cell" id="nd-acc">
+          <div class="sc-label">GPS Acc</div>
+          <div class="sc-val">${gpsPos?Math.round(gpsPos.acc)+'m':'—'}</div>
+          <div class="sc-sub">accuracy</div>
+        </div>
+      </div>
+      ${sd?`
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px">
+          <div class="set-arrow-wrap" id="nd-set" style="margin:0">${setDriftSVG(sd)}</div>
+          <div>
+            <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Tidal Set & Drift</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">Set ${sd.setDir}°T · ${Math.abs(sd.angleDeg)}° ${parseFloat(sd.angleDeg)>0?'to stbd':'to port'}</div>
+            <div style="font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace">Drift ${sd.driftKn||'—'}kn · COG vs heading difference</div>
+          </div>
+        </div>`:'<div style="font-size:9px;color:var(--sub);text-align:center;padding:4px">Set & drift calculation requires both GPS and compass</div>'}
+    </div>
+
+    <!-- WIND SHIFT LOGGER -->
+    <div class="card">
+      <div class="ct">WIND SHIFT LOGGER <span class="ct-r">${shiftLog.length} tacks logged</span></div>
+
+      <div style="display:flex;gap:7px;align-items:center;margin-bottom:8px">
+        <div style="font-size:9px;color:var(--sub);min-width:70px">Ref wind dir</div>
+        <input id="ref-wind-input" type="number" min="0" max="359"
+          value="${refWindDir||''}"
+          placeholder="${refWindDir!==null?refWindDir:'e.g. 225'}"
+          style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:6px 8px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none"/>
+        <button onclick="setRefWind()" style="background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.3);color:var(--gold);border-radius:5px;padding:6px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;cursor:pointer">SET</button>
+      </div>
+      ${refWindDir!==null?`<div style="font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;background:rgba(212,160,23,.08);border-radius:5px;padding:4px 8px;margin-bottom:8px">Reference wind: ${refWindDir}° ${degToCard(refWindDir)} · ${(refWindDir+180)%360}° on the nose</div>`:''}
+
+      <div class="tack-btns">
+        <div class="tack-btn tack-port" onclick="logTack('PORT')">⬅ PORT TACK</div>
+        <div class="tack-btn tack-stbd" onclick="logTack('STBD')">STBD TACK ➡</div>
+      </div>
+
+      ${pattern?`<div style="background:${pattern.col}18;border:1px solid ${pattern.col}44;border-radius:7px;padding:8px 10px;margin-bottom:8px">
+        <div style="font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${pattern.col};letter-spacing:1px;margin-bottom:2px">${pattern.pattern}</div>
+        <div style="font-size:10px;color:var(--text)">${pattern.rec}</div>
+      </div>`:''}
+
+      <div class="shift-log">${shiftEntries}</div>
+      ${shiftLog.length>0?`<button onclick="clearShifts()" style="width:100%;margin-top:7px;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.2);color:var(--ebb2);border-radius:6px;padding:7px;font-size:10px;font-family:'JetBrains Mono',monospace;cursor:pointer">Clear shift log</button>`:''}
+    </div>
+
+    <div class="api-note">GPS + compass update continuously while nav tab is active · Bearing/distance calculated from iPhone GPS · Heading from iPhone compass · Set/drift from COG vs heading</div>
+  </div>`;
+}
+
+</script>
+
+</body>
+</html>
