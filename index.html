@@ -303,6 +303,30 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 </style>
 </head>
 <body>
+<div id="err-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:9999;padding:20px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#EF9A9A">
+  <div style="color:#D4A017;font-size:13px;font-weight:700;margin-bottom:10px">⚠ JavaScript Error</div>
+  <div id="err-msg" style="line-height:1.6;white-space:pre-wrap"></div>
+  <button onclick="document.getElementById('err-overlay').style.display='none'" style="margin-top:16px;background:rgba(212,160,23,.2);border:1px solid #D4A017;color:#D4A017;border-radius:6px;padding:8px 16px;font-size:12px;cursor:pointer">Dismiss</button>
+</div>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var el = document.getElementById('err-overlay');
+  var ml = document.getElementById('err-msg');
+  if (el && ml) {
+    ml.textContent = 'Message: ' + msg + '\nSource: ' + src + '\nLine: ' + line + ', Col: ' + col + '\n\nStack:\n' + (err && err.stack ? err.stack : 'n/a');
+    el.style.display = 'block';
+  }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var el = document.getElementById('err-overlay');
+  var ml = document.getElementById('err-msg');
+  if (el && ml) {
+    ml.textContent = 'Unhandled Promise Rejection:\n' + (e.reason ? (e.reason.stack || e.reason) : e);
+    el.style.display = 'block';
+  }
+});
+</script>
 
 <!-- HEADER -->
 
@@ -1044,11 +1068,11 @@ function activateCourse(courseObj) {
   navWpIndex = 0;
   // Set windward and leeward marks for Route tab
   if (courseObj.type==='wl' && courseObj.seq.length>=2) {
-    windwardMark = courseObj.seq[0];
-    leewardMark  = courseObj.seq[1];
+    windwardMark = courseObj.seq[0]?.code || courseObj.seq[0];
+    leewardMark  = courseObj.seq[1]?.code || courseObj.seq[1];
   }
   // Set active waypoint in Nav tab to first mark
-  if (courseObj.seq.length>0) activeWaypoint = courseObj.seq[0];
+  if (courseObj.seq.length>0) activeWaypoint = courseObj.seq[0]?.code || courseObj.seq[0];
   // Update race selection in Stream tab
   routeRaceIdx = courseObj.raceIdx;
   selectedRaceIdx = courseObj.raceIdx;
@@ -1078,6 +1102,8 @@ function showMarkTab(tab, el) {
   el.classList.add('active');
   renderMarkContent();
 }
+
+function allMarks() { return [...FIXED_MARKS, ...userMarks]; }
 
 function renderMarkContent() {
   const mc = document.getElementById('mark-content');
@@ -1118,7 +1144,7 @@ function activeBanner() {
   const r = RACES[c.raceIdx];
   return `<div class="active-course-banner">
     <div class="acb-title">⚑ Active Race Course</div>
-    <div class="acb-seq">${c.fullSeq.join(' → ')}</div>
+    <div class="acb-seq">${(c.seqCodes||c.fullSeq||[]).join(' → ')}</div>
     <div class="acb-stats">
       <div class="acb-stat"><span>${typeLabel}</span></div>
       <div class="acb-stat"><span>${c.laps}</span> lap${c.laps>1?'s':''}</div>
@@ -1274,7 +1300,7 @@ function renderCourseSetup(mc) {
       <div class="course-list">${savedCourses.map((c,i)=>`
         <div class="cl-item">
           <div class="cl-name">${c.name}</div>
-          <div class="cl-seq" style="color:var(--gold);font-size:10px;margin-bottom:4px">${c.seq.join(' → ')} · ${c.type==='wl'?'W/L':'Cans'} · ${c.laps} lap${c.laps>1?'s':''}</div>
+          <div class="cl-seq" style="color:var(--gold);font-size:10px;margin-bottom:4px">${c.seq.map(s=>s.code||s).join(' → ')} · ${c.type==='wl'?'W/L':'Cans'} · ${c.laps} lap${c.laps>1?'s':''}</div>
           <div class="cl-actions">
             <div class="cl-btn" onclick="loadCourse(${i})">Load</div>
             <div class="cl-btn" onclick="activateSaved(${i})">Activate</div>
@@ -1296,7 +1322,7 @@ function confirmCourse() {
   // Auto-derive course type from number of marks
   courseType = activeCourse.length === 2 ? 'wl' : 'cans';
   const course = buildCourse(activeCourse, courseType, courseLaps, wd, courseRaceIdx);
-  const name = `${RACES[courseRaceIdx].n} ${courseType==='wl'?'W/L':'Cans'} ${activeCourse.join('-')}`;
+  const name = `${RACES[courseRaceIdx].n} ${courseType==='wl'?'W/L':'Cans'} ${activeCourse.map(m=>m.code||m).join('-')}`;
   savedCourses.push({name, seq:[...activeCourse], type:courseType, laps:courseLaps});
   localStorage.setItem('courses', JSON.stringify(savedCourses));
   activateCourse(course);
