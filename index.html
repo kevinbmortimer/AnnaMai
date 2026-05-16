@@ -2283,6 +2283,109 @@ function setDriftSVG(sd) {
 
 // ─── UPDATE LIVE DISPLAY ─────────────────────────────────────
 
+// ─── LAYLINE FUNCTIONS ───────────────────────────────────────────────────────
+const TACK_ANGLE = 42;
+
+function getNavWindDir() {
+  if (navWindDir !== null) return navWindDir;
+  if (refWindDir !== null) return refWindDir;
+  const w = getLiveWind();
+  return w ? w.dir : null;
+}
+
+function calcLaylines() {
+  if (!gpsPos) return null;
+  const windDir = getNavWindDir();
+  if (windDir === null) return null;
+  let wmMark = null;
+  if (activeRaceCourse && activeRaceCourse.seq.length > 0) {
+    const wmCode = activeRaceCourse.seq[0]?.code || activeRaceCourse.seq[0];
+    wmMark = allMarks().find(m=>m.code===wmCode);
+  } else if (activeWaypoint) {
+    wmMark = allMarks().find(m=>m.code===activeWaypoint);
+  }
+  if (!wmMark) return null;
+
+  const brgToMark  = bearing(gpsPos.lat, gpsPos.lon, wmMark.lat, wmMark.lon);
+  const distToMark = distNm(gpsPos.lat, gpsPos.lon, wmMark.lat, wmMark.lon);
+  const upwindBrg  = (windDir + 180) % 360;
+  const portLaylineBrg = (upwindBrg - TACK_ANGLE + 360) % 360;
+  const stbdLaylineBrg = (upwindBrg + TACK_ANGLE) % 360;
+
+  const race = RACES[routeRaceIdx] || RACES[0];
+  const streamDir  = race.dir==='E' ? 80 : race.dir==='W' ? 260 : null;
+  const streamRate = race.rate;
+  let portCorrected = portLaylineBrg, stbdCorrected = stbdLaylineBrg, tidalCorrDeg = 0;
+
+  if (streamDir !== null && streamRate > 0) {
+    tidalCorrDeg = Math.atan2(streamRate, 5.0) * 180 / Math.PI;
+    const streamToPort = angDiff(streamDir, portLaylineBrg);
+    const streamToStbd = angDiff(streamDir, stbdLaylineBrg);
+    portCorrected = (portLaylineBrg + (streamToPort > 0 ? -tidalCorrDeg : tidalCorrDeg) + 360) % 360;
+    stbdCorrected = (stbdLaylineBrg + (streamToStbd > 0 ?  tidalCorrDeg : -tidalCorrDeg) + 360) % 360;
+  }
+
+  function distToLayline(laylineBrg) {
+    const alpha    = ((brgToMark - laylineBrg) + 360) % 360;
+    const alphaRad = alpha * Math.PI / 180;
+    const perpDist = Math.abs(distToMark * Math.sin(alphaRad));
+    const along    = distToMark * Math.cos(alphaRad);
+    return { perpDist: perpDist.toFixed(2), inside: along > 0 };
+  }
+
+  const portLL = distToLayline((portCorrected + 180) % 360);
+  const stbdLL = distToLayline((stbdCorrected + 180) % 360);
+  const hdgRelWind = compassHdg !== null ? angDiff(compassHdg, windDir) : 0;
+  const currentTack = hdgRelWind >= 0 ? 'stbd' : 'port';
+
+  let advice = '';
+  const activeLL = currentTack==='port' ? portLL : stbdLL;
+  if (activeLL.inside) {
+    advice = `On ${currentTack.toUpperCase()} tack — ${activeLL.perpDist}nm to layline. ` +
+      (parseFloat(activeLL.perpDist)<0.10 ? '⚠ TACK NOW' :
+       parseFloat(activeLL.perpDist)<0.20 ? 'Prepare to tack' : 'Continue.');
+  } else {
+    advice = `On ${currentTack.toUpperCase()} tack — PAST layline by ${activeLL.perpDist}nm. Tack now.`;
+  }
+  if (tidalCorrDeg > 0) {
+    advice += ` Tide correction: ${tidalCorrDeg.toFixed(1)}° (${race.dir==='E'?'E flood':'W ebb'} ${streamRate}kn).`;
+  }
+
+  return {
+    windDir, portBrg: portCorrected, stbdBrg: stbdCorrected,
+    portRaw: portLaylineBrg, stbdRaw: stbdLaylineBrg,
+    portDist: portLL.perpDist, stbdDist: stbdLL.perpDist,
+    portInside: portLL.inside, stbdInside: stbdLL.inside,
+    currentTack, distToMark: distToMark.toFixed(2),
+    tidalCorrDeg: tidalCorrDeg.toFixed(1),
+    wmCode: wmMark.code, wmName: wmMark.name, advice,
+  };
+}
+
+function laylineSVG(ll) {
+  if (!ll) return '';
+  const sz=200, cx=sz/2, cy=sz*0.65, r=70, mkX=cx, mkY=20;
+  const pRad=(ll.portBrg*Math.PI/180), sRad=(ll.stbdBrg*Math.PI/180);
+  const pEx=mkX+r*Math.sin(pRad), pEy=mkY+r*(1-Math.cos(pRad));
+  const sEx=mkX+r*Math.sin(sRad), sEy=mkY+r*(1-Math.cos(sRad));
+  const posCol=ll.currentTack==='port'?'var(--flood2)':'var(--ebb2)';
+  const hdgRad=compassHdg!==null?(compassHdg*Math.PI/180):0;
+  const hx=cx+30*Math.sin(hdgRad), hy=cy-30*Math.cos(hdgRad);
+  return `<svg width="${sz}" height="${sz*0.85}" viewBox="0 0 ${sz} ${sz*0.85}">
+    <line x1="${mkX}" y1="${mkY}" x2="${pEx.toFixed(1)}" y2="${pEy.toFixed(1)}" stroke="var(--flood2)" stroke-width="2" stroke-dasharray="5,3" opacity="0.8"/>
+    <line x1="${mkX}" y1="${mkY}" x2="${sEx.toFixed(1)}" y2="${sEy.toFixed(1)}" stroke="var(--ebb2)" stroke-width="2" stroke-dasharray="5,3" opacity="0.8"/>
+    <text x="${pEx>cx?pEx+5:pEx-5}" y="${pEy+3}" font-size="9" fill="var(--flood2)" text-anchor="${pEx>cx?'start':'end'}" font-family="ui-monospace,monospace" font-weight="bold">PORT</text>
+    <text x="${sEx>cx?sEx+5:sEx-5}" y="${sEy+3}" font-size="9" fill="var(--ebb2)" text-anchor="${sEx>cx?'start':'end'}" font-family="ui-monospace,monospace" font-weight="bold">STBD</text>
+    <circle cx="${mkX}" cy="${mkY}" r="8" fill="var(--gold)" opacity="0.9"/>
+    <text x="${mkX}" y="${mkY+4}" text-anchor="middle" font-size="8" fill="var(--ink)" font-family="ui-monospace,monospace" font-weight="bold">${ll.wmCode}</text>
+    <circle cx="${cx}" cy="${cy}" r="6" fill="${posCol}" stroke="white" stroke-width="1.5"/>
+    ${compassHdg!==null?`<line x1="${cx}" y1="${cy}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="var(--gold)" stroke-width="2"/>
+    <circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="3" fill="var(--gold)"/>`:''}
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="7.5" fill="${posCol}" font-family="ui-monospace,monospace">YOU (${ll.currentTack.toUpperCase()})</text>
+    ${parseFloat(ll.tidalCorrDeg)>0?`<text x="${sz/2}" y="${sz*0.85-3}" text-anchor="middle" font-size="7" fill="var(--sub)" font-family="ui-monospace,monospace">Tide corrected ${ll.tidalCorrDeg}°</text>`:''}
+  </svg>`;
+}
+
 function updateLaylines() {
   const el = document.getElementById('ll-content');
   if (!el) return;
