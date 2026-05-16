@@ -300,6 +300,24 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .acs-rnd.port{color:var(–flood2);background:rgba(30,136,229,.2);border:1px solid rgba(30,136,229,.3)}
 .acs-rnd.stbd{color:var(–ebb2);background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.25)}
 
+/* ════════ LAYLINES ════════ */
+.ll-hero{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
+.ll-card{border-radius:9px;padding:10px 12px;border:1px solid;text-align:center}
+.ll-card .ll-tack{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;margin-bottom:4px}
+.ll-card .ll-dist{font-family:‘Arial Black’,Impact,sans-serif;font-size:40px;line-height:1;color:#fff}
+.ll-card .ll-unit{font-size:10px;color:var(–sub)}
+.ll-card .ll-brg{font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;margin-top:3px}
+.ll-card .ll-status{font-size:9px;margin-top:4px;padding:2px 7px;border-radius:3px;display:inline-block;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
+.ll-inside{background:rgba(67,160,71,.15);color:#81C784}
+.ll-outside{background:rgba(229,57,53,.12);color:var(–ebb2)}
+.ll-crossed{background:rgba(255,143,0,.15);color:var(–amber)}
+.ll-advice{background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:8px;padding:9px 11px;font-size:10px;color:var(–text);line-height:1.55;font-family:-apple-system,sans-serif}
+.ll-svg-wrap{display:flex;justify-content:center;margin-bottom:8px}
+.wind-input-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:7px 10px;margin-bottom:8px}
+.wind-input-row label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:55px;flex-shrink:0}
+.wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;outline:none;width:60px}
+.wind-input-row .wi-card{font-size:10px;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;min-width:28px}
+
 </style>
 </head>
 <body>
@@ -598,7 +616,9 @@ let courseType    = 'wl';   // 'wl' or 'cans'
 let courseLaps    = 1;
 let courseWindDir = null;   // wind direction at race start (degrees)
 let activeRaceCourse = null; // the full built course object driving all tabs
-let navWpIndex    = 0;      // current waypoint index in Nav tab
+let navWpIndex    = 0;
+let navWindDir    = null; // wind direction for layline calc (manual or from Open-Meteo)
+let onTack        = 'port'; // current tack      // current waypoint index in Nav tab
 let selectedDayIdx= 0;
 let selectedRaceIdx= 0;
 let markTabActive = 'fixed';
@@ -1311,7 +1331,6 @@ function renderCourseSetup(mc) {
     </div>`:''}`;
 }
 
-let courseRaceIdx = 0;
 function setCourseRace(i) { courseRaceIdx=i; renderMarkContent(); }
 function setCourseLaps(n) { courseLaps=n; renderMarkContent(); }
 
@@ -1636,7 +1655,8 @@ const CONFIDENCE = {
   R1:52, R2:78, R3:89, R4:71, R5:76, R6:82, R7:45, R8:68, R9:85, R10:72, R11:41
 };
 
-let routeRaceIdx = 0;
+let routeRaceIdx  = 0;
+let courseRaceIdx  = 0;
 let windwardMark = null;
 let leewardMark  = null;
 
@@ -1840,47 +1860,25 @@ function renderRouteView() {
       <div class="rrp-n">${rc.n}</div><div class="rrp-t">${rc.time}</div>
     </div>`).join('');
 
-  // Mark selectors
+  // Get marks for route calculation
   const allM = allMarks();
-  const wmSel = allM.map(m=>`<div class="ms-pill ${windwardMark===m.code?'active':''}" style="color:${MARK_CATS[m.cat]?.col||'#666'};border-color:${MARK_CATS[m.cat]?.col||'#666'}" onclick="setWMark('${m.code}')">${m.code}</div>`).join('');
-  const lmSel = allM.map(m=>`<div class="ms-pill ${leewardMark===m.code?'active':''}" style="color:${MARK_CATS[m.cat]?.col||'#666'};border-color:${MARK_CATS[m.cat]?.col||'#666'}" onclick="setLMark('${m.code}')">${m.code}</div>`).join('');
 
-  // Dynamic route if marks set
-  const wm = allM.find(m=>m.code===windwardMark);
-  const lm = allM.find(m=>m.code===leewardMark);
-  const route = (wm && lm) ? calcRoute(r, wm, lm, wind) : null;
+  // Use active course from Marks tab if set, else fall back to windward/leeward
+  let wm = null, lm = null, route = null;
+  if (activeRaceCourse && activeRaceCourse.seq.length >= 2) {
+    const seqCodes = activeRaceCourse.seq.map(s=>s.code||s);
+    wm = allM.find(m=>m.code===seqCodes[0]);
+    lm = allM.find(m=>m.code===seqCodes[1]);
+  } else {
+    wm = allM.find(m=>m.code===windwardMark);
+    lm = allM.find(m=>m.code===leewardMark);
+  }
+  route = (wm && lm) ? calcRoute(r, wm, lm, wind) : null;
 
   // Wind status badge
   const windBadge = wind
     ? `<span style="background:rgba(30,136,229,.15);border:1px solid rgba(30,136,229,.3);border-radius:4px;padding:2px 7px;font-size:8px;color:var(--flood2);font-family:'JetBrains Mono',monospace">💨 ${wind.card} ${wind.spd}kn LIVE</span>`
     : `<span style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:2px 7px;font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace">Wind: load Wind tab first</span>`;
-
-  // Course info panel (when marks set)
-  const coursePanel = route ? `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
-        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Beat bearing</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#fff">${route.beatBrg.toFixed(0)}°</div>
-        <div style="font-size:8px;color:var(--sub)">${degToCard(route.beatBrg)}</div>
-      </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
-        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Fav tack</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--gold)">${route.favTack}</div>
-        <div style="font-size:8px;color:var(--sub)">${route.corrDeg}° correction</div>
-      </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center">
-        <div style="font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px">Inshore saves</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${route.inshoreKnSaving}kn</div>
-        <div style="font-size:8px;color:var(--sub)">vs offshore</div>
-      </div>
-    </div>
-    ${route.windFavoursPort!==route.streamFavoursPort && !isSlack?`
-    <div style="background:rgba(255,143,0,.1);border:1px solid rgba(255,143,0,.3);border-radius:7px;padding:7px 9px;margin-bottom:8px;font-size:9px;color:var(--amber);font-family:'JetBrains Mono',monospace">
-      ⚠️ WIND vs TIDE CONFLICT: Wind favours ${route.windFavoursPort?'PORT':'STARBOARD'} but tide favours ${route.streamFavoursPort?'PORT':'STARBOARD'}. At ${r.rate}kn stream, tide wins. Favour ${route.favTack}.
-    </div>`:''}
-    ${wind?`<div style="background:rgba(30,136,229,.08);border:1px solid rgba(30,136,229,.2);border-radius:7px;padding:7px 9px;margin-bottom:8px;font-size:9px;color:var(--flood2);font-family:'JetBrains Mono',monospace">
-      💨 Wind ${wind.card} ${wind.dir}° — ${Math.abs(route.beatSkew).toFixed(0)}° ${route.beatSkew>0?'left':'right'} of beat axis → ${route.beatSquare?'Square beat':'Skewed beat: '+( route.windFavoursPort?'port tack lifted':'starboard tack lifted')}
-    </div>`:''}` : '';
 
   // Legs HTML
   const riskCols = {LOW:'var(--green)',MED:'var(--amber)',HIGH:'var(--ebb2)',CRITICAL:'var(--ebb)'};
@@ -1919,30 +1917,22 @@ function renderRouteView() {
       <div class="ct" style="margin-bottom:5px">${r.n} · ${r.time} <span class="ct-r" style="color:${streamCol}">${r.dir==='→'?'≈ SLACK':r.dir==='E'?'→ E FLOOD':'← W EBB'} ${r.rate}kn</span></div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
         ${windBadge}
-        <span style="font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace">${route?`Course: ${windwardMark}↔${leewardMark}`:'No marks set'}</span>
+        <span style="font-size:8px;color:var(--sub);font-family:'JetBrains Mono',monospace">${activeRaceCourse?`${activeRaceCourse.fullSeq.join('→')}`:'Set course in Marks tab'}</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px">
         <div class="opt-score" style="color:${confCol}">${conf}</div>
         <div style="padding-bottom:8px">
           <div class="opt-grade" style="color:${confCol}">${confLabel}</div>
-          <div style="font-size:9px;color:var(--sub);margin-top:1px">${route?'Live calc: marks + wind + tide':'Set marks above for live calculation'}</div>
+          <div style="font-size:9px;color:var(--sub);margin-top:1px">${route?'Live calc: marks + wind + tide':activeRaceCourse?'Course loaded — select race below':'Go to ⚑ Marks → Course Setup'}</div>
         </div>
       </div>
       ${histBars}
     </div>
 
-    <div class="card">
-      <div class="ct">COURSE SETUP <span class="ct-r">${route?'✓ Live calculation active':'Set marks to activate'}</span></div>
-      <div style="font-size:8px;color:var(--sub);margin-bottom:5px">Windward mark</div>
-      <div class="mark-sel">${wmSel}</div>
-      <div style="font-size:8px;color:var(--sub);margin-bottom:5px;margin-top:4px">Leeward mark</div>
-      <div class="mark-sel">${lmSel}</div>
-      ${coursePanel}
-      ${!route?'<div style="font-size:9px;color:var(--sub);font-style:italic;margin-top:4px">Tap marks above — recommendations update with live wind + course geometry</div>':''}
-    </div>
+
 
     <div class="card">
-      <div class="ct">LEG-BY-LEG ROUTE <span class="ct-r">${route?'Live: wind + tide + marks':'Default: tide only'}</span></div>
+      <div class="ct">LEG-BY-LEG ROUTE <span class="ct-r">${route?'Live: wind + tide + marks':activeRaceCourse?'Course set — select race':'Set course in ⚑ Marks tab'}</span></div>
       ${legsHTML}
     </div>
 
@@ -1957,6 +1947,74 @@ function renderRouteView() {
 function selectRouteRace(i) { routeRaceIdx=i; renderRouteView(); }
 function setWMark(code) { windwardMark=windwardMark===code?null:code; renderRouteView(); }
 function setLMark(code) { leewardMark=leewardMark===code?null:code; renderRouteView(); }
+
+
+// ─── MARK CARD & MANAGEMENT ──────────────────────────────────────────────────
+function markCard(m, showDel=false) {
+  const col = MARK_CATS[m.cat]?.col || '#666';
+  return `<div class="mk">
+    <div class="mk-dot" style="background:${col}"><span class="mk-dot-inner">${m.code}</span></div>
+    <div class="mk-body">
+      <div class="mk-code" style="color:${col}">${m.code}
+        <span style="font-size:10px;color:var(--sub);font-family:-apple-system,sans-serif;font-weight:400">${m.name}</span>
+      </div>
+      <div class="mk-pos">${m.lat.toFixed(4)}°N  ${Math.abs(m.lon).toFixed(4)}°W</div>
+      ${m.note?`<div class="mk-pos" style="color:#3a5060;margin-top:1px">${m.note}</div>`:''}
+    </div>
+    ${showDel?`<div class="mk-actions"><button class="mk-btn del" onclick="deleteMark('${m.code}')">🗑</button></div>`:''}
+  </div>`;
+}
+
+let selectedCat = 'temp';
+function selectCat(cat, el) {
+  selectedCat = cat;
+  document.querySelectorAll('.cat-opt').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function addMark() {
+  const code = document.getElementById('m-code')?.value.trim().toUpperCase();
+  const name = document.getElementById('m-name')?.value.trim();
+  const lat  = parseFloat(document.getElementById('m-lat')?.value);
+  const lon  = parseFloat(document.getElementById('m-lon')?.value);
+  const note = document.getElementById('m-note')?.value.trim();
+  if (!code||!name||isNaN(lat)||isNaN(lon)) { alert('Code, name, lat and lon are required'); return; }
+  userMarks.push({code, name, lat, lon, note, cat:selectedCat, fixed:false});
+  localStorage.setItem('user_marks', JSON.stringify(userMarks));
+  renderMarkContent();
+}
+
+function deleteMark(code) {
+  if (!confirm(`Delete mark ${code}?`)) return;
+  userMarks = userMarks.filter(m=>m.code!==code);
+  localStorage.setItem('user_marks', JSON.stringify(userMarks));
+  renderMarkContent();
+}
+
+function saveCourse() {
+  const name = (document.getElementById('course-name')?.value||'').trim() || `Course ${savedCourses.length+1}`;
+  if (activeCourse.length<2) { alert('Add at least 2 marks'); return; }
+  savedCourses.push({name, seq:[...activeCourse]});
+  localStorage.setItem('courses', JSON.stringify(savedCourses));
+  activeCourse = [];
+  renderMarkContent();
+}
+
+function loadCourse(i) {
+  const c = savedCourses[i];
+  activeCourse = c.seq.map(s => typeof s === 'string' ? {code:s, rounding:'port'} : s);
+  courseType   = c.type || (activeCourse.length===2?'wl':'cans');
+  courseLaps   = c.laps || 1;
+  showMarkTab('course', document.querySelectorAll('.mt-btn')[2]);
+  renderMarkContent();
+}
+
+function deleteCourse(i) {
+  if (!confirm('Delete this course?')) return;
+  savedCourses.splice(i,1);
+  localStorage.setItem('courses', JSON.stringify(savedCourses));
+  renderMarkContent();
+}
 
 // Init route
 renderRouteView();
@@ -2224,6 +2282,38 @@ function setDriftSVG(sd) {
 }
 
 // ─── UPDATE LIVE DISPLAY ─────────────────────────────────────
+
+function updateLaylines() {
+  const el = document.getElementById('ll-content');
+  if (!el) return;
+  const ll = calcLaylines();
+  const wc = document.getElementById('nav-wind-card');
+  if (wc && navWindDir!==null) wc.textContent = degToCard(navWindDir);
+  if (!ll) return;
+  const portStat = !ll.portInside?'ll-crossed':parseFloat(ll.portDist)<0.15?'ll-inside':'ll-outside';
+  const stbdStat = !ll.stbdInside?'ll-crossed':parseFloat(ll.stbdDist)<0.15?'ll-inside':'ll-outside';
+  el.innerHTML = `
+    <div class="ll-svg-wrap">${laylineSVG(ll)}</div>
+    <div class="ll-hero">
+      <div class="ll-card" style="background:rgba(30,136,229,.1);border-color:rgba(30,136,229,.3)">
+        <div class="ll-tack" style="color:var(--flood2)">⬅ PORT LAYLINE</div>
+        <div class="ll-dist">${ll.portDist}</div><div class="ll-unit">nm away</div>
+        <div class="ll-brg" style="color:var(--flood2)">${ll.portBrg.toFixed(0)}°T</div>
+        <div class="ll-status ${portStat}">${!ll.portInside?'OVERSTAND':parseFloat(ll.portDist)<0.15?'TACK NOW':'SAILING TO'}</div>
+      </div>
+      <div class="ll-card" style="background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.25)">
+        <div class="ll-tack" style="color:var(--ebb2)">STBD LAYLINE ➡</div>
+        <div class="ll-dist">${ll.stbdDist}</div><div class="ll-unit">nm away</div>
+        <div class="ll-brg" style="color:var(--ebb2)">${ll.stbdBrg.toFixed(0)}°T</div>
+        <div class="ll-status ${stbdStat}">${!ll.stbdInside?'OVERSTAND':parseFloat(ll.stbdDist)<0.15?'TACK NOW':'SAILING TO'}</div>
+      </div>
+    </div>
+    <div class="ll-advice">${ll.advice}</div>
+    ${parseFloat(ll.tidalCorrDeg)>0?`<div style="margin-top:6px;font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;text-align:center">
+      Raw: Port ${ll.portRaw.toFixed(0)}° Stbd ${ll.stbdRaw.toFixed(0)}° · Tide: ${ll.tidalCorrDeg}°
+    </div>`:''}`;
+}
+
 function updateNavDisplay() {
   // Only update if nav view is active — avoid unnecessary DOM writes
   const navView = document.getElementById('v-nav');
@@ -2270,6 +2360,7 @@ function updateNavDisplay() {
   // Compass rose
   const roseEl = document.getElementById('nd-rose');
   if (roseEl) roseEl.innerHTML = compassRoseSVG(compassHdg, cogDeg, wp?parseFloat(wp.brg):null);
+  updateLaylines();
 }
 
 // ─── RENDER NAV VIEW ─────────────────────────────────────────
@@ -2382,6 +2473,57 @@ function renderNavView() {
             <div style="font-size:9px;color:var(--sub);font-family:'JetBrains Mono',monospace">Drift ${sd.driftKn||'—'}kn · COG vs heading difference</div>
           </div>
         </div>`:'<div style="font-size:9px;color:var(--sub);text-align:center;padding:4px">Set & drift calculation requires both GPS and compass</div>'}
+    </div>
+
+    <!-- LAYLINES -->
+    <div class="card">
+      <div class="ct">LAYLINES TO WINDWARD MARK <span class="ct-r" id="ll-mark-name">${activeRaceCourse?activeRaceCourse.seq[0]?.code||activeRaceCourse.seq[0]:activeWaypoint||'Set course in Marks'}</span></div>
+
+      <!-- Wind direction input -->
+      <div class="wind-input-row">
+        <label>Wind dir</label>
+        <input type="number" id="nav-wind-dir" min="0" max="359"
+          value="${navWindDir!==null?navWindDir:getNavWindDir()||''}"
+          placeholder="${getNavWindDir()||'e.g. 225'}"
+          oninput="navWindDir=parseInt(this.value)||null;updateLaylines()"
+          style="width:60px"/>
+        <span class="wi-card" id="nav-wind-card">${getNavWindDir()!==null?degToCard(getNavWindDir()):''}</span>
+        <span style="font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace">
+          ${getLiveWind()?'Auto: '+getLiveWind().card+' '+getLiveWind().spd+'kn':'Enter manually'}
+        </span>
+      </div>
+
+      <div id="ll-content">
+        ${(()=>{
+          const ll = calcLaylines();
+          if (!ll) return '<div style="font-size:10px;color:var(--sub);font-style:italic;padding:8px 0">Requires GPS permission + wind direction + active course or waypoint</div>';
+          const portCol  = 'var(--flood)'; const stbdCol = 'var(--ebb)';
+          const portStat = !ll.portInside?'ll-crossed':parseFloat(ll.portDist)<0.15?'ll-inside':'ll-outside';
+          const stbdStat = !ll.stbdInside?'ll-crossed':parseFloat(ll.stbdDist)<0.15?'ll-inside':'ll-outside';
+          return `
+          <div class="ll-svg-wrap">${laylineSVG(ll)}</div>
+          <div class="ll-hero">
+            <div class="ll-card" style="background:rgba(30,136,229,.1);border-color:rgba(30,136,229,.3)">
+              <div class="ll-tack" style="color:var(--flood2)">⬅ PORT LAYLINE</div>
+              <div class="ll-dist">${ll.portDist}</div>
+              <div class="ll-unit">nm away</div>
+              <div class="ll-brg" style="color:var(--flood2)">${ll.portBrg.toFixed(0)}°T</div>
+              <div class="ll-status ${portStat}">${!ll.portInside?'OVERSTAND':parseFloat(ll.portDist)<0.15?'TACK NOW':'SAILING TO'}</div>
+            </div>
+            <div class="ll-card" style="background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.25)">
+              <div class="ll-tack" style="color:var(--ebb2)">STBD LAYLINE ➡</div>
+              <div class="ll-dist">${ll.stbdDist}</div>
+              <div class="ll-unit">nm away</div>
+              <div class="ll-brg" style="color:var(--ebb2)">${ll.stbdBrg.toFixed(0)}°T</div>
+              <div class="ll-status ${stbdStat}">${!ll.stbdInside?'OVERSTAND':parseFloat(ll.stbdDist)<0.15?'TACK NOW':'SAILING TO'}</div>
+            </div>
+          </div>
+          <div class="ll-advice">${ll.advice}</div>
+          ${parseFloat(ll.tidalCorrDeg)>0?`<div style="margin-top:6px;font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;text-align:center">
+            Raw laylines: Port ${ll.portRaw.toFixed(0)}° · Stbd ${ll.stbdRaw.toFixed(0)}° · Tide correction: ${ll.tidalCorrDeg}°
+          </div>`:''}`;
+        })()}
+      </div>
     </div>
 
     <!-- WIND SHIFT LOGGER -->
