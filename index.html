@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -29,20 +28,20 @@ body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacS
 
 /* ════════════════ HEADER ════════════════ */
 #hdr{background:linear-gradient(135deg,#07101e 0%,#0c1e36 100%);border-bottom:1px solid rgba(212,160,23,.2);padding:8px 13px 6px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
-#hdr h1{font-family:‘Arial Black’,Arial,sans-serif;font-size:22px;letter-spacing:3px;color:#fff;line-height:1}
-.hdr-sub{font-size:8px;color:var(–gold);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+#hdr h1{font-family:'Arial Black',Arial,sans-serif;font-size:22px;letter-spacing:3px;color:#fff;line-height:1}
+.hdr-sub{font-size:8px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
 .hdr-r{display:flex;align-items:center;gap:6px}
-#upd{font-size:7px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace;text-align:right;line-height:1.5}
-.ibtn{background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);color:var(–gold);border-radius:5px;padding:5px 9px;font-size:10px;font-family:ui-monospace,‘Courier New’,monospace;cursor:pointer}
+#upd{font-size:7px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;text-align:right;line-height:1.5}
+.ibtn{background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);color:var(--gold);border-radius:5px;padding:5px 9px;font-size:10px;font-family:ui-monospace,'Courier New',monospace;cursor:pointer}
 .ibtn:active{background:rgba(212,160,23,.25)}
 
 /* ════════════════ NAV ════════════════ */
-#nav{display:flex;background:var(–ink2);border-bottom:1px solid var(–ink3);flex-shrink:0}
+#nav{display:flex;background:var(--ink2);border-bottom:1px solid var(--ink3);flex-shrink:0}
 .nt{flex:1;padding:6px 2px 4px;text-align:center;cursor:pointer;border-bottom:2px solid transparent}
 .ni{font-size:19px;display:block;line-height:1.2}
-.nl{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
-.nt.active{border-bottom-color:var(–gold)}
-.nt.active .nl{color:var(–gold)}
+.nl{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.nt.active{border-bottom-color:var(--gold)}
+.nt.active .nl{color:var(--gold)}
 
 /* ════════════════ SCROLL ════════════════ */
 #views{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overflow-x:hidden}
@@ -50,37 +49,37 @@ body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacS
 .view.active{display:block}
 
 /* ════════════════ CARDS ════════════════ */
-.card{background:var(–ink2);border:1px solid var(–ink3);border-radius:var(–r);padding:12px 13px;margin-bottom:9px}
-.ct{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
-.ct-r{font-size:8px;color:var(–sub);letter-spacing:0;text-transform:none;font-family:ui-monospace,‘Courier New’,monospace}
+.card{background:var(--ink2);border:1px solid var(--ink3);border-radius:var(--r);padding:12px 13px;margin-bottom:9px}
+.ct{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.ct-r{font-size:8px;color:var(--sub);letter-spacing:0;text-transform:none;font-family:ui-monospace,'Courier New',monospace}
 
 /* ════════════════ WIND VIEW ════════════════ */
 .wind-hero{display:flex;align-items:flex-end;gap:8px;margin-bottom:10px}
-.wh-num{font-family:‘Arial Black’,Arial,sans-serif;font-size:76px;line-height:1;color:#fff}
+.wh-num{font-family:'Arial Black',Arial,sans-serif;font-size:76px;line-height:1;color:#fff}
 .wh-side{padding-bottom:12px}
-.wh-unit{font-size:12px;color:var(–sub);display:block}
-.wh-dir{font-family:ui-monospace,‘Courier New’,monospace;font-size:24px;font-weight:700;color:var(–gold);line-height:1.1}
-.wh-bf{font-size:10px;color:var(–sub);margin-top:1px}
-.wh-gust{font-size:12px;color:var(–ebb2);font-family:ui-monospace,‘Courier New’,monospace;font-weight:600;margin-top:3px}
+.wh-unit{font-size:12px;color:var(--sub);display:block}
+.wh-dir{font-family:ui-monospace,'Courier New',monospace;font-size:24px;font-weight:700;color:var(--gold);line-height:1.1}
+.wh-bf{font-size:10px;color:var(--sub);margin-top:1px}
+.wh-gust{font-size:12px;color:var(--ebb2);font-family:ui-monospace,'Courier New',monospace;font-weight:600;margin-top:3px}
 .wgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
 .wc{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:9px 6px;text-align:center}
-.wl{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
-.wv{font-family:ui-monospace,‘Courier New’,monospace;font-size:21px;font-weight:700;color:#fff;line-height:1}
-.wu{font-size:8px;color:var(–sub)}
+.wl{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.wv{font-family:ui-monospace,'Courier New',monospace;font-size:21px;font-weight:700;color:#fff;line-height:1}
+.wu{font-size:8px;color:var(--sub)}
 #wr-wrap{display:flex;justify-content:center;margin:0 0 10px}
 .hscroll{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
 .hscroll::-webkit-scrollbar{display:none}
 .hc{flex-shrink:0;width:54px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:6px 4px;text-align:center}
-.hc.now{border-color:var(–gold);background:rgba(212,160,23,.08)}
-.ht{font-size:7px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace}
-.hdir{font-size:11px;color:var(–gold);font-weight:700;margin:2px 0;line-height:1}
-.hspd{font-family:ui-monospace,‘Courier New’,monospace;font-size:15px;font-weight:700;color:#fff;line-height:1}
-.hgst{font-size:8px;color:var(–ebb2)}
-.api-note{font-size:9px;color:var(–sub);text-align:center;padding:6px;font-family:ui-monospace,‘Courier New’,monospace;line-height:1.5}
+.hc.now{border-color:var(--gold);background:rgba(212,160,23,.08)}
+.ht{font-size:7px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace}
+.hdir{font-size:11px;color:var(--gold);font-weight:700;margin:2px 0;line-height:1}
+.hspd{font-family:ui-monospace,'Courier New',monospace;font-size:15px;font-weight:700;color:#fff;line-height:1}
+.hgst{font-size:8px;color:var(--ebb2)}
+.api-note{font-size:9px;color:var(--sub);text-align:center;padding:6px;font-family:ui-monospace,'Courier New',monospace;line-height:1.5}
 .api-key-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 10px;margin-bottom:8px}
-.api-key-row input{flex:1;background:transparent;border:none;color:var(–text);font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;outline:none}
-.api-key-row input::placeholder{color:var(–sub)}
-.api-key-row .save-key{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:var(–gold);border-radius:4px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:ui-monospace,‘Courier New’,monospace;white-space:nowrap}
+.api-key-row input{flex:1;background:transparent;border:none;color:var(--text);font-family:ui-monospace,'Courier New',monospace;font-size:11px;outline:none}
+.api-key-row input::placeholder{color:var(--sub)}
+.api-key-row .save-key{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.3);color:var(--gold);border-radius:4px;padding:4px 9px;font-size:9px;cursor:pointer;font-family:ui-monospace,'Courier New',monospace;white-space:nowrap}
 
 /* ════════════════ TIDE VIEW ════════════════ */
 .day-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding-bottom:2px}
@@ -88,14 +87,14 @@ body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacS
 .dp{flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;transition:all .15s}
 .dp.active{background:rgba(212,160,23,.12);border-color:rgba(212,160,23,.4)}
 .dp-d{font-size:11px;color:#fff;font-weight:600}
-.dp-n{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.4px}
+.dp-n{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
 .tide-events{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .te{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px;flex:1;min-width:78px;text-align:center}
-.te-l{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
-.te-t{font-family:ui-monospace,‘Courier New’,monospace;font-size:17px;font-weight:700;line-height:1}
-.te-h{font-size:10px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace;margin-top:2px}
-.te.hw .te-t{color:var(–flood2)}
-.te.lw .te-t{color:var(–amber)}
+.te-l{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.te-t{font-family:ui-monospace,'Courier New',monospace;font-size:17px;font-weight:700;line-height:1}
+.te-h{font-size:10px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
+.te.hw .te-t{color:var(--flood2)}
+.te.lw .te-t{color:var(--amber)}
 .te.racing{border-color:rgba(212,160,23,.35);background:rgba(212,160,23,.06)}
 .curve-wrap{background:rgba(0,0,0,.25);border-radius:8px;padding:8px 4px 4px}
 
@@ -104,103 +103,103 @@ body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacS
 .race-strip::-webkit-scrollbar{display:none}
 .rp{flex-shrink:0;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;border:1px solid;opacity:.6;transition:opacity .15s}
 .rp.active{opacity:1}
-.rp-n{font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;font-weight:700}
+.rp-n{font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:700}
 .rp-t{font-size:9px;color:#fff}
 .stream-hero{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px 13px;margin-bottom:8px}
 .sh-arrow{font-size:44px;line-height:1}
-.sh-right .sh-state{font-family:‘Arial Black’,Arial,sans-serif;font-size:22px;letter-spacing:2px;color:#fff}
-.sh-right .sh-rate{font-family:ui-monospace,‘Courier New’,monospace;font-size:16px;font-weight:700}
-.sh-right .sh-vmg{font-size:9px;color:var(–sub);margin-top:2px}
-.sh-right .sh-tac{font-size:9px;color:var(–gold);margin-top:4px;line-height:1.5;border-top:1px solid rgba(255,255,255,.07);padding-top:4px}
+.sh-right .sh-state{font-family:'Arial Black',Arial,sans-serif;font-size:22px;letter-spacing:2px;color:#fff}
+.sh-right .sh-rate{font-family:ui-monospace,'Courier New',monospace;font-size:16px;font-weight:700}
+.sh-right .sh-vmg{font-size:9px;color:var(--sub);margin-top:2px}
+.sh-right .sh-tac{font-size:9px;color:var(--gold);margin-top:4px;line-height:1.5;border-top:1px solid rgba(255,255,255,.07);padding-top:4px}
 .zone-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
 .zone{border-radius:8px;padding:8px 6px;text-align:center;border:1px solid}
 .zl{font-size:7px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;font-weight:600}
-.zr{font-family:ui-monospace,‘Courier New’,monospace;font-size:18px;font-weight:700;line-height:1}
+.zr{font-family:ui-monospace,'Courier New',monospace;font-size:18px;font-weight:700;line-height:1}
 .zd{font-size:8px;margin-top:2px}
 .zs{font-size:8px;margin-top:1px}
 .ll-table{width:100%;border-collapse:collapse;font-size:10px}
-.ll-table th{background:var(–ink3);color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
-.ll-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:ui-monospace,‘Courier New’,monospace;vertical-align:middle}
+.ll-table th{background:var(--ink3);color:var(--gold);font-family:ui-monospace,'Courier New',monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
+.ll-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:ui-monospace,'Courier New',monospace;vertical-align:middle}
 .ll-table tr:last-child td{border-bottom:none}
-.imp-hi{color:var(–ebb2)}.imp-med{color:var(–amber)}.imp-lo{color:var(–slack2)}
+.imp-hi{color:var(--ebb2)}.imp-med{color:var(--amber)}.imp-lo{color:var(--slack2)}
 
 /* ════════════════ MARKS VIEW ════════════════ */
 .mark-tabs{display:flex;gap:5px;margin-bottom:10px}
-.mt-btn{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:7px 4px;text-align:center;cursor:pointer;font-size:10px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace}
-.mt-btn.active{background:rgba(212,160,23,.1);border-color:rgba(212,160,23,.35);color:var(–gold)}
+.mt-btn{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:7px 4px;text-align:center;cursor:pointer;font-size:10px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace}
+.mt-btn.active{background:rgba(212,160,23,.1);border-color:rgba(212,160,23,.35);color:var(--gold)}
 .mark-list{display:flex;flex-direction:column;gap:6px}
 .mk{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:10px}
-.mk.selected{border-color:var(–gold);background:rgba(212,160,23,.06)}
-.mk-dot{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,‘Courier New’,monospace;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
+.mk.selected{border-color:var(--gold);background:rgba(212,160,23,.06)}
+.mk-dot{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,'Courier New',monospace;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
 .mk-dot-inner{transform:rotate(-45deg)}
 .mk-body{flex:1;min-width:0}
-.mk-code{font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;color:#fff}
-.mk-name{font-size:10px;color:var(–sub);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mk-pos{font-size:8px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace;margin-top:2px}
+.mk-code{font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;color:#fff}
+.mk-name{font-size:10px;color:var(--sub);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-pos{font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
 .mk-actions{display:flex;gap:5px}
-.mk-btn{background:rgba(255,255,255,.06);border:none;border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;color:var(–text)}
+.mk-btn{background:rgba(255,255,255,.06);border:none;border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;color:var(--text)}
 .mk-btn:active{background:rgba(255,255,255,.12)}
-.mk-btn.del{color:var(–ebb2)}
-.add-form{background:var(–ink4);border:1px solid var(–ink3);border-radius:var(–r);padding:12px 13px;margin-bottom:9px}
+.mk-btn.del{color:var(--ebb2)}
+.add-form{background:var(--ink4);border:1px solid var(--ink3);border-radius:var(--r);padding:12px 13px;margin-bottom:9px}
 .add-form .row{display:flex;gap:7px;margin-bottom:8px;align-items:center}
-.add-form label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:52px;flex-shrink:0}
-.add-form input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(–text);font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;outline:none}
-.add-form input:focus{border-color:var(–gold)}
+.add-form label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:52px;flex-shrink:0}
+.add-form input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(--text);font-family:ui-monospace,'Courier New',monospace;font-size:11px;outline:none}
+.add-form input:focus{border-color:var(--gold)}
 .cat-sel{display:flex;gap:5px;flex-wrap:wrap}
-.cat-opt{padding:4px 9px;border-radius:4px;font-size:9px;cursor:pointer;border:1px solid;opacity:.6;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
+.cat-opt{padding:4px 9px;border-radius:4px;font-size:9px;cursor:pointer;border:1px solid;opacity:.6;font-family:ui-monospace,'Courier New',monospace;font-weight:700}
 .cat-opt.active{opacity:1}
-.btn-full{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);color:var(–gold);border-radius:7px;padding:10px;font-size:12px;font-family:ui-monospace,‘Courier New’,monospace;cursor:pointer;letter-spacing:1px;margin-top:4px}
+.btn-full{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);color:var(--gold);border-radius:7px;padding:10px;font-size:12px;font-family:ui-monospace,'Courier New',monospace;cursor:pointer;letter-spacing:1px;margin-top:4px}
 .btn-full:active{background:rgba(212,160,23,.25)}
-.btn-full.danger{background:rgba(229,57,53,.1);border-color:rgba(229,57,53,.3);color:var(–ebb2)}
+.btn-full.danger{background:rgba(229,57,53,.1);border-color:rgba(229,57,53,.3);color:var(--ebb2)}
 
 /* Course builder */
 .course-seq{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 10px;min-height:34px;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:7px;border:1px dashed rgba(255,255,255,.1);align-items:center}
-.cs-mark{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);border-radius:5px;padding:3px 8px;font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;color:var(–gold);font-weight:700;display:flex;align-items:center;gap:5px}
-.cs-mark .rm{color:var(–ebb2);cursor:pointer;font-size:13px}
-.cs-empty{font-size:10px;color:var(–sub);font-style:italic}
+.cs-mark{background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.35);border-radius:5px;padding:3px 8px;font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:700;display:flex;align-items:center;gap:5px}
+.cs-mark .rm{color:var(--ebb2);cursor:pointer;font-size:13px}
+.cs-empty{font-size:10px;color:var(--sub);font-style:italic}
 .course-list{display:flex;flex-direction:column;gap:6px}
 .cl-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px}
-.cl-name{font-family:ui-monospace,‘Courier New’,monospace;font-size:12px;color:#fff;font-weight:700;margin-bottom:4px}
-.cl-seq{font-size:10px;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace}
+.cl-name{font-family:ui-monospace,'Courier New',monospace;font-size:12px;color:#fff;font-weight:700;margin-bottom:4px}
+.cl-seq{font-size:10px;color:var(--gold);font-family:ui-monospace,'Courier New',monospace}
 .cl-actions{display:flex;gap:5px;margin-top:7px}
-.cl-btn{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:10px;cursor:pointer;color:var(–text);font-family:ui-monospace,‘Courier New’,monospace}
-.cl-btn.del{color:var(–ebb2)}
+.cl-btn{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:5px;text-align:center;font-size:10px;cursor:pointer;color:var(--text);font-family:ui-monospace,'Courier New',monospace}
+.cl-btn.del{color:var(--ebb2)}
 
 /* ════════════════ START VIEW ════════════════ */
-.countdown-card{background:linear-gradient(135deg,#0a1e36,#0d2a40);border:1px solid rgba(212,160,23,.25);border-radius:var(–r);padding:18px 14px;text-align:center;margin-bottom:9px}
-.cd-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:6px;font-family:ui-monospace,‘Courier New’,monospace}
-.cd-time{font-family:‘Arial Black’,Arial,sans-serif;font-size:80px;letter-spacing:4px;color:#fff;line-height:1;transition:color .3s}
-.cd-time.warn{color:var(–amber)}
-.cd-time.go{color:var(–green)}
-.cd-time.over{color:var(–ebb)}
-.cd-status{font-size:10px;color:var(–sub);margin-top:5px;font-family:ui-monospace,‘Courier New’,monospace}
+.countdown-card{background:linear-gradient(135deg,#0a1e36,#0d2a40);border:1px solid rgba(212,160,23,.25);border-radius:var(--r);padding:18px 14px;text-align:center;margin-bottom:9px}
+.cd-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-family:ui-monospace,'Courier New',monospace}
+.cd-time{font-family:'Arial Black',Arial,sans-serif;font-size:80px;letter-spacing:4px;color:#fff;line-height:1;transition:color .3s}
+.cd-time.warn{color:var(--amber)}
+.cd-time.go{color:var(--green)}
+.cd-time.over{color:var(--ebb)}
+.cd-status{font-size:10px;color:var(--sub);margin-top:5px;font-family:ui-monospace,'Courier New',monospace}
 .seq-row{display:flex;gap:6px;margin-bottom:9px}
 .seq-pill{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:7px 5px;text-align:center;cursor:pointer}
-.seq-pill.active{border-color:var(–gold);background:rgba(212,160,23,.1)}
-.seq-n{font-size:8px;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
-.seq-t{font-size:14px;color:#fff;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
-.seq-s{font-size:8px;color:var(–sub)}
+.seq-pill.active{border-color:var(--gold);background:rgba(212,160,23,.1)}
+.seq-n{font-size:8px;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;font-weight:700}
+.seq-t{font-size:14px;color:#fff;font-family:ui-monospace,'Courier New',monospace;font-weight:700}
+.seq-s{font-size:8px;color:var(--sub)}
 .ctrl-row{display:flex;gap:7px;margin-bottom:9px}
-.ctrl{flex:1;border-radius:8px;padding:12px 6px;text-align:center;cursor:pointer;font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid}
+.ctrl{flex:1;border-radius:8px;padding:12px 6px;text-align:center;cursor:pointer;font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;border:1px solid}
 .ctrl:active{transform:scale(.97)}
-.ctrl.set{background:rgba(30,136,229,.12);border-color:rgba(30,136,229,.35);color:var(–flood2)}
-.ctrl.sync{background:rgba(212,160,23,.12);border-color:rgba(212,160,23,.35);color:var(–gold)}
-.ctrl.rst{background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.2);color:var(–ebb2)}
+.ctrl.set{background:rgba(30,136,229,.12);border-color:rgba(30,136,229,.35);color:var(--flood2)}
+.ctrl.sync{background:rgba(212,160,23,.12);border-color:rgba(212,160,23,.35);color:var(--gold)}
+.ctrl.rst{background:rgba(229,57,53,.08);border-color:rgba(229,57,53,.2);color:var(--ebb2)}
 .ctrl.go-btn{background:rgba(67,160,71,.15);border-color:rgba(67,160,71,.4);color:#81C784}
 .bias-section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;margin-bottom:9px}
-.bs-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:8px}
+.bs-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;margin-bottom:8px}
 .bs-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
-.bs-label{font-size:9px;color:var(–sub);min-width:58px}
-.bs-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;background:linear-gradient(to right,var(–flood),#666,var(–ebb))}
-.bs-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(–gold);border:2px solid var(–ink)}
-.bs-val{font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;color:#fff;min-width:36px;text-align:right}
-.bias-result{background:rgba(0,0,0,.2);border-radius:7px;padding:9px 11px;font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;color:var(–text);line-height:1.7}
-.bias-result .br-hi{color:var(–gold);font-weight:700;font-size:13px}
+.bs-label{font-size:9px;color:var(--sub);min-width:58px}
+.bs-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;outline:none;background:linear-gradient(to right,var(--flood),#666,var(--ebb))}
+.bs-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);border:2px solid var(--ink)}
+.bs-val{font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:#fff;min-width:36px;text-align:right}
+.bias-result{background:rgba(0,0,0,.2);border-radius:7px;padding:9px 11px;font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:var(--text);line-height:1.7}
+.bias-result .br-hi{color:var(--gold);font-weight:700;font-size:13px}
 
 /* ════════════════ UTILS ════════════════ */
-.loading{text-align:center;padding:20px;font-size:11px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace}
-.err{background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.25);border-radius:7px;padding:8px 10px;font-size:10px;color:var(–ebb2);font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:8px}
-.pill{display:inline-block;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:700;font-family:ui-monospace,‘Courier New’,monospace}
+.loading{text-align:center;padding:20px;font-size:11px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace}
+.err{background:rgba(229,57,53,.1);border:1px solid rgba(229,57,53,.25);border-radius:7px;padding:8px 10px;font-size:10px;color:var(--ebb2);font-family:ui-monospace,'Courier New',monospace;margin-bottom:8px}
+.pill{display:inline-block;border-radius:4px;padding:2px 7px;font-size:8px;font-weight:700;font-family:ui-monospace,'Courier New',monospace}
 hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 
 /* ════════════════ ROUTE OPTIMISER ════════════════ */
@@ -208,121 +207,125 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .route-race-strip::-webkit-scrollbar{display:none}
 .rrp{flex-shrink:0;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;border:1px solid;opacity:.6;transition:opacity .15s}
 .rrp.active{opacity:1}
-.rrp-n{font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;font-weight:700}
+.rrp-n{font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:700}
 .rrp-t{font-size:9px;color:#fff}
 .opt-card{border-radius:10px;padding:12px 13px;margin-bottom:9px;border:1px solid}
-.opt-score{font-family:‘Arial Black’,Arial,sans-serif;font-size:48px;line-height:1}
-.opt-grade{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:ui-monospace,‘Courier New’,monospace}
+.opt-score{font-family:'Arial Black',Arial,sans-serif;font-size:48px;line-height:1}
+.opt-grade{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-family:ui-monospace,'Courier New',monospace}
 .leg-row{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;margin-bottom:7px}
 .leg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.leg-name{font-family:ui-monospace,‘Courier New’,monospace;font-size:12px;font-weight:700;color:#fff}
-.leg-badge{font-size:8px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:1px}
-.leg-rec{background:rgba(212,160,23,.08);border-left:3px solid var(–gold);padding:7px 9px;border-radius:0 6px 6px 0;margin-bottom:5px}
-.leg-rec-title{font-size:8px;color:var(–gold);letter-spacing:1px;text-transform:uppercase;font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:3px}
-.leg-rec-body{font-size:10px;color:var(–text);line-height:1.5}
+.leg-name{font-family:ui-monospace,'Courier New',monospace;font-size:12px;font-weight:700;color:#fff}
+.leg-badge{font-size:8px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:1px}
+.leg-rec{background:rgba(212,160,23,.08);border-left:3px solid var(--gold);padding:7px 9px;border-radius:0 6px 6px 0;margin-bottom:5px}
+.leg-rec-title{font-size:8px;color:var(--gold);letter-spacing:1px;text-transform:uppercase;font-family:ui-monospace,'Courier New',monospace;margin-bottom:3px}
+.leg-rec-body{font-size:10px;color:var(--text);line-height:1.5}
 .leg-tack{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
-.tack-pill{font-size:9px;font-family:ui-monospace,‘Courier New’,monospace;padding:3px 8px;border-radius:4px;border:1px solid}
+.tack-pill{font-size:9px;font-family:ui-monospace,'Courier New',monospace;padding:3px 8px;border-radius:4px;border:1px solid}
 .hist-bar{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-.hist-label{font-size:9px;color:var(–sub);min-width:60px;font-family:ui-monospace,‘Courier New’,monospace}
+.hist-label{font-size:9px;color:var(--sub);min-width:60px;font-family:ui-monospace,'Courier New',monospace}
 .hist-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
 .hist-fill{height:100%;border-radius:3px}
-.hist-val{font-size:9px;font-family:ui-monospace,‘Courier New’,monospace;color:#fff;min-width:24px;text-align:right}
+.hist-val{font-size:9px;font-family:ui-monospace,'Courier New',monospace;color:#fff;min-width:24px;text-align:right}
 .mark-sel{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
-.ms-pill{font-size:9px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;padding:4px 9px;border-radius:5px;border:1px solid;cursor:pointer;opacity:.6}
+.ms-pill{font-size:9px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;padding:4px 9px;border-radius:5px;border:1px solid;cursor:pointer;opacity:.6}
 .ms-pill.active{opacity:1}
 .input-row{display:flex;gap:7px;align-items:center;margin-bottom:7px}
-.input-row label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
-.input-row select,.input-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(–text);font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;outline:none}
+.input-row label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
+.input-row select,.input-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;padding:7px 9px;color:var(--text);font-family:ui-monospace,'Courier New',monospace;font-size:11px;outline:none}
+
 
 /* ════════════════ NAV TAB ════════════════ */
 .nav-hero{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
-.nav-big{background:var(–ink2);border:1px solid var(–ink3);border-radius:10px;padding:12px 13px;text-align:center}
-.nav-big .nb-label{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:1.5px;font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:4px}
-.nav-big .nb-val{font-family:‘Arial Black’,Arial,sans-serif;font-size:52px;line-height:1;color:#fff}
-.nav-big .nb-unit{font-size:11px;color:var(–sub)}
-.nav-big .nb-sub{font-size:10px;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;margin-top:2px}
+.nav-big{background:var(--ink2);border:1px solid var(--ink3);border-radius:10px;padding:12px 13px;text-align:center}
+.nav-big .nb-label{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:1.5px;font-family:ui-monospace,'Courier New',monospace;margin-bottom:4px}
+.nav-big .nb-val{font-family:'Arial Black',Arial,sans-serif;font-size:52px;line-height:1;color:#fff}
+.nav-big .nb-unit{font-size:11px;color:var(--sub)}
+.nav-big .nb-sub{font-size:10px;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
 .compass-wrap{display:flex;justify-content:center;margin-bottom:9px}
-.perm-btn{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.4);color:var(–gold);border-radius:8px;padding:14px;font-size:13px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;cursor:pointer;letter-spacing:1px;margin-bottom:9px;text-align:center}
+.perm-btn{width:100%;background:rgba(212,160,23,.15);border:1px solid rgba(212,160,23,.4);color:var(--gold);border-radius:8px;padding:14px;font-size:13px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;cursor:pointer;letter-spacing:1px;margin-bottom:9px;text-align:center}
 .perm-btn:active{background:rgba(212,160,23,.28)}
 .perm-btn.granted{background:rgba(67,160,71,.12);border-color:rgba(67,160,71,.35);color:#81C784}
 .mark-waypoint-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:9px}
 .mark-waypoint-strip::-webkit-scrollbar{display:none}
-.wp-pill{flex-shrink:0;border-radius:5px;padding:4px 9px;cursor:pointer;font-family:ui-monospace,‘Courier New’,monospace;font-size:10px;font-weight:700;border:1px solid;opacity:.6}
+.wp-pill{flex-shrink:0;border-radius:5px;padding:4px 9px;cursor:pointer;font-family:ui-monospace,'Courier New',monospace;font-size:10px;font-weight:700;border:1px solid;opacity:.6}
 .wp-pill.active{opacity:1}
 .shift-log{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
 .shift-entry{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border-radius:6px;padding:6px 9px;border:1px solid rgba(255,255,255,.06)}
-.shift-tack{font-family:ui-monospace,‘Courier New’,monospace;font-size:10px;font-weight:700;min-width:28px}
-.shift-hdg{font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;color:#fff;min-width:36px}
-.shift-delta{font-size:11px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;min-width:40px}
-.shift-type{font-size:9px;padding:2px 6px;border-radius:3px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
-.shift-time{font-size:8px;color:var(–sub);font-family:ui-monospace,‘Courier New’,monospace;margin-left:auto}
+.shift-tack{font-family:ui-monospace,'Courier New',monospace;font-size:10px;font-weight:700;min-width:28px}
+.shift-hdg{font-family:ui-monospace,'Courier New',monospace;font-size:13px;color:#fff;min-width:36px}
+.shift-delta{font-size:11px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;min-width:40px}
+.shift-type{font-size:9px;padding:2px 6px;border-radius:3px;font-family:ui-monospace,'Courier New',monospace;font-weight:700}
+.shift-time{font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-left:auto}
 .tack-btns{display:flex;gap:7px;margin-bottom:9px}
-.tack-btn{flex:1;border-radius:8px;padding:14px 8px;text-align:center;cursor:pointer;font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;border:1px solid;letter-spacing:1px}
+.tack-btn{flex:1;border-radius:8px;padding:14px 8px;text-align:center;cursor:pointer;font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;border:1px solid;letter-spacing:1px}
 .tack-btn:active{transform:scale(.97)}
-.tack-port{background:rgba(30,136,229,.15);border-color:rgba(30,136,229,.4);color:var(–flood2)}
-.tack-stbd{background:rgba(229,57,53,.12);border-color:rgba(229,57,53,.3);color:var(–ebb2)}
+.tack-port{background:rgba(30,136,229,.15);border-color:rgba(30,136,229,.4);color:var(--flood2)}
+.tack-stbd{background:rgba(229,57,53,.12);border-color:rgba(229,57,53,.3);color:var(--ebb2)}
 .set-arrow-wrap{display:flex;justify-content:center;margin:4px 0 8px}
 .stat-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
 .stat-cell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 8px;flex:1;min-width:70px;text-align:center}
-.sc-label{font-size:7px;color:var(–sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px}
-.sc-val{font-family:ui-monospace,‘Courier New’,monospace;font-size:16px;font-weight:700;color:#fff;line-height:1}
-.sc-sub{font-size:8px;color:var(–sub);margin-top:1px}
+.sc-label{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;margin-bottom:2px}
+.sc-val{font-family:ui-monospace,'Courier New',monospace;font-size:16px;font-weight:700;color:#fff;line-height:1}
+.sc-sub{font-size:8px;color:var(--sub);margin-top:1px}
+
 
 /* ════════ COURSE SETUP ════════ */
 
 .course-builder-marks{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;margin-bottom:8px}
 .cbm{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 10px;cursor:pointer}
 .cbm:active{background:rgba(255,255,255,.07)}
-.cbm-dot{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,‘Courier New’,monospace;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
+.cbm-dot{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,'Courier New',monospace;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;transform:rotate(45deg)}
 .cbm-inner{transform:rotate(-45deg)}
 .cbm-body{flex:1}
-.cbm-code{font-family:ui-monospace,‘Courier New’,monospace;font-size:12px;font-weight:700;color:#fff}
-.cbm-name{font-size:9px;color:var(–sub)}
-.cbm-add{font-size:18px;color:var(–gold);padding-right:4px}
+.cbm-code{font-family:ui-monospace,'Courier New',monospace;font-size:12px;font-weight:700;color:#fff}
+.cbm-name{font-size:9px;color:var(--sub)}
+.cbm-add{font-size:18px;color:var(--gold);padding-right:4px}
 .active-course-seq{display:flex;gap:5px;flex-wrap:wrap;padding:8px;background:rgba(0,0,0,.25);border-radius:7px;border:1px solid rgba(255,255,255,.08);min-height:38px;align-items:center;margin-bottom:8px}
 .acs-item{display:flex;align-items:center;gap:3px;background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.3);border-radius:5px;padding:3px 7px}
-.acs-arrow{color:var(–sub);font-size:10px}
-.acs-code{font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;font-weight:700;color:var(–gold)}
-.acs-rm{color:var(–ebb2);cursor:pointer;font-size:13px;margin-left:2px;line-height:1}
+.acs-arrow{color:var(--sub);font-size:10px}
+.acs-code{font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:700;color:var(--gold)}
+.acs-rm{color:var(--ebb2);cursor:pointer;font-size:13px;margin-left:2px;line-height:1}
 .course-legs-table{width:100%;border-collapse:collapse;font-size:10px}
-.course-legs-table th{background:var(–ink3);color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
-.course-legs-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:ui-monospace,‘Courier New’,monospace;vertical-align:middle}
+.course-legs-table th{background:var(--ink3);color:var(--gold);font-family:ui-monospace,'Courier New',monospace;font-size:8px;letter-spacing:1px;padding:5px 7px;text-align:left;text-transform:uppercase}
+.course-legs-table td{padding:6px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-family:ui-monospace,'Courier New',monospace;vertical-align:middle}
 .course-legs-table tr:last-child td{border-bottom:none}
-.leg-type-beat{color:var(–flood2)}.leg-type-run{color:var(–ebb2)}.leg-type-reach{color:var(–amber)}
+.leg-type-beat{color:var(--flood2)}.leg-type-run{color:var(--ebb2)}.leg-type-reach{color:var(--amber)}
 .active-course-banner{background:linear-gradient(135deg,rgba(30,136,229,.15),rgba(212,160,23,.08));border:1px solid rgba(212,160,23,.3);border-radius:10px;padding:12px 14px;margin-bottom:9px}
-.acb-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;margin-bottom:6px}
-.acb-seq{font-family:ui-monospace,‘Courier New’,monospace;font-size:11px;color:#fff;line-height:1.6;word-break:break-all}
+.acb-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;margin-bottom:6px}
+.acb-seq{font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:#fff;line-height:1.6;word-break:break-all}
 .acb-stats{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.acb-stat{background:rgba(0,0,0,.2);border-radius:5px;padding:4px 9px;font-size:9px;font-family:ui-monospace,‘Courier New’,monospace;color:var(–sub)}
+.acb-stat{background:rgba(0,0,0,.2);border-radius:5px;padding:4px 9px;font-size:9px;font-family:ui-monospace,'Courier New',monospace;color:var(--sub)}
 .acb-stat span{color:#fff;font-weight:700}
 
+
 .rnd-row{display:flex;gap:5px;margin-bottom:8px;align-items:center}
-.rnd-label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
-.rnd-btn{flex:1;border-radius:5px;padding:6px 4px;font-size:10px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;border:1px solid;cursor:pointer;text-align:center;opacity:.5;letter-spacing:.5px;transition:opacity .15s}
+.rnd-label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:70px}
+.rnd-btn{flex:1;border-radius:5px;padding:6px 4px;font-size:10px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;border:1px solid;cursor:pointer;text-align:center;opacity:.5;letter-spacing:.5px;transition:opacity .15s}
 .rnd-btn.active{opacity:1}
-.rnd-port{color:var(–flood2);border-color:rgba(30,136,229,.4);background:rgba(30,136,229,.1)}
-.rnd-stbd{color:var(–ebb2);border-color:rgba(229,57,53,.3);background:rgba(229,57,53,.08)}
-.acs-rnd{font-size:8px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:2px;cursor:pointer}
-.acs-rnd.port{color:var(–flood2);background:rgba(30,136,229,.2);border:1px solid rgba(30,136,229,.3)}
-.acs-rnd.stbd{color:var(–ebb2);background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.25)}
+.rnd-port{color:var(--flood2);border-color:rgba(30,136,229,.4);background:rgba(30,136,229,.1)}
+.rnd-stbd{color:var(--ebb2);border-color:rgba(229,57,53,.3);background:rgba(229,57,53,.08)}
+.acs-rnd{font-size:8px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:2px;cursor:pointer}
+.acs-rnd.port{color:var(--flood2);background:rgba(30,136,229,.2);border:1px solid rgba(30,136,229,.3)}
+.acs-rnd.stbd{color:var(--ebb2);background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.25)}
+
 
 /* ════════ LAYLINES ════════ */
 .ll-hero{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
 .ll-card{border-radius:9px;padding:10px 12px;border:1px solid;text-align:center}
-.ll-card .ll-tack{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700;margin-bottom:4px}
-.ll-card .ll-dist{font-family:‘Arial Black’,Impact,sans-serif;font-size:40px;line-height:1;color:#fff}
-.ll-card .ll-unit{font-size:10px;color:var(–sub)}
-.ll-card .ll-brg{font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;margin-top:3px}
-.ll-card .ll-status{font-size:9px;margin-top:4px;padding:2px 7px;border-radius:3px;display:inline-block;font-family:ui-monospace,‘Courier New’,monospace;font-weight:700}
+.ll-card .ll-tack{font-size:8px;text-transform:uppercase;letter-spacing:1.5px;font-family:ui-monospace,'Courier New',monospace;font-weight:700;margin-bottom:4px}
+.ll-card .ll-dist{font-family:'Arial Black',Impact,sans-serif;font-size:40px;line-height:1;color:#fff}
+.ll-card .ll-unit{font-size:10px;color:var(--sub)}
+.ll-card .ll-brg{font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;margin-top:3px}
+.ll-card .ll-status{font-size:9px;margin-top:4px;padding:2px 7px;border-radius:3px;display:inline-block;font-family:ui-monospace,'Courier New',monospace;font-weight:700}
 .ll-inside{background:rgba(67,160,71,.15);color:#81C784}
-.ll-outside{background:rgba(229,57,53,.12);color:var(–ebb2)}
-.ll-crossed{background:rgba(255,143,0,.15);color:var(–amber)}
-.ll-advice{background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:8px;padding:9px 11px;font-size:10px;color:var(–text);line-height:1.55;font-family:-apple-system,sans-serif}
+.ll-outside{background:rgba(229,57,53,.12);color:var(--ebb2)}
+.ll-crossed{background:rgba(255,143,0,.15);color:var(--amber)}
+.ll-advice{background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:8px;padding:9px 11px;font-size:10px;color:var(--text);line-height:1.55;font-family:-apple-system,sans-serif}
 .ll-svg-wrap{display:flex;justify-content:center;margin-bottom:8px}
 .wind-input-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:7px 10px;margin-bottom:8px}
-.wind-input-row label{font-size:8px;color:var(–sub);text-transform:uppercase;letter-spacing:1px;min-width:55px;flex-shrink:0}
-.wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,‘Courier New’,monospace;font-size:13px;font-weight:700;outline:none;width:60px}
-.wind-input-row .wi-card{font-size:10px;color:var(–gold);font-family:ui-monospace,‘Courier New’,monospace;min-width:28px}
+.wind-input-row label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:55px;flex-shrink:0}
+.wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;outline:none;width:60px}
+.wind-input-row .wi-card{font-size:10px;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;min-width:28px}
 
 </style>
 </head>
@@ -354,20 +357,18 @@ window.addEventListener('unhandledrejection', function(e) {
 </script>
 
 <!-- HEADER -->
-
 <div id="hdr">
   <div>
     <h1>RACE BRIDGE</h1>
     <div class="hdr-sub">Anna Mai · Swan 36 · IRC Europeans 2026</div>
   </div>
   <div class="hdr-r">
-    <div id="upd">Poole Bay<br>50.67°N 1.87°W</div>
+    <div id="upd">Poole Bay<br>Ch.77 · VHF · WA group</div>
     <button class="ibtn" onclick="refreshAll()">↻</button>
   </div>
 </div>
 
 <!-- NAV -->
-
 <div id="nav">
   <div class="nt active" onclick="showView('wind',this)"><span class="ni">💨</span><span class="nl">Wind</span></div>
   <div class="nt" onclick="showView('tides',this)"><span class="ni">🌊</span><span class="nl">Tides</span></div>
@@ -379,37 +380,29 @@ window.addEventListener('unhandledrejection', function(e) {
 </div>
 
 <!-- VIEWS -->
-
 <div id="views">
 
   <!-- ═══════════ WIND ═══════════ -->
-
   <div class="view active" id="v-wind">
 
-```
-<div id="wind-content">
-  <div class="loading">Loading wind data…</div>
-</div>
-```
-
+    <div id="wind-content">
+      <div class="loading">Loading wind data…</div>
+    </div>
   </div>
 
   <!-- ═══════════ TIDES ═══════════ -->
-
   <div class="view" id="v-tides">
     <div class="day-strip" id="day-strip"></div>
     <div id="tide-content"><div class="loading">Loading tide data…</div></div>
   </div>
 
   <!-- ═══════════ STREAM ═══════════ -->
-
   <div class="view" id="v-stream">
     <div class="race-strip" id="race-strip"></div>
     <div id="stream-content"><div class="loading">Select a race above</div></div>
   </div>
 
   <!-- ═══════════ MARKS ═══════════ -->
-
   <div class="view" id="v-marks">
     <div class="mark-tabs">
       <div class="mt-btn active" onclick="showMarkTab('fixed',this)">Fixed Marks</div>
@@ -420,79 +413,75 @@ window.addEventListener('unhandledrejection', function(e) {
   </div>
 
   <!-- ═══════════ START ═══════════ -->
-
   <div class="view" id="v-start">
     <div class="countdown-card">
-      <div class="cd-label">Time to Start</div>
+      <div class="cd-label">Time to Start — Class 3 (IRC3)</div>
       <div class="cd-time" id="cd-display">--:--</div>
       <div class="cd-status" id="cd-status">No sequence set</div>
     </div>
 
-```
-<div class="seq-row" id="seq-row">
-  <div class="seq-pill active" onclick="selectSeq(0,this)">
-    <div class="seq-n">WARN</div><div class="seq-t" id="sq0">--:--</div><div class="seq-s">5 min</div>
-  </div>
-  <div class="seq-pill" onclick="selectSeq(1,this)">
-    <div class="seq-n">PREP</div><div class="seq-t" id="sq1">--:--</div><div class="seq-s">4 min</div>
-  </div>
-  <div class="seq-pill" onclick="selectSeq(2,this)">
-    <div class="seq-n">GUN</div><div class="seq-t" id="sq2">--:--</div><div class="seq-s">0 min</div>
-  </div>
-</div>
+    <div class="seq-row" id="seq-row">
+      <div class="seq-pill active" onclick="selectSeq(0,this)">
+        <div class="seq-n">WARN</div><div class="seq-t" id="sq0">--:--</div><div class="seq-s">5 min</div>
+      </div>
+      <div class="seq-pill" onclick="selectSeq(1,this)">
+        <div class="seq-n">PREP</div><div class="seq-t" id="sq1">--:--</div><div class="seq-s">4 min</div>
+      </div>
+      <div class="seq-pill" onclick="selectSeq(2,this)">
+        <div class="seq-n">GUN</div><div class="seq-t" id="sq2">--:--</div><div class="seq-s">0 min</div>
+      </div>
+    </div>
 
-<div class="ctrl-row">
-  <div class="ctrl set" onclick="setStartNow()">SET<br>NOW</div>
-  <div class="ctrl sync" onclick="syncMinute()">SYNC<br>MIN</div>
-  <div class="ctrl rst" onclick="resetStart()">RESET</div>
-  <div class="ctrl go-btn" onclick="toggleStart()"><span id="go-label">START</span></div>
-</div>
+    <div class="ctrl-row">
+      <div class="ctrl set" onclick="setStartNow()">SET<br>NOW</div>
+      <div class="ctrl sync" onclick="syncMinute()">SYNC<br>MIN</div>
+      <div class="ctrl rst" onclick="resetStart()">RESET</div>
+      <div class="ctrl go-btn" onclick="toggleStart()"><span id="go-label">START</span></div>
+    </div>
 
-<div class="bias-section">
-  <div class="bs-title">Start Line Bias Calculator</div>
-  <div class="bs-row">
-    <span class="bs-label">Wind dir</span>
-    <input type="range" class="bs-slider" id="sl-wind" min="0" max="359" value="225" oninput="calcBias()"/>
-    <span class="bs-val" id="sv-wind">225°</span>
-  </div>
-  <div class="bs-row">
-    <span class="bs-label">Line bearing</span>
-    <input type="range" class="bs-slider" id="sl-line" min="0" max="359" value="270" oninput="calcBias()"/>
-    <span class="bs-val" id="sv-line">270°</span>
-  </div>
-  <div class="bs-row">
-    <span class="bs-label">Stream</span>
-    <input type="range" class="bs-slider" id="sl-stream" min="-15" max="15" value="0" oninput="calcBias()"/>
-    <span class="bs-val" id="sv-stream">0°</span>
-  </div>
-  <div class="bias-result" id="bias-result">Set sliders above to calculate line bias</div>
-</div>
+    <div class="bias-section">
+      <div class="bs-title">Start Line Bias Calculator</div>
+      <div class="bs-row">
+        <span class="bs-label">Wind dir</span>
+        <input type="range" class="bs-slider" id="sl-wind" min="0" max="359" value="225" oninput="calcBias()"/>
+        <span class="bs-val" id="sv-wind">225°</span>
+      </div>
+      <div class="bs-row">
+        <span class="bs-label">Line bearing</span>
+        <input type="range" class="bs-slider" id="sl-line" min="0" max="359" value="270" oninput="calcBias()"/>
+        <span class="bs-val" id="sv-line">270°</span>
+      </div>
+      <div class="bs-row">
+        <span class="bs-label">Stream</span>
+        <input type="range" class="bs-slider" id="sl-stream" min="-15" max="15" value="0" oninput="calcBias()"/>
+        <span class="bs-val" id="sv-stream">0°</span>
+      </div>
+      <div class="bias-result" id="bias-result">Set sliders above to calculate line bias</div>
+    </div>
 
-<div class="card">
-  <div class="ct">Layline Tide Corrections <span class="ct-r">Anna Mai 5kn boat speed</span></div>
-  <table class="ll-table">
-    <thead><tr><th>Race</th><th>Time</th><th>Stream</th><th>Port tack</th><th>Stbd tack</th></tr></thead>
-    <tbody>
-      <tr><td>R1</td><td>11:31</td><td class="imp-lo">0.5kn E</td><td>Tack early</td><td>Tack late</td></tr>
-      <tr><td>R2</td><td>13:05</td><td class="imp-med">0.9kn W</td><td>Tack late</td><td>Tack early</td></tr>
-      <tr><td>R3</td><td>14:35</td><td class="imp-hi">1.1kn W</td><td class="imp-hi">~10° late</td><td class="imp-hi">~10° early</td></tr>
-      <tr><td>R4</td><td>10:31</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
-      <tr><td>R5</td><td>12:15</td><td class="imp-hi">1.0kn E</td><td class="imp-hi">~8° early</td><td class="imp-hi">~8° late</td></tr>
-      <tr><td>R6</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
-      <tr><td>R7</td><td>10:31</td><td class="imp-lo">0.2kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
-      <tr><td>R8</td><td>12:15</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
-      <tr><td>R9</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
-      <tr><td>R10</td><td>10:31</td><td class="imp-med">0.6kn W</td><td>Tack late</td><td>Tack early</td></tr>
-      <tr><td>R11</td><td>12:00</td><td class="imp-lo">0.1kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
-    </tbody>
-  </table>
-</div>
-```
-
+    <div class="card">
+      <div class="ct">Layline Tide Corrections <span class="ct-r">Anna Mai 5kn boat speed</span></div>
+      <table class="ll-table">
+        <thead><tr><th>Race</th><th>Time</th><th>Stream</th><th>Port tack</th><th>Stbd tack</th></tr></thead>
+        <tbody>
+          <tr><td>R1</td><td>11:31</td><td class="imp-lo">0.5kn E</td><td>Tack early</td><td>Tack late</td></tr>
+          <tr><td>R2</td><td>13:05</td><td class="imp-med">0.9kn W</td><td>Tack late</td><td>Tack early</td></tr>
+          <tr><td>R3</td><td>14:35</td><td class="imp-hi">1.1kn W</td><td class="imp-hi">~10° late</td><td class="imp-hi">~10° early</td></tr>
+          <tr><td>R4</td><td>10:31</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
+          <tr><td>R5</td><td>12:15</td><td class="imp-hi">1.0kn E</td><td class="imp-hi">~8° early</td><td class="imp-hi">~8° late</td></tr>
+          <tr><td>R6</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
+          <tr><td>R7</td><td>10:31</td><td class="imp-lo">0.2kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
+          <tr><td>R8</td><td>12:15</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
+          <tr><td>R9</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
+          <tr><td>R10</td><td>10:31</td><td class="imp-med">0.6kn W</td><td>Tack late</td><td>Tack early</td></tr>
+          <tr><td>R11</td><td>12:00</td><td class="imp-lo">0.1kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
 
   <!-- ═══════════ ROUTE OPTIMISER ═══════════ -->
-
   <div class="view" id="v-route"></div>
   <div class="view" id="v-nav"></div>
 
@@ -510,22 +499,22 @@ const LAT = 50.67, LON = -1.87; // Poole Bay racing area
 const TIDE_DAYS = [
   { date:"Fri 22 May", key:"22", dayLabel:"Day 1", signal:"11:25", races:3,
     col:"#1a6b8a", sn:"Neap→Spring",
-    tides:[{t:"01:20",type:"HW",h:1.94},{t:"08:43",type:"LW",h:0.72},{t:"14:33",type:"HW",h:1.79},{t:"18:09",type:"HW",h:1.97},{t:"21:17",type:"LW",h:1.12}],
+    tides:[{t:"00:19",type:"HW",h:2.0},{t:"08:14",type:"LW",h:0.7},{t:"13:22",type:"HW",h:1.8},{t:"20:53",type:"LW",h:1.2}],
     hourly:[1.85,1.94,1.88,1.70,1.50,1.22,0.92,0.75,0.72,0.82,1.02,1.28,1.55,1.73,1.79,1.85,1.92,1.97,1.90,1.72,1.45,1.12,1.05,1.10]
   },
   { date:"Sat 23 May", key:"23", dayLabel:"Day 2", signal:"10:25", races:3,
     col:"#1a5276", sn:"Building Springs",
-    tides:[{t:"02:30",type:"HW",h:1.79},{t:"09:46",type:"LW",h:0.84},{t:"19:09",type:"HW",h:2.00},{t:"22:24",type:"LW",h:1.21}],
+    tides:[{t:"00:45",type:"HW",h:1.9},{t:"09:17",type:"LW",h:0.8},{t:"18:29",type:"HW",h:2.1},{t:"21:59",type:"LW",h:1.2}],
     hourly:[1.55,1.45,1.79,1.70,1.52,1.28,1.05,0.88,0.84,0.90,1.10,1.38,1.62,1.80,1.92,1.97,2.00,2.00,1.95,1.80,1.55,1.32,1.21,1.18]
   },
   { date:"Sun 24 May", key:"24", dayLabel:"Day 3", signal:"10:25", races:3,
     col:"#154360", sn:"Near Springs",
-    tides:[{t:"03:42",type:"HW",h:1.71},{t:"10:52",type:"LW",h:0.93},{t:"20:05",type:"HW",h:2.00},{t:"23:36",type:"LW",h:1.24}],
+    tides:[{t:"01:27",type:"HW",h:1.8},{t:"10:22",type:"LW",h:0.9},{t:"19:27",type:"HW",h:2.1},{t:"23:02",type:"LW",h:1.2}],
     hourly:[1.42,1.28,1.12,1.71,1.58,1.35,1.12,0.97,0.93,0.93,0.95,1.05,1.28,1.52,1.70,1.85,1.94,2.00,2.00,1.96,1.82,1.60,1.38,1.24]
   },
   { date:"Mon 25 May", key:"25", dayLabel:"Day 4", signal:"10:25", races:2,
     col:"#0d2b4e", sn:"Springs",
-    tides:[{t:"04:37",type:"HW",h:1.67},{t:"12:01",type:"LW",h:0.97},{t:"21:00",type:"HW",h:1.97}],
+    tides:[{t:"02:25",type:"HW",h:1.7},{t:"11:24",type:"LW",h:0.9},{t:"20:26",type:"HW",h:2.1}],
     hourly:[1.28,1.10,1.02,1.15,1.67,1.52,1.30,1.10,0.97,0.97,0.97,0.97,0.99,1.12,1.32,1.55,1.72,1.88,1.97,1.97,1.92,1.82,1.65,1.45]
   },
 ];
@@ -534,47 +523,47 @@ const TIDE_DAYS = [
 // RACE STREAM DATA
 // ══════════════════════════════════════════════════════════════
 const RACES = [
-  { n:"R1",  time:"11:31", dayKey:"22", dir:"E",  rate:0.5, state:"Flood→Slack", col:"#42A5F5",
+  { n:"R1",  time:"11:28", dayKey:"22", dir:"E",  rate:0.5, state:"Flood→Slack", col:"#42A5F5",
     note:"Flood just turning. Modest E stream. Port tack slight favour. Plan for reversal.",
     tac:"Relatively even start. Watch stream dying mid-race. Reversal coming — be ready to switch.",
     in_rate:0.15, mid_rate:0.32, off_rate:0.5 },
-  { n:"R2",  time:"13:05", dayKey:"22", dir:"W",  rate:0.9, state:"Ebb",         col:"#EF5350",
+  { n:"R2",  time:"13:02", dayKey:"22", dir:"W",  rate:0.9, state:"Ebb",         col:"#EF5350",
     note:"W ebb established 0.9kn offshore. Starboard tack favoured. Go INSHORE.",
     tac:"Get inshore early on beats — saves 0.6kn vs offshore. Large W set on runs. Allow for it at leeward marks.",
     in_rate:0.27, mid_rate:0.58, off_rate:0.9 },
-  { n:"R3",  time:"14:35", dayKey:"22", dir:"W",  rate:1.1, state:"Max Ebb",     col:"#C62828",
+  { n:"R3",  time:"14:32", dayKey:"22", dir:"W",  rate:1.1, state:"Max Ebb",     col:"#C62828",
     note:"MAX EBB — 1.1kn W offshore = 22% VMG. Biggest tidal race of regatta.",
     tac:"STAY INSHORE on every beat. Inshore saves 0.77kn vs offshore. Massive gains available. Allow large W set on runs.",
     in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
-  { n:"R4",  time:"10:31", dayKey:"23", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
+  { n:"R4",  time:"10:28", dayKey:"23", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
     note:"Building E flood 0.8kn. Port tack favoured. Single direction all day.",
     tac:"Port tack lifted all day. No reversals — cleanest tidal day. Offshore on runs for E boost.",
     in_rate:0.24, mid_rate:0.52, off_rate:0.8 },
-  { n:"R5",  time:"12:15", dayKey:"23", dir:"E",  rate:1.0, state:"Flood",       col:"#1565C0",
+  { n:"R5",  time:"12:12", dayKey:"23", dir:"E",  rate:1.0, state:"Flood",       col:"#1565C0",
     note:"Strong E flood 1.0kn. Port favoured. Inshore saves 0.7kn on beats.",
     tac:"Laylines shift to port. Allow big E set at leeward marks. Inshore on beats worth significant time.",
     in_rate:0.30, mid_rate:0.65, off_rate:1.0 },
-  { n:"R6",  time:"13:45", dayKey:"23", dir:"E",  rate:1.1, state:"Near Max",    col:"#0D47A1",
+  { n:"R6",  time:"13:42", dayKey:"23", dir:"E",  rate:1.1, state:"Near Max",    col:"#0D47A1",
     note:"Near max flood 1.1kn E. Port strongly favoured. Best day to go inshore on beats.",
     tac:"Port dominant. Boats going starboard heavily set W. Inshore route now worth serious time.",
     in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
-  { n:"R7",  time:"10:31", dayKey:"24", dir:"→",  rate:0.2, state:"Slack",       col:"#69F0AE",
+  { n:"R7",  time:"10:28", dayKey:"24", dir:"→",  rate:0.2, state:"Slack",       col:"#69F0AE",
     note:"Near LW — slack water 0.2kn. LEVEL PLAYING FIELD. Boat speed rules.",
     tac:"Equal conditions for all. Focus on start line bias, windshifts, clean boat handling. The equaliser.",
     in_rate:0.06, mid_rate:0.13, off_rate:0.2 },
-  { n:"R8",  time:"12:15", dayKey:"24", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
+  { n:"R8",  time:"12:12", dayKey:"24", dir:"E",  rate:0.8, state:"Flood",       col:"#1E88E5",
     note:"Flood building 0.8kn E. Port favoured. Adjust laylines from R7.",
     tac:"Port tack advantage growing. Overstand windward mark slightly. Tide still building through the race.",
     in_rate:0.24, mid_rate:0.52, off_rate:0.8 },
-  { n:"R9",  time:"13:45", dayKey:"24", dir:"E",  rate:1.1, state:"Strong",      col:"#0D47A1",
+  { n:"R9",  time:"13:42", dayKey:"24", dir:"E",  rate:1.1, state:"Strong",      col:"#0D47A1",
     note:"Strong near-springs flood 1.1kn. Completely different to R7 two hours earlier.",
     tac:"Port, inshore on beats, E boost on runs. Boats using R7 tactics here will lose badly. Adjust everything.",
     in_rate:0.33, mid_rate:0.72, off_rate:1.1 },
-  { n:"R10", time:"10:31", dayKey:"25", dir:"W",  rate:0.6, state:"Ebb",         col:"#EF5350",
+  { n:"R10", time:"10:28", dayKey:"25", dir:"W",  rate:0.6, state:"Ebb",         col:"#EF5350",
     note:"W ebb 0.6kn. Starboard favoured. Tide turns between R10 and R11.",
     tac:"Starboard upwind. W set on runs — lay marks further E than you think. RESET tactics for R11.",
     in_rate:0.18, mid_rate:0.39, off_rate:0.6 },
-  { n:"R11", time:"12:00", dayKey:"25", dir:"→",  rate:0.1, state:"REVERSAL",    col:"#D4A017",
+  { n:"R11", time:"11:58", dayKey:"25", dir:"→",  rate:0.1, state:"REVERSAL",    col:"#D4A017",
     note:"TIDAL REVERSAL — LW 12:01. Tide turning W→E between races. Near slack.",
     tac:"RESET ALL TACTICS from R10. Watch weed/debris on surface for true stream direction. First to read it wins.",
     in_rate:0.03, mid_rate:0.06, off_rate:0.1 },
@@ -594,10 +583,10 @@ const MARK_CATS = {
 };
 
 const FIXED_MARKS = [
-  {code:"RC", name:"Committee Boat",        lat:50.6550, lon:-1.9000, cat:"rc",     fixed:true, note:"IRC Europeans starts. Check briefing for exact position."},
+  { code:"RC", name:"Flair V (Committee Boat)", lat:50.6667, lon:-1.8950, cat:"rc",     fixed:true, note:"Grey Southerly 42. ~50°40.00N 01°53.70W. VHF Ch.77."},
   {code:"B",  name:"Bar Buoy No.1",         lat:50.6555, lon:-1.9195, cat:"swash",  fixed:true, note:"Near Swash Channel. Strong localised streams. Up to 4.5kn ebb."},
-  {code:"Q",  name:"Swash Channel No.3",    lat:50.6627, lon:-1.9248, cat:"swash",  fixed:true, note:"Swash Channel approach. Harbour ebb jet deflects bay stream."},
-  {code:"SW", name:"Swash Channel No.2",    lat:50.6538, lon:-1.9207, cat:"swash",  fixed:true, note:"S Swash Channel. Watch for S-going harbour ebb current."},
+  { code:"Q",  name:"Parkstone YC",            lat:50.6602, lon:-1.9200, cat:"swash",  fixed:true, note:"Parkstone YC mark. 50°39.61N 01°55.20W. Near Swash — watch ebb jet."},
+  // SW mark removed from 2026 SIs
   {code:"E",  name:"Branksome Outfall",     lat:50.7042, lon:-1.9052, cat:"shore",  fixed:true, note:"Inshore N shore. Stream ~30% of offshore. Prime tide relief."},
   {code:"D",  name:"Bournemouth Outfall",   lat:50.7100, lon:-1.8718, cat:"shore",  fixed:true, note:"Central Bournemouth. Good tide relief in <5m water."},
   {code:"C",  name:"Boscombe Outfall",      lat:50.7148, lon:-1.8398, cat:"shore",  fixed:true, note:"Far NE inshore. Maximum tide relief zone in the bay."},
@@ -615,7 +604,29 @@ const FIXED_MARKS = [
 // STATE
 // ══════════════════════════════════════════════════════════════
 let userMarks     = JSON.parse(localStorage.getItem('user_marks') || '[]');
-let savedCourses  = JSON.parse(localStorage.getItem('courses') || '[]');
+let savedCourses  = JSON.parse(localStorage.getItem('courses') || JSON.stringify([
+  { name:"Class 3 WL2 (standard)", type:"wl", laps:1,
+    seq:[
+      {code:"M3",  rounding:"port"},
+      {code:"M3A", rounding:"port"},
+      {code:"M4P", rounding:"stbd"},
+      {code:"M3",  rounding:"port"},
+      {code:"M3A", rounding:"port"},
+    ]
+  },
+  { name:"Class 3 WL3 (long)", type:"wl", laps:1,
+    seq:[
+      {code:"M3",  rounding:"port"},
+      {code:"M3A", rounding:"port"},
+      {code:"M4P", rounding:"stbd"},
+      {code:"M3",  rounding:"port"},
+      {code:"M3A", rounding:"port"},
+      {code:"M4P", rounding:"stbd"},
+      {code:"M3",  rounding:"port"},
+      {code:"M3A", rounding:"port"},
+    ]
+  },
+]));
 let activeCourse  = []; // [{code, rounding:'port'|'stbd'}]
 let pendingRounding = 'port';
 let activeCourseSeq = []; // [{code, name, lat, lon, legBrg, legDist, estTime, streamRate}]
@@ -2733,6 +2744,5 @@ function renderNavView() {
 }
 
 </script>
-
 </body>
 </html>
