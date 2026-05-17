@@ -327,6 +327,24 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;outline:none;width:60px}
 .wind-input-row .wi-card{font-size:10px;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;min-width:28px}
 
+
+/* ════════ ABOUT ════════ */
+.api-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;margin-bottom:7px;display:flex;align-items:flex-start;gap:10px}
+.api-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.api-dot.ok{background:var(--green);box-shadow:0 0 5px var(--green)}
+.api-dot.warn{background:var(--amber)}
+.api-dot.off{background:var(--sub)}
+.api-name{font-family:ui-monospace,'Courier New',monospace;font-size:11px;font-weight:700;color:#fff}
+.api-desc{font-size:9px;color:var(--sub);line-height:1.5;margin-top:2px}
+.api-url{font-size:8px;color:var(--flood2);font-family:ui-monospace,'Courier New',monospace;word-break:break-all;margin-top:2px}
+.api-last{font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
+
+
+/* ════════ SUB-TABS (Racing / Live) ════════ */
+.sub-nav{display:flex;background:var(--ink3);border-bottom:1px solid rgba(255,255,255,.06);margin:-10px -10px 10px;padding:0 10px}
+.snt{flex:1;padding:8px 4px 6px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;font-weight:600;font-family:ui-monospace,'Courier New',monospace}
+.snt.active{border-bottom-color:var(--gold);color:var(--gold)}
+
 </style>
 </head>
 <body>
@@ -370,20 +388,29 @@ window.addEventListener('unhandledrejection', function(e) {
 
 <!-- NAV -->
 <div id="nav">
-  <div class="nt active" onclick="showView('wind',this)"><span class="ni">💨</span><span class="nl">Wind</span></div>
+  <div class="nt active" onclick="showView('live',this)"><span class="ni">📡</span><span class="nl">Live</span></div>
+  <div class="nt" onclick="showView('tides',this)"><span class="ni">🌊</span><span class="nl">Tides</span></div>
+  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Course</span></div>
+  <div class="nt" onclick="showView('racing',this)"><span class="ni">🏁</span><span class="nl">Racing</span></div>
+  <div class="nt" onclick="showView('about',this)"><span class="ni">ℹ️</span><span class="nl">About</span></div>
+</div>
   <div class="nt" onclick="showView('tides',this)"><span class="ni">🌊</span><span class="nl">Tides</span></div>
   <div class="nt" onclick="showView('stream',this)"><span class="ni">⬌</span><span class="nl">Stream</span></div>
-  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Marks</span></div>
-  <div class="nt" onclick="showView('start',this)"><span class="ni">🏁</span><span class="nl">Start</span></div>
+  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Course</span></div>
   <div class="nt" onclick="showView('route',this)"><span class="ni">🧭</span><span class="nl">Route</span></div>
   <div class="nt" onclick="showView('nav',this)"><span class="ni">📍</span><span class="nl">Nav</span></div>
+  <div class="nt" onclick="showView('start',this)"><span class="ni">🏁</span><span class="nl">Start</span></div>
+  <div class="nt" onclick="showView('about',this)"><span class="ni">ℹ️</span><span class="nl">About</span></div>
 </div>
 
 <!-- VIEWS -->
 <div id="views">
 
+  <!-- ═══════════ LIVE DATA ═══════════ -->
+  <div class="view active" id="v-live"></div>
+
   <!-- ═══════════ WIND ═══════════ -->
-  <div class="view active" id="v-wind">
+  <div class="view" id="v-wind">
 
     <div id="wind-content">
       <div class="loading">Loading wind data…</div>
@@ -481,9 +508,14 @@ window.addEventListener('unhandledrejection', function(e) {
   </div>
 
 
+
+  <!-- ═══════════ RACING ═══════════ -->
+  <div class="view" id="v-racing"></div>
+
   <!-- ═══════════ ROUTE OPTIMISER ═══════════ -->
   <div class="view" id="v-route"></div>
   <div class="view" id="v-nav"></div>
+  <div class="view" id="v-about"></div>
 
 </div><!-- /views -->
 
@@ -499,22 +531,22 @@ const LAT = 50.67, LON = -1.87; // Poole Bay racing area
 const TIDE_DAYS = [
   { date:"Fri 22 May", key:"22", dayLabel:"Day 1", signal:"11:25", races:3,
     col:"#1a6b8a", sn:"Neap→Spring",
-    tides:[{t:"00:19",type:"HW",h:2.0},{t:"08:14",type:"LW",h:0.7},{t:"13:22",type:"HW",h:1.8},{t:"20:53",type:"LW",h:1.2}],
+    tides:[{t:"01:20",type:"HW",h:1.94},{t:"08:43",type:"LW",h:0.72},{t:"14:33",type:"HW",h:1.79},{t:"18:09",type:"HW",h:1.97},{t:"21:17",type:"LW",h:1.12}],
     hourly:[1.85,1.94,1.88,1.70,1.50,1.22,0.92,0.75,0.72,0.82,1.02,1.28,1.55,1.73,1.79,1.85,1.92,1.97,1.90,1.72,1.45,1.12,1.05,1.10]
   },
   { date:"Sat 23 May", key:"23", dayLabel:"Day 2", signal:"10:25", races:3,
     col:"#1a5276", sn:"Building Springs",
-    tides:[{t:"00:45",type:"HW",h:1.9},{t:"09:17",type:"LW",h:0.8},{t:"18:29",type:"HW",h:2.1},{t:"21:59",type:"LW",h:1.2}],
+    tides:[{t:"02:30",type:"HW",h:1.79},{t:"09:46",type:"LW",h:0.84},{t:"19:09",type:"HW",h:2.00},{t:"22:24",type:"LW",h:1.21}],
     hourly:[1.55,1.45,1.79,1.70,1.52,1.28,1.05,0.88,0.84,0.90,1.10,1.38,1.62,1.80,1.92,1.97,2.00,2.00,1.95,1.80,1.55,1.32,1.21,1.18]
   },
   { date:"Sun 24 May", key:"24", dayLabel:"Day 3", signal:"10:25", races:3,
     col:"#154360", sn:"Near Springs",
-    tides:[{t:"01:27",type:"HW",h:1.8},{t:"10:22",type:"LW",h:0.9},{t:"19:27",type:"HW",h:2.1},{t:"23:02",type:"LW",h:1.2}],
+    tides:[{t:"03:42",type:"HW",h:1.71},{t:"10:52",type:"LW",h:0.93},{t:"20:05",type:"HW",h:2.00},{t:"23:36",type:"LW",h:1.24}],
     hourly:[1.42,1.28,1.12,1.71,1.58,1.35,1.12,0.97,0.93,0.93,0.95,1.05,1.28,1.52,1.70,1.85,1.94,2.00,2.00,1.96,1.82,1.60,1.38,1.24]
   },
   { date:"Mon 25 May", key:"25", dayLabel:"Day 4", signal:"10:25", races:2,
     col:"#0d2b4e", sn:"Springs",
-    tides:[{t:"02:25",type:"HW",h:1.7},{t:"11:24",type:"LW",h:0.9},{t:"20:26",type:"HW",h:2.1}],
+    tides:[{t:"04:37",type:"HW",h:1.67},{t:"12:01",type:"LW",h:0.97},{t:"21:00",type:"HW",h:1.97}],
     hourly:[1.28,1.10,1.02,1.15,1.67,1.52,1.30,1.10,0.97,0.97,0.97,0.97,0.99,1.12,1.32,1.55,1.72,1.88,1.97,1.97,1.92,1.82,1.65,1.45]
   },
 ];
@@ -654,8 +686,72 @@ function showView(id, el) {
   document.querySelectorAll('.nt').forEach(n=>n.classList.remove('active'));
   document.getElementById('v-'+id).classList.add('active');
   el.classList.add('active');
-  if (id==='route') renderRouteView();
-  if (id==='nav') renderNavView();
+  if (id==='live')   renderLiveView();
+  if (id==='tides')  { buildDayStrip(); }
+  if (id==='racing') renderRacingView();
+  if (id==='about')  renderAboutView();
+}
+
+// Track active sub-tabs
+let liveSubTab    = 'wind';   // wind | stream
+let racingSubTab  = 'start';  // start | route | nav
+
+function showLiveSub(tab) {
+  liveSubTab = tab;
+  renderLiveView();
+}
+function showRacingSub(tab) {
+  racingSubTab = tab;
+  renderRacingView();
+}
+
+function renderLiveView() {
+  const el = document.getElementById('v-live');
+  if (!el) return;
+  // Sub-nav
+  const subNav = `<div class="sub-nav">
+    <div class="snt ${liveSubTab==='wind'?'active':''}" onclick="showLiveSub('wind')">💨 Wind</div>
+    <div class="snt ${liveSubTab==='stream'?'active':''}" onclick="showLiveSub('stream')">⬌ Streams</div>
+  </div>`;
+
+  if (liveSubTab === 'wind') {
+    // Render wind content inline
+    el.innerHTML = '<div style="padding:10px 10px 70px">' + subNav + document.getElementById('v-wind').innerHTML + '</div>';
+    // If wind not loaded yet, fetch it
+    if (!windData) fetchWind();
+  } else {
+    // Render stream content inline
+    const streamEl = document.getElementById('v-stream');
+    el.innerHTML = '<div style="padding:10px 10px 70px">' + subNav + (streamEl ? streamEl.innerHTML : '<div class="loading">Loading…</div>') + '</div>';
+    if (!windData) fetchWind(); // wind feeds stream timing
+  }
+}
+
+function renderRacingView() {
+  const el = document.getElementById('v-racing');
+  if (!el) return;
+  const subNav = `<div class="sub-nav">
+    <div class="snt ${racingSubTab==='start'?'active':''}" onclick="showRacingSub('start')">🏁 Start</div>
+    <div class="snt ${racingSubTab==='route'?'active':''}" onclick="showRacingSub('route')">🧭 Route</div>
+    <div class="snt ${racingSubTab==='nav'?'active':''}" onclick="showRacingSub('nav')">📍 Nav</div>
+  </div>`;
+
+  if (racingSubTab === 'start') {
+    el.innerHTML = '<div style="padding:10px 10px 70px">' + subNav + document.getElementById('v-start').innerHTML + '</div>';
+  } else if (racingSubTab === 'route') {
+    el.innerHTML = '<div style="padding:10px 10px 70px">' + subNav + '</div>';
+    renderRouteView();
+    // Move route content into racing view
+    const routeEl = document.getElementById('v-route');
+    if (routeEl) {
+      el.querySelector('div').innerHTML += routeEl.innerHTML;
+    }
+  } else {
+    el.innerHTML = '<div style="padding:10px 10px 70px">' + subNav + '</div>';
+    renderNavView();
+    const navEl = document.getElementById('v-nav');
+    if (navEl) el.querySelector('div').innerHTML += navEl.innerHTML;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -824,7 +920,7 @@ function renderTides(idx) {
       <div class="api-note">⚡ = during racing  ·  Reference: Bournemouth (Poole Bay)  ·  NOT FOR NAVIGATION</div>
     </div>
     <div class="card">
-      <div class="ct">TIDAL CURVE <span class="ct-r">Times BST · Heights in metres</span></div>
+      <div class="ct">TIDAL CURVE <span class="ct-r">Times BST · Heights in metres · Bournemouth (Poole Bay)</span></div>
       <div class="curve-wrap">${curve}</div>
     </div>`;
 }
@@ -1320,6 +1416,27 @@ function renderCourseSetup(mc) {
     <div class="card">
       <div class="ct">RACE & CONDITIONS</div>
       ${raceSelHTML}
+
+      <!-- WL2 / WL3 Quick Select -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;font-family:ui-monospace,'Courier New',monospace">Quick Course Select</div>
+        <div style="display:flex;gap:6px">
+          <div onclick="loadPresetCourse('wl2')" style="flex:1;background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);border-radius:7px;padding:9px 8px;cursor:pointer;text-align:center">
+            <div style="font-family:ui-monospace,'Courier New',monospace;font-size:14px;font-weight:700;color:var(--gold)">WL2</div>
+            <div style="font-size:8px;color:var(--sub);margin-top:2px">Standard 2 laps</div>
+            <div style="font-size:8px;color:var(--sub)">M3→M3A→Gate→×2</div>
+          </div>
+          <div onclick="loadPresetCourse('wl3')" style="flex:1;background:rgba(30,136,229,.08);border:1px solid rgba(30,136,229,.25);border-radius:7px;padding:9px 8px;cursor:pointer;text-align:center">
+            <div style="font-family:ui-monospace,'Courier New',monospace;font-size:14px;font-weight:700;color:var(--flood2)">WL3</div>
+            <div style="font-size:8px;color:var(--sub);margin-top:2px">Long 3 laps</div>
+            <div style="font-size:8px;color:var(--sub)">M3→M3A→Gate→×3</div>
+          </div>
+          <div onclick="loadPresetCourse('clear')" style="flex:0 0 auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:9px 10px;cursor:pointer;text-align:center">
+            <div style="font-size:18px;line-height:1.3">✕</div>
+            <div style="font-size:8px;color:var(--sub)">Clear</div>
+          </div>
+        </div>
+      </div>
       ${windHTML}
     </div>
     <div class="card">
@@ -1347,6 +1464,38 @@ function renderCourseSetup(mc) {
         </div>`).join('')}
       </div>
     </div>`:''}`;
+}
+
+
+function loadPresetCourse(type) {
+  if (type === 'clear') {
+    activeCourse = [];
+    renderMarkContent();
+    return;
+  }
+  if (type === 'wl2') {
+    activeCourse = [
+      {code:'M3',  rounding:'port'},
+      {code:'M3A', rounding:'port'},
+      {code:'M4P', rounding:'stbd'},
+      {code:'M3',  rounding:'port'},
+      {code:'M3A', rounding:'port'},
+    ];
+    courseLaps = 1;
+  } else if (type === 'wl3') {
+    activeCourse = [
+      {code:'M3',  rounding:'port'},
+      {code:'M3A', rounding:'port'},
+      {code:'M4P', rounding:'stbd'},
+      {code:'M3',  rounding:'port'},
+      {code:'M3A', rounding:'port'},
+      {code:'M4P', rounding:'stbd'},
+      {code:'M3',  rounding:'port'},
+      {code:'M3A', rounding:'port'},
+    ];
+    courseLaps = 1;
+  }
+  renderMarkContent();
 }
 
 function setCourseRace(i) { courseRaceIdx=i; renderMarkContent(); }
@@ -1559,6 +1708,7 @@ function init() {
   buildRaceStrip();
   renderMarkContent();
   calcBias();
+  renderLiveView();
 }
 
 init();
@@ -2060,6 +2210,140 @@ function deleteCourse(i) {
   savedCourses.splice(i,1);
   localStorage.setItem('courses', JSON.stringify(savedCourses));
   renderMarkContent();
+}
+
+
+// ── ABOUT VIEW ────────────────────────────────────────────────────────────────
+const APP_VERSION = '1.0.4';
+const BUILD_DATE  = '17 May 2026';
+
+function renderAboutView() {
+  const el = document.getElementById('v-about');
+  if (!el) return;
+
+  // Check API status
+  const windOk    = windData !== null;
+  const streamOk  = Object.keys(markStreamData||{}).length > 0;
+  const gpsOk     = gpsPos !== null;
+  const compassOk = compassHdg !== null;
+  const courseOk  = activeRaceCourse !== null;
+  const swOk      = 'serviceWorker' in navigator;
+
+  const APIs = [
+    {
+      name: 'Open-Meteo Wind Forecast',
+      dot:  windOk ? 'ok' : 'warn',
+      desc: 'Hourly wind speed, direction and gusts at Poole Bay racing area (50.67°N 1.87°W). UK Met Office model. Free, no API key, CORS-friendly.',
+      url:  'api.open-meteo.com/v1/forecast',
+      last: windOk ? `Last fetched: ${document.getElementById('upd')?.textContent?.split('\n')[1]||'loaded'}` : 'Not yet fetched — tap ↻ on Wind tab',
+    },
+    {
+      name: 'Open-Meteo Marine API — Mark Streams',
+      dot:  streamOk ? 'ok' : 'off',
+      desc: 'Ocean current velocity and direction at each racing mark position. MeteoFrance SMOC model includes tidal currents at ~8km resolution. Free, no API key.',
+      url:  'marine-api.open-meteo.com/v1/marine',
+      last: streamOk ? `Data for ${Object.keys(markStreamData).length} marks loaded` : 'Not yet fetched — tap Fetch on Stream tab',
+    },
+    {
+      name: 'iPhone GPS (Geolocation API)',
+      dot:  gpsOk ? 'ok' : 'off',
+      desc: 'Live position, COG and SOG. Used for bearing/distance to marks, set & drift detection, and layline calculation. Requires Location permission.',
+      url:  'navigator.geolocation.watchPosition()',
+      last: gpsOk ? `Active — acc ±${Math.round(gpsPos.acc)}m · ${gpsPos.lat.toFixed(4)}N ${Math.abs(gpsPos.lon).toFixed(4)}W` : 'Not active — tap Enable on Nav tab',
+    },
+    {
+      name: 'iPhone Compass (DeviceOrientation)',
+      dot:  compassOk ? 'ok' : 'off',
+      desc: 'True heading from iPhone magnetometer via webkitCompassHeading. Used for laylines, set/drift, wind shift logging. Requires Motion & Orientation permission.',
+      url:  'DeviceOrientationEvent.requestPermission()',
+      last: compassOk ? `Active — ${compassHdg}°T` : 'Not active — tap Enable on Nav tab',
+    },
+    {
+      name: 'Tide Data — Bournemouth (Poole Bay)',
+      dot:  'ok',
+      desc: 'Pre-computed Bournemouth tide tables for 22–25 May 2026. Correct reference station for Poole Bay racing area (outside harbour). Hardcoded from official predictions.',
+      url:  'Built-in — no API call',
+      last: 'Always available offline',
+    },
+    {
+      name: 'Service Worker (PWA Cache)',
+      dot:  swOk ? 'ok' : 'warn',
+      desc: 'Caches the app shell for offline use. Once loaded, app works without internet connection. Wind data cached from last successful fetch.',
+      url:  'sw.js — Cache API',
+      last: swOk ? 'Registered and active' : 'Not supported in this browser',
+    },
+    {
+      name: 'Wake Lock API',
+      dot:  'wakeLock' in navigator ? 'ok' : 'warn',
+      desc: 'Prevents screen from sleeping during racing. Activated on first tap. Re-acquired automatically when app returns to foreground.',
+      url:  'navigator.wakeLock.request()',
+      last: wakeLock ? 'Active — screen will not sleep' : 'Will activate on next tap',
+    },
+  ];
+
+  el.innerHTML = `<div style="padding:10px 10px 70px">
+
+    <!-- Version card -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;font-family:ui-monospace,'Courier New',monospace;margin-bottom:4px">Anna Mai · Race Bridge</div>
+          <div style="font-family:ui-monospace,'Courier New',monospace;font-size:36px;font-weight:700;color:#fff;line-height:1">v${APP_VERSION}</div>
+          <div style="font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:3px">Built ${BUILD_DATE} · Swan 36 S&S 1968 · IRC Europeans 2026</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace">TCC 0.892</div>
+          <div style="font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace">Class 3</div>
+          <div style="font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace">Flair V Ch.77</div>
+        </div>
+      </div>
+      <!-- Status summary -->
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
+        ${[
+          {label:'Wind',   ok:windOk},
+          {label:'Streams',ok:streamOk},
+          {label:'GPS',    ok:gpsOk},
+          {label:'Compass',ok:compassOk},
+          {label:'Course', ok:courseOk},
+          {label:'PWA',    ok:swOk},
+        ].map(s=>`
+          <div style="background:${s.ok?'rgba(67,160,71,.12)':'rgba(255,255,255,.04)'};border:1px solid ${s.ok?'rgba(67,160,71,.3)':'rgba(255,255,255,.1)'};border-radius:5px;padding:4px 8px;font-size:9px;font-family:ui-monospace,'Courier New',monospace;color:${s.ok?'#81C784':'var(--sub)'}">
+            ${s.ok?'✓':'○'} ${s.label}
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- API list -->
+    <div class="ct" style="padding:0 2px;margin-bottom:6px">DATA SOURCES & APIs</div>
+    ${APIs.map(a=>`
+      <div class="api-item">
+        <div class="api-dot ${a.dot}" style="margin-top:4px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="api-name">${a.name}</div>
+          <div class="api-desc">${a.desc}</div>
+          <div class="api-url">${a.url}</div>
+          <div class="api-last">${a.last}</div>
+        </div>
+      </div>`).join('')}
+
+    <!-- Event info -->
+    <div class="card" style="margin-top:4px">
+      <div class="ct">EVENT REFERENCE</div>
+      <div style="font-size:9px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;line-height:1.8">
+        <div>📋 SIs: racingrulesofsailing.org/documents/14222</div>
+        <div>📻 VHF: Channel 77 · Committee vessel: Flair V</div>
+        <div>📱 WhatsApp group: sign up at registration Thu 21 May</div>
+        <div>⚑ Course posted by 08:30 each day via WhatsApp</div>
+        <div>🏆 Prizegiving: Mon 25 May ~16:00 at RMYC</div>
+        <div>⚠️ Tide data: Bournemouth (Poole Bay) — NOT FOR NAVIGATION</div>
+        <div>⚠️ Stream model: MeteoFrance SMOC ~8km resolution — verify on water</div>
+      </div>
+    </div>
+
+    <!-- Refresh all button -->
+    <button onclick="refreshAll()" style="width:100%;background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.3);color:var(--gold);border-radius:8px;padding:12px;font-size:12px;font-family:ui-monospace,'Courier New',monospace;cursor:pointer;margin-top:4px;letter-spacing:1px">↻ REFRESH ALL DATA</button>
+
+  </div>`;
 }
 
 // Init route
