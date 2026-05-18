@@ -1,7 +1,7 @@
 {
   "name": "Anna Mai Race Bridge",
   "short_name": "Race Bridge",
-  "description": "Racing dashboard for Anna Mai - tides, streams, marks, laylines",
+  "description": "Anna Mai Swan 36 race dashboard for IRC Europeans 2026 - forecast, marks, RC starts, laylines and settings",
   "start_url": "/AnnaMai/",
   "scope": "/AnnaMai/",
   "display": "standalone",

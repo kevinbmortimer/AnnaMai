@@ -5,12 +5,21 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Race Bridge"/>
+<meta name="apple-mobile-web-app-title" content="Anna Mai"/>
 <meta name="theme-color" content="#0a1628"/>
-<link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
+<script>
+(function () {
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    var manifest = document.createElement('link');
+    manifest.rel = 'manifest';
+    manifest.href = 'manifest.json';
+    document.head.appendChild(manifest);
+  }
+}());
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Anna Mai · Race Bridge</title>
+<title>Anna Mai · IRC Europeans 2026</title>
 <style>
 :root{
   --ink:#060d18;--ink2:#0a1628;--ink3:#0d2040;--ink4:#132540;
@@ -25,6 +34,7 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;font-size:14px}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% -20%,rgba(30,136,229,.08),transparent 45%);pointer-events:none}
 
 /* ════════════════ HEADER ════════════════ */
 #hdr{background:linear-gradient(135deg,#07101e 0%,#0c1e36 100%);border-bottom:1px solid rgba(212,160,23,.2);padding:8px 13px 6px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
@@ -195,6 +205,17 @@ body{background:var(--ink);color:var(--text);font-family:-apple-system,BlinkMacS
 .bs-val{font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:#fff;min-width:36px;text-align:right}
 .bias-result{background:rgba(0,0,0,.2);border-radius:7px;padding:9px 11px;font-family:ui-monospace,'Courier New',monospace;font-size:11px;color:var(--text);line-height:1.7}
 .bias-result .br-hi{color:var(--gold);font-weight:700;font-size:13px}
+.start-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:9px}
+.start-cell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 7px;text-align:center;min-width:0}
+.start-cell .sc-k{font-size:7px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;font-family:ui-monospace,'Courier New',monospace;margin-bottom:3px}
+.start-cell .sc-n{font-family:'Arial Black',Arial,sans-serif;font-size:26px;line-height:1;color:#fff}
+.start-cell .sc-u{font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
+.start-cell.good .sc-n{color:#81C784}
+.start-cell.warn .sc-n{color:var(--amber)}
+.start-cell.late .sc-n{color:var(--ebb2)}
+.sync-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px}
+.sync-btn{background:rgba(212,160,23,.12);border:1px solid rgba(212,160,23,.32);border-radius:7px;padding:10px 4px;text-align:center;color:var(--gold);font-family:ui-monospace,'Courier New',monospace;font-size:10px;font-weight:700;cursor:pointer}
+.sync-btn:active{background:rgba(212,160,23,.24);transform:scale(.97)}
 
 /* ════════════════ UTILS ════════════════ */
 .loading{text-align:center;padding:20px;font-size:11px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace}
@@ -321,7 +342,19 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .ll-outside{background:rgba(229,57,53,.12);color:var(--ebb2)}
 .ll-crossed{background:rgba(255,143,0,.15);color:var(--amber)}
 .ll-advice{background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.2);border-radius:8px;padding:9px 11px;font-size:10px;color:var(--text);line-height:1.55;font-family:-apple-system,sans-serif}
-.ll-svg-wrap{display:flex;justify-content:center;margin-bottom:8px}
+.ll-svg-wrap{display:flex;justify-content:center;margin-bottom:8px;flex-direction:column;align-items:center;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:8px}
+.map-title{width:100%;display:flex;justify-content:space-between;align-items:center;font-family:ui-monospace,'Courier New',monospace;font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:1.4px;margin-bottom:5px}
+.map-title span:last-child{color:var(--sub);letter-spacing:0;text-transform:none}
+.layline-svg{width:100%;max-width:380px;background:rgba(6,13,24,.55);border:1px solid rgba(255,255,255,.06);border-radius:8px}
+.layline-svg text{font-family:ui-monospace,'Courier New',monospace;font-size:9px;fill:var(--text)}
+.layline-svg .thin{stroke:rgba(255,255,255,.16);stroke-width:1}
+.layline-svg .ring{stroke:rgba(255,255,255,.1);stroke-width:1;fill:none}
+.layline-svg .mark-line{stroke:var(--gold);stroke-width:3}
+.layline-svg .port-line{stroke:var(--flood2);stroke-width:2;stroke-dasharray:5 4}
+.layline-svg .stbd-line{stroke:var(--ebb2);stroke-width:2;stroke-dasharray:5 4}
+.layline-svg .wind-line{stroke:var(--slack2);stroke-width:2;marker-end:url(#arr)}
+.layline-svg .boat-dot{fill:#fff}
+.layline-svg .mark-dot{fill:var(--gold)}
 .wind-input-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:7px 10px;margin-bottom:8px}
 .wind-input-row label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:55px;flex-shrink:0}
 .wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;outline:none;width:60px}
@@ -338,12 +371,23 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .api-desc{font-size:9px;color:var(--sub);line-height:1.5;margin-top:2px}
 .api-url{font-size:8px;color:var(--flood2);font-family:ui-monospace,'Courier New',monospace;word-break:break-all;margin-top:2px}
 .api-last{font-size:8px;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;margin-top:2px}
+.version-list{display:flex;flex-direction:column;gap:6px}
+.version-row{display:flex;justify-content:space-between;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px;font-family:ui-monospace,'Courier New',monospace;font-size:10px}
+.version-row span:first-child{color:var(--sub);text-transform:uppercase;letter-spacing:.8px}
+.version-row span:last-child{color:#fff;text-align:right;word-break:break-word}
 
 
 /* ════════ SUB-TABS (Racing / Live) ════════ */
 .sub-nav{display:flex;background:var(--ink3);border-bottom:1px solid rgba(255,255,255,.06);margin:-10px -10px 10px;padding:0 10px}
 .snt{flex:1;padding:8px 4px 6px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;font-weight:600;font-family:ui-monospace,'Courier New',monospace}
 .snt.active{border-bottom-color:var(--gold);color:var(--gold)}
+
+@media (min-width: 900px){
+  #hdr,#nav,#views{width:min(820px,100%);margin:0 auto}
+  #hdr{border-left:1px solid rgba(212,160,23,.12);border-right:1px solid rgba(212,160,23,.12)}
+  #nav{border-left:1px solid var(--ink3);border-right:1px solid var(--ink3)}
+  #views{background:rgba(0,0,0,.08);border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.05)}
+}
 
 </style>
 </head>
@@ -377,8 +421,8 @@ window.addEventListener('unhandledrejection', function(e) {
 <!-- HEADER -->
 <div id="hdr">
   <div>
-    <h1>RACE BRIDGE</h1>
-    <div class="hdr-sub">Anna Mai · Swan 36 · IRC Europeans 2026</div>
+    <h1>ANNA MAI</h1>
+    <div class="hdr-sub">Anna Mai · IRC Europeans 2026 · Poole Bay</div>
   </div>
   <div class="hdr-r">
     <div id="upd">Poole Bay<br>Ch.77 · VHF · WA group</div>
@@ -388,127 +432,18 @@ window.addEventListener('unhandledrejection', function(e) {
 
 <!-- NAV -->
 <div id="nav">
-  <div class="nt active" onclick="showView('live',this)"><span class="ni">📡</span><span class="nl">Live</span></div>
-  <div class="nt" onclick="showView('tides',this)"><span class="ni">🌊</span><span class="nl">Tides</span></div>
-  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Course</span></div>
-  <div class="nt" onclick="showView('racing',this)"><span class="ni">🏁</span><span class="nl">Racing</span></div>
-  <div class="nt" onclick="showView('about',this)"><span class="ni">ℹ️</span><span class="nl">About</span></div>
+  <div class="nt active" onclick="showView('forecast',this)"><span class="ni">🌦</span><span class="nl">Forecast</span></div>
+  <div class="nt" onclick="showView('marks',this)"><span class="ni">⚑</span><span class="nl">Marks</span></div>
+  <div class="nt" onclick="showView('race',this)"><span class="ni">🏁</span><span class="nl">Race</span></div>
+  <div class="nt" onclick="showView('settings',this)"><span class="ni">⚙</span><span class="nl">Settings</span></div>
 </div>
 
 <!-- VIEWS -->
 <div id="views">
-
-  <!-- ═══════════ LIVE DATA ═══════════ -->
-  <div class="view active" id="v-live"></div>
-
-  <!-- ═══════════ WIND ═══════════ -->
-  <div class="view" id="v-wind">
-
-    <div id="wind-content">
-      <div class="loading">Loading wind data…</div>
-    </div>
-  </div>
-
-  <!-- ═══════════ TIDES ═══════════ -->
-  <div class="view" id="v-tides">
-    <div class="day-strip" id="day-strip"></div>
-    <div id="tide-content"><div class="loading">Loading tide data…</div></div>
-  </div>
-
-  <!-- ═══════════ STREAM ═══════════ -->
-  <div class="view" id="v-stream">
-    <div class="race-strip" id="race-strip"></div>
-    <div id="stream-content"><div class="loading">Select a race above</div></div>
-  </div>
-
-  <!-- ═══════════ MARKS ═══════════ -->
-  <div class="view" id="v-marks">
-    <div class="mark-tabs">
-      <div class="mt-btn active" onclick="showMarkTab('fixed',this)">Fixed Marks</div>
-      <div class="mt-btn" onclick="showMarkTab('add',this)">Add Mark</div>
-      <div class="mt-btn" onclick="showMarkTab('course',this)">Course Setup</div>
-    </div>
-    <div id="mark-content"></div>
-  </div>
-
-  <!-- ═══════════ START ═══════════ -->
-  <div class="view" id="v-start">
-    <div class="countdown-card">
-      <div class="cd-label">Time to Start — Class 3 (IRC3)</div>
-      <div class="cd-time" id="cd-display">--:--</div>
-      <div class="cd-status" id="cd-status">No sequence set</div>
-    </div>
-
-    <div class="seq-row" id="seq-row">
-      <div class="seq-pill active" onclick="selectSeq(0,this)">
-        <div class="seq-n">WARN</div><div class="seq-t" id="sq0">--:--</div><div class="seq-s">5 min</div>
-      </div>
-      <div class="seq-pill" onclick="selectSeq(1,this)">
-        <div class="seq-n">PREP</div><div class="seq-t" id="sq1">--:--</div><div class="seq-s">4 min</div>
-      </div>
-      <div class="seq-pill" onclick="selectSeq(2,this)">
-        <div class="seq-n">GUN</div><div class="seq-t" id="sq2">--:--</div><div class="seq-s">0 min</div>
-      </div>
-    </div>
-
-    <div class="ctrl-row">
-      <div class="ctrl set" onclick="setStartNow()">SET<br>NOW</div>
-      <div class="ctrl sync" onclick="syncMinute()">SYNC<br>MIN</div>
-      <div class="ctrl rst" onclick="resetStart()">RESET</div>
-      <div class="ctrl go-btn" onclick="toggleStart()"><span id="go-label">START</span></div>
-    </div>
-
-    <div class="bias-section">
-      <div class="bs-title">Start Line Bias Calculator</div>
-      <div class="bs-row">
-        <span class="bs-label">Wind dir</span>
-        <input type="range" class="bs-slider" id="sl-wind" min="0" max="359" value="225" oninput="calcBias()"/>
-        <span class="bs-val" id="sv-wind">225°</span>
-      </div>
-      <div class="bs-row">
-        <span class="bs-label">Line bearing</span>
-        <input type="range" class="bs-slider" id="sl-line" min="0" max="359" value="270" oninput="calcBias()"/>
-        <span class="bs-val" id="sv-line">270°</span>
-      </div>
-      <div class="bs-row">
-        <span class="bs-label">Stream</span>
-        <input type="range" class="bs-slider" id="sl-stream" min="-15" max="15" value="0" oninput="calcBias()"/>
-        <span class="bs-val" id="sv-stream">0°</span>
-      </div>
-      <div class="bias-result" id="bias-result">Set sliders above to calculate line bias</div>
-    </div>
-
-    <div class="card">
-      <div class="ct">Layline Tide Corrections <span class="ct-r">Anna Mai 5kn boat speed</span></div>
-      <table class="ll-table">
-        <thead><tr><th>Race</th><th>Time</th><th>Stream</th><th>Port tack</th><th>Stbd tack</th></tr></thead>
-        <tbody>
-          <tr><td>R1</td><td>11:31</td><td class="imp-lo">0.5kn E</td><td>Tack early</td><td>Tack late</td></tr>
-          <tr><td>R2</td><td>13:05</td><td class="imp-med">0.9kn W</td><td>Tack late</td><td>Tack early</td></tr>
-          <tr><td>R3</td><td>14:35</td><td class="imp-hi">1.1kn W</td><td class="imp-hi">~10° late</td><td class="imp-hi">~10° early</td></tr>
-          <tr><td>R4</td><td>10:31</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
-          <tr><td>R5</td><td>12:15</td><td class="imp-hi">1.0kn E</td><td class="imp-hi">~8° early</td><td class="imp-hi">~8° late</td></tr>
-          <tr><td>R6</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
-          <tr><td>R7</td><td>10:31</td><td class="imp-lo">0.2kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
-          <tr><td>R8</td><td>12:15</td><td class="imp-med">0.8kn E</td><td>Tack early</td><td>Tack late</td></tr>
-          <tr><td>R9</td><td>13:45</td><td class="imp-hi">1.1kn E</td><td class="imp-hi">~10° early</td><td class="imp-hi">~10° late</td></tr>
-          <tr><td>R10</td><td>10:31</td><td class="imp-med">0.6kn W</td><td>Tack late</td><td>Tack early</td></tr>
-          <tr><td>R11</td><td>12:00</td><td class="imp-lo">0.1kn ≈</td><td colspan="2" style="color:var(--slack2);text-align:center">Trust iRegatta</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-
-
-  <!-- ═══════════ RACING ═══════════ -->
-  <div class="view" id="v-racing"></div>
-
-  <!-- ═══════════ ROUTE OPTIMISER ═══════════ -->
-  <div class="view" id="v-route"></div>
-  <div class="view" id="v-nav"></div>
-  <div class="view" id="v-about"></div>
-
+  <div class="view active" id="v-forecast"></div>
+  <div class="view" id="v-marks"></div>
+  <div class="view" id="v-race"></div>
+  <div class="view" id="v-settings"></div>
 </div><!-- /views -->
 
 <script src="app.js"></script>
