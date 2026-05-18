@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.6.1';
+  var APP_VERSION = '0.6.4';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v15';
+  var CACHE_NAME = 'anna-mai-v18';
   var gpsWatchId = null;
   var BOAT = {
     name: 'Anna Mai',
@@ -920,6 +920,7 @@
         '<div class="mt-btn ' + (course.type === 'rtc' ? 'active' : '') + '" onclick="setCourseType(\'rtc\')">Round the Cans</div>' +
       '</div>' +
       editor +
+      (course.type === 'wl' ? renderWlMarkBearings(course) : '') +
       renderMarkLibrary();
   }
 
@@ -936,7 +937,7 @@
       row('Tack ang', input('mk-tack-angle', course.tackAngle, 'degrees', 'number', 'step="1" inputmode="numeric"')) +
       '<button class="btn-full" onclick="saveWindwardLeeward()">SAVE COURSE</button>' +
       coursePreview(course) +
-      '<div class="api-note">Normal uses the SI IRC3 WL2 pattern. Long uses the SI IRC3 WL3 pattern. Marks are fixed as 3, 3A, 4S/4P, 4P and finish; update their positions in the Mark Library when the RC gives locations.</div>'
+      '<div class="api-note">Normal uses the SI IRC3 WL2 pattern. Long uses the SI IRC3 WL3 pattern. The WL mark entry below only includes marks used by this selected course.</div>'
     );
   }
 
@@ -984,15 +985,57 @@
     }).join('');
   }
 
+  function renderWlMarkBearings(course) {
+    var marks = wlCourseMarks(course);
+    var committee = findMark(course.committee || 'COM');
+    var committeeText = committee && hasCoords(committee) ? coordLabel(committee) : 'set COM first';
+    var rows = marks.length ? marks.map(function (mark) {
+      return renderWlMarkBearingRow(mark);
+    }).join('') : '<div class="err">Save the WL course model before entering mark bearings.</div>';
+
+    return card('WL Mark Bearings From Committee',
+      '<div class="wlbd-list">' + rows + '</div>' +
+      '<button class="btn-full" onclick="saveWlMarksFromCommittee()">SET WL MARK POSITIONS</button>' +
+      '<div class="api-note">Enter the RC supplied true bearing and distance for each course mark. The app projects each position from ' + esc(course.committee || 'COM') + '; gate midpoint navigation uses both 4S and 4P once set.</div>',
+      committeeText
+    );
+  }
+
+  function wlCourseMarks(course) {
+    var seen = {};
+    var marks = [];
+    courseSequence(course).forEach(function (entry) {
+      entry.code.split('/').forEach(function (code) {
+        if (seen[code]) return;
+        seen[code] = true;
+        var mark = findMark(code);
+        if (mark) marks.push(mark);
+      });
+    });
+    return marks;
+  }
+
+  function renderWlMarkBearingRow(mark) {
+    var codeId = markCodeInputId(mark.code);
+    return '<div class="wlbd-row">' +
+      '<div class="wlbd-code">' + esc(mark.code) + '</div>' +
+      '<div class="wlbd-body">' +
+        '<div class="wlbd-name">' + esc(mark.name || 'Course mark') + '</div>' +
+        '<div class="wlbd-pos">' + coordLabel(mark) + '</div>' +
+        '<div class="wlbd-inputs">' +
+          input('wlbd-' + codeId + '-bearing', mark.rcBearing || '', 'bearing true', 'number', 'min="0" max="359" inputmode="numeric"') +
+          input('wlbd-' + codeId + '-distance', mark.rcDistance || '', 'distance nm', 'number', 'step="0.01" inputmode="decimal"') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function markCodeInputId(code) {
+    return String(code).replace(/[^A-Za-z0-9_-]/g, '-');
+  }
+
   function renderMarkLibrary() {
-    return card('Set WL Mark From Committee',
-      row('Mark', markSelect('bd-mark', '3', false)) +
-      row('Bearing', input('bd-bearing', '', 'degrees true from COM', 'number', 'min="0" max="359" inputmode="numeric"')) +
-      row('Distance', input('bd-distance', '', 'nm from COM', 'number', 'step="0.01" inputmode="decimal"')) +
-      '<button class="btn-full" onclick="saveMarkFromCommittee()">SET MARK POSITION</button>' +
-      '<div class="api-note">For WL courses, the RC may give mark positions as bearing and distance from the committee vessel. Update COM first if the committee boat has moved.</div>'
-    ) +
-    card('Mark Library',
+    return card('Mark Library',
       row('Code', input('lib-code', '', 'W1')) +
       row('Name', input('lib-name', '', 'mark name')) +
       row('Lat', input('lib-lat', '', '50.xxxxx', 'number', 'step="0.00001" inputmode="decimal"')) +
@@ -1140,6 +1183,48 @@
     var point = destinationPoint(committee, bearing, distance);
     mark.lat = point.lat.toFixed(5);
     mark.lon = point.lon.toFixed(5);
+    saveState();
+    renderMarks();
+  }
+
+  function saveWlMarksFromCommittee() {
+    var course = activeCourse();
+    var committee = findMark(course.committee || 'COM');
+    var marks = wlCourseMarks(course);
+    var updated = 0;
+
+    if (!committee || !hasCoords(committee)) {
+      flash('Set the committee boat COM position before projecting WL marks.');
+      return;
+    }
+
+    for (var i = 0; i < marks.length; i += 1) {
+      var mark = marks[i];
+      var codeId = markCodeInputId(mark.code);
+      var bearingRaw = valueOf('wlbd-' + codeId + '-bearing');
+      var distanceRaw = valueOf('wlbd-' + codeId + '-distance');
+      var bearing = toNumber(bearingRaw);
+      var distance = toNumber(distanceRaw);
+
+      if (!bearingRaw && !distanceRaw) continue;
+      if (bearing == null || distance == null) {
+        flash('Enter both bearing and distance for ' + mark.code + ', or leave both blank.');
+        return;
+      }
+
+      var point = destinationPoint(committee, normalize(bearing), distance);
+      mark.lat = point.lat.toFixed(5);
+      mark.lon = point.lon.toFixed(5);
+      mark.rcBearing = String(Math.round(normalize(bearing)));
+      mark.rcDistance = String(distanceRaw);
+      updated += 1;
+    }
+
+    if (!updated) {
+      flash('Enter at least one WL mark bearing and distance.');
+      return;
+    }
+
     saveState();
     renderMarks();
   }
@@ -1446,14 +1531,14 @@
         actualBig('Bearing', nav ? Math.round(nav.bearing) : '--', 'deg', next ? next.code : 'no mark') +
         actualBig('Distance', nav ? nav.distance.toFixed(2) : '--', 'nm', fixLabel) +
       '</div>' +
-      tacticalMapPanel(nav, next, boat, mark, forecast) +
+      tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) +
       '<div class="ll-hero">' +
-        actualLaylineCard('Port layline', nav && nav.portStatus !== 'no wind' ? Math.round(nav.port) : '--', nav ? nav.portStatus : 'needs fix') +
-        actualLaylineCard('Stbd layline', nav && nav.stbdStatus !== 'no wind' ? Math.round(nav.stbd) : '--', nav ? nav.stbdStatus : 'needs fix') +
+        actualLaylineCard('Port layline', nav && nav.portStatus !== 'no wind' ? Math.round(nav.port) : '--', nav ? nav.portStatus : 'needs fix', 'deg') +
+        actualLaylineCard('Stbd layline', nav && nav.stbdStatus !== 'no wind' ? Math.round(nav.stbd) : '--', nav ? nav.stbdStatus : 'needs fix', 'deg') +
       '</div>' +
       '<div class="ll-hero">' +
-        actualLaylineCard('Dist to port', nav && nav.portDistance != null ? nav.portDistance.toFixed(2) : '--', 'nm') +
-        actualLaylineCard('Dist to stbd', nav && nav.stbdDistance != null ? nav.stbdDistance.toFixed(2) : '--', 'nm') +
+        actualLaylineCard('Dist to port', nav && nav.portDistance != null ? nav.portDistance.toFixed(2) : '--', 'cross-track', 'nm') +
+        actualLaylineCard('Dist to stbd', nav && nav.stbdDistance != null ? nav.stbdDistance.toFixed(2) : '--', 'cross-track', 'nm') +
       '</div>' +
       '<div class="stat-row">' +
         statCell('GPS lat', displayLat || '--', fixLabel) +
@@ -1469,11 +1554,12 @@
     return '<div class="nav-big"><div class="nb-label">' + label + '</div><div class="nb-val">' + value + '</div><div class="nb-unit">' + unit + '</div><div class="nb-sub">' + esc(sub || '') + '</div></div>';
   }
 
-  function actualLaylineCard(label, value, status) {
-    return '<div class="ll-card" style="border-color:rgba(212,160,23,.28)"><div class="ll-tack">' + label + '</div><div class="ll-dist">' + value + '&deg;</div><div class="ll-status ll-crossed">' + status + '</div></div>';
+  function actualLaylineCard(label, value, status, unit) {
+    var display = value === '--' ? '--' : esc(value) + '<span class="ll-unit">' + esc(unit || 'deg') + '</span>';
+    return '<div class="ll-card" style="border-color:rgba(212,160,23,.28)"><div class="ll-tack">' + label + '</div><div class="ll-dist">' + display + '</div><div class="ll-status ll-crossed">' + esc(status) + '</div></div>';
   }
 
-  function tacticalMapPanel(nav, next, boat, mark, forecast) {
+  function tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) {
     var title = '<div class="map-title"><span>Tactical Map</span><span>TWD from forecast</span></div>';
     if (!boat || !mark || !hasCoords(mark)) {
       return '<div class="ll-svg-wrap">' + title +
@@ -1486,52 +1572,153 @@
       '</div>';
     }
 
-    var cx = 160;
-    var cy = 238;
-    var label = next ? next.code : 'MARK';
-    var markPoint = svgPoint(cx, cy, nav.bearing, 128);
-    var portPoint = nav.portStatus === 'no wind' ? null : svgPoint(cx, cy, nav.port, 150);
-    var stbdPoint = nav.stbdStatus === 'no wind' ? null : svgPoint(cx, cy, nav.stbd, 150);
+    var context = tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual);
+    var boatSvg = context.project(context.boatPoint);
+    var nextSvg = context.project(context.nextPoint);
+    var routePoints = [context.boatPoint].concat(context.routeMarks.map(function (item) { return item.point; }));
+    var routeSvg = routePoints.map(function (point) { return svgPointText(context.project(point)); }).join(' ');
+    var portSvg = context.portBack ? context.project(context.portBack) : null;
+    var stbdSvg = context.stbdBack ? context.project(context.stbdBack) : null;
+    var cogSvg = context.cogEnd ? context.project(context.cogEnd) : null;
+    var interceptSvg = context.intercept ? context.project(context.intercept.point) : null;
     var windDir = toNumber(forecast.windDir);
     var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180), 28);
     var legText = nav.distance.toFixed(2) + 'nm / ' + Math.round(nav.bearing) + 'deg';
-    var insight = tacticalInsightPanel(nav, boat, mark, forecast);
+    var insight = tacticalInsightPanel(nav, boat, mark, forecast, context);
+    var chartTiles = chartTileLayerSvg(context);
+    var markLabels = context.routeMarks.map(function (item, index) {
+      var point = context.project(item.point);
+      var label = item.label || item.mark.code || 'MARK';
+      return '<circle class="' + (index === 0 ? 'mark-dot' : 'route-dot') + '" cx="' + svgNumber(point.x) + '" cy="' + svgNumber(point.y) + '" r="' + (index === 0 ? 6 : 4) + '"></circle>' +
+        '<text x="' + boundedLabelX(point.x) + '" y="' + boundedLabelY(point.y - 8) + '">' + esc(label) + '</text>';
+    }).join('');
 
     return '<div class="ll-svg-wrap">' + title +
       '<svg class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map">' +
-        '<defs><marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#80CBC4"></path></marker></defs>' +
-        '<circle class="ring" cx="' + cx + '" cy="' + cy + '" r="55"></circle>' +
-        '<circle class="ring" cx="' + cx + '" cy="' + cy + '" r="110"></circle>' +
-        '<line class="thin" x1="160" y1="20" x2="160" y2="282"></line>' +
-        '<line class="thin" x1="28" y1="' + cy + '" x2="292" y2="' + cy + '"></line>' +
+        '<defs>' +
+          '<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#80CBC4"></path></marker>' +
+          '<marker id="boatarr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#fff"></path></marker>' +
+          '<clipPath id="chartclip"><rect x="16" y="16" width="288" height="252" rx="4"></rect></clipPath>' +
+        '</defs>' +
+        chartTiles +
+        '<rect class="sail-area" x="16" y="16" width="288" height="252" rx="4"></rect>' +
+        '<line class="thin" x1="16" y1="79" x2="304" y2="79"></line>' +
+        '<line class="thin" x1="16" y1="142" x2="304" y2="142"></line>' +
+        '<line class="thin" x1="16" y1="205" x2="304" y2="205"></line>' +
+        '<line class="thin" x1="88" y1="16" x2="88" y2="268"></line>' +
+        '<line class="thin" x1="160" y1="16" x2="160" y2="268"></line>' +
+        '<line class="thin" x1="232" y1="16" x2="232" y2="268"></line>' +
         '<text x="154" y="18">N</text>' +
+        '<text class="chart-attrib" x="18" y="30">Map tiles: OpenStreetMap / OpenSeaMap</text>' +
+        '<text x="18" y="286">SAIL AREA ' + esc(context.areaLabel) + '</text>' +
         (windPoint ? '<line class="wind-line" x1="286" y1="52" x2="' + windPoint.x + '" y2="' + windPoint.y + '"></line><text x="245" y="34">TWD ' + Math.round(windDir) + '</text>' : '') +
-        (portPoint ? '<line class="port-line" x1="' + cx + '" y1="' + cy + '" x2="' + portPoint.x + '" y2="' + portPoint.y + '"></line>' : '') +
-        (stbdPoint ? '<line class="stbd-line" x1="' + cx + '" y1="' + cy + '" x2="' + stbdPoint.x + '" y2="' + stbdPoint.y + '"></line>' : '') +
-        '<line class="mark-line" x1="' + cx + '" y1="' + cy + '" x2="' + markPoint.x + '" y2="' + markPoint.y + '"></line>' +
-        '<circle class="boat-dot" cx="' + cx + '" cy="' + cy + '" r="6"></circle>' +
-        '<circle class="mark-dot" cx="' + markPoint.x + '" cy="' + markPoint.y + '" r="6"></circle>' +
-        '<text x="143" y="260">BOAT</text>' +
-        '<text x="' + boundedLabelX(markPoint.x) + '" y="' + boundedLabelY(markPoint.y - 8) + '">' + esc(label) + '</text>' +
-        (portPoint ? '<text x="' + boundedLabelX(portPoint.x) + '" y="' + boundedLabelY(portPoint.y) + '">PORT ' + Math.round(nav.port) + '</text>' : '') +
-        (stbdPoint ? '<text x="' + boundedLabelX(stbdPoint.x) + '" y="' + boundedLabelY(stbdPoint.y) + '">STBD ' + Math.round(nav.stbd) + '</text>' : '') +
-        '<text x="14" y="288">' + legText + '</text>' +
+        '<polyline class="course-route" points="' + routeSvg + '"></polyline>' +
+        (portSvg ? '<line class="port-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(portSvg.x) + '" y2="' + svgNumber(portSvg.y) + '"></line>' : '') +
+        (stbdSvg ? '<line class="stbd-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(stbdSvg.x) + '" y2="' + svgNumber(stbdSvg.y) + '"></line>' : '') +
+        '<line class="mark-line" x1="' + svgNumber(boatSvg.x) + '" y1="' + svgNumber(boatSvg.y) + '" x2="' + svgNumber(nextSvg.x) + '" y2="' + svgNumber(nextSvg.y) + '"></line>' +
+        (cogSvg ? '<line class="boat-arrow" x1="' + svgNumber(boatSvg.x) + '" y1="' + svgNumber(boatSvg.y) + '" x2="' + svgNumber(cogSvg.x) + '" y2="' + svgNumber(cogSvg.y) + '"></line><text x="' + boundedLabelX(cogSvg.x) + '" y="' + boundedLabelY(cogSvg.y) + '">COG ' + Math.round(context.cog) + '</text>' : '') +
+        markLabels +
+        '<circle class="boat-dot" cx="' + svgNumber(boatSvg.x) + '" cy="' + svgNumber(boatSvg.y) + '" r="6"></circle>' +
+        '<text x="' + boundedLabelX(boatSvg.x) + '" y="' + boundedLabelY(boatSvg.y + 16) + '">BOAT</text>' +
+        (portSvg ? '<text x="' + boundedLabelX(portSvg.x) + '" y="' + boundedLabelY(portSvg.y) + '">PORT ' + Math.round(nav.port) + '</text>' : '') +
+        (stbdSvg ? '<text x="' + boundedLabelX(stbdSvg.x) + '" y="' + boundedLabelY(stbdSvg.y) + '">STBD ' + Math.round(nav.stbd) + '</text>' : '') +
+        (interceptSvg ? '<circle class="intercept-dot" cx="' + svgNumber(interceptSvg.x) + '" cy="' + svgNumber(interceptSvg.y) + '" r="5"></circle><text x="' + boundedLabelX(interceptSvg.x) + '" y="' + boundedLabelY(interceptSvg.y - 9) + '">INT ' + esc(context.interceptTimeLabel) + '</text>' : '') +
+        '<text x="206" y="286">' + legText + '</text>' +
       '</svg>' +
       insight +
       (nav.portStatus === 'no wind' ? '<div class="err">Enter forecast wind direction to draw laylines. Course line is shown.</div>' : '') +
     '</div>';
   }
 
-  function tacticalInsightPanel(nav, boat, mark, forecast) {
+  function tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual) {
+    var sequence = courseSequence(course);
+    var routeMarks = [{ mark: mark, label: next ? next.code : mark.code, point: null }];
+    sequence.slice(legIndex + 1).forEach(function (entry) {
+      var routeMark = markForCourseEntry(entry);
+      if (routeMark && hasCoords(routeMark)) {
+        routeMarks.push({ mark: routeMark, label: entry.code, point: null });
+      }
+    });
+
+    var latTotal = Number(boat.lat);
+    var latCount = 1;
+    routeMarks.forEach(function (item) {
+      latTotal += Number(item.mark.lat);
+      latCount += 1;
+    });
+
+    var originLat = latTotal / latCount;
+    var boatPoint = localNmPoint(boat, originLat);
+    routeMarks.forEach(function (item) {
+      item.point = localNmPoint(item.mark, originLat);
+    });
+
+    var nextPoint = routeMarks[0].point;
+    var hasLaylines = nav.portStatus !== 'no wind' && nav.stbdStatus !== 'no wind';
+    var laylineLength = Math.max(nav.distance * 1.8, 0.6);
+    var portBack = hasLaylines ? offsetPoint(nextPoint, normalize(nav.port + 180), laylineLength) : null;
+    var stbdBack = hasLaylines ? offsetPoint(nextPoint, normalize(nav.stbd + 180), laylineLength) : null;
+    var cog = gpsCourseNumber(actual);
+    var sog = gpsSpeedNumber(actual);
+    var cogEnd = cog == null ? null : offsetPoint(boatPoint, cog, Math.max(0.16, Math.min(nav.distance * 0.45, 0.7)));
+    var tack = hasLaylines && cog != null ? currentTackFromCog(cog, nav) : null;
+    var intercept = tack ? lineRayLaylineIntercept(boatPoint, nextPoint, cog, tack.targetHeading) : null;
+    var speed = sog;
+    var speedSource = speed != null && speed > 0.2 ? 'GPS SOG' : '';
+
+    if ((speed == null || speed <= 0.2) && course) {
+      speed = toNumber(course.boatSpeed);
+      speedSource = speed ? 'target BSP' : '';
+    }
+
+    var interceptSeconds = intercept && speed && speed > 0.2 ? intercept.distance / speed * 3600 : null;
+    var interceptTimeLabel = interceptSeconds == null ? '--' : formatDurationShort(interceptSeconds);
+    var boundsPoints = [boatPoint, nextPoint].concat(routeMarks.map(function (item) { return item.point; }));
+    if (portBack) boundsPoints.push(portBack);
+    if (stbdBack) boundsPoints.push(stbdBack);
+    if (cogEnd) boundsPoints.push(cogEnd);
+    if (intercept && intercept.distance <= Math.max(nav.distance * 8, 3)) boundsPoints.push(intercept.point);
+    var bounds = tacticalMapBounds(boundsPoints);
+
+    return {
+      boatPoint: boatPoint,
+      nextPoint: nextPoint,
+      routeMarks: routeMarks,
+      portBack: portBack,
+      stbdBack: stbdBack,
+      cog: cog,
+      sog: sog,
+      cogEnd: cogEnd,
+      tack: tack,
+      intercept: intercept,
+      interceptSeconds: interceptSeconds,
+      interceptTimeLabel: interceptTimeLabel,
+      speed: speed,
+      speedSource: speedSource,
+      areaLabel: bounds.spanX.toFixed(2) + ' x ' + bounds.spanY.toFixed(2) + 'nm',
+      originLat: originLat,
+      bounds: bounds,
+      project: tacticalMapProjector(bounds)
+    };
+  }
+
+  function tacticalInsightPanel(nav, boat, mark, forecast, context) {
     var windDir = toNumber(forecast.windDir);
     var tideRate = toNumber(forecast.tideRate);
     var tideDir = toNumber(forecast.tideDir);
-    var correction = nav.correction == null ? '--' : signedDegrees(nav.correction);
+    var correction = nav.correction == null ? '--' : signedDegreesText(nav.correction);
     var closer = nav.closerLayline || '--';
     var closerDistance = nav.closerDistance == null ? '--' : nav.closerDistance.toFixed(2) + 'nm';
     var tideText = tideRate == null || tideDir == null
       ? 'tide not set'
-      : tideRate.toFixed(2) + 'kt to ' + Math.round(tideDir) + '&deg;';
+      : tideRate.toFixed(2) + 'kt to ' + Math.round(tideDir) + ' deg';
+    var cogText = context.cog == null ? '--' : Math.round(context.cog) + ' deg';
+    var sogText = context.sog == null ? '--' : context.sog.toFixed(1) + 'kt';
+    var tackText = context.tack ? context.tack.currentTack : '--';
+    var interceptText = context.intercept ? context.tack.targetLayline + ' layline' : '--';
+    var interceptSub = context.intercept
+      ? context.intercept.distance.toFixed(2) + 'nm / ' + context.interceptTimeLabel + (context.speedSource ? ' using ' + context.speedSource : '')
+      : context.cog == null ? 'needs GPS COG' : 'no crossing on current COG';
 
     return '<div style="width:100%;margin-top:8px">' +
       '<div class="stat-row">' +
@@ -1539,21 +1726,37 @@
         statCell('Next mark', coordLabel(mark), mark.code || 'mark') +
       '</div>' +
       '<div class="stat-row">' +
-        statCell('Bearing / Dist', Math.round(nav.bearing) + '&deg; / ' + nav.distance.toFixed(2) + 'nm', 'to mark') +
-        statCell('Forecast TWD', windDir == null ? '--' : Math.round(windDir) + '&deg;', 'from forecast') +
+        statCell('Bearing / Dist', Math.round(nav.bearing) + ' deg / ' + nav.distance.toFixed(2) + 'nm', 'to mark') +
+        statCell('Forecast TWD', windDir == null ? '--' : Math.round(windDir) + ' deg', 'from forecast') +
         statCell('Tide set', tideText, 'layline correction ' + correction) +
       '</div>' +
       '<div class="stat-row">' +
-        statCell('Port LL', nav.portStatus === 'no wind' ? '--' : Math.round(nav.port) + '&deg;', nav.portDistance == null ? 'needs TWD' : nav.portDistance.toFixed(2) + 'nm away') +
-        statCell('Stbd LL', nav.stbdStatus === 'no wind' ? '--' : Math.round(nav.stbd) + '&deg;', nav.stbdDistance == null ? 'needs TWD' : nav.stbdDistance.toFixed(2) + 'nm away') +
+        statCell('Port LL', nav.portStatus === 'no wind' ? '--' : Math.round(nav.port) + ' deg', nav.portDistance == null ? 'needs TWD' : nav.portDistance.toFixed(2) + 'nm away') +
+        statCell('Stbd LL', nav.stbdStatus === 'no wind' ? '--' : Math.round(nav.stbd) + ' deg', nav.stbdDistance == null ? 'needs TWD' : nav.stbdDistance.toFixed(2) + 'nm away') +
         statCell('Best call', closer, closerDistance) +
       '</div>' +
-      '<div class="ll-advice">' + tacticalInsightText(nav, tideRate, tideDir) + '</div>' +
+      '<div class="stat-row">' +
+        statCell('Boat COG / SOG', cogText + ' / ' + sogText, context.speedSource || 'GPS movement') +
+        statCell('Current tack', tackText, context.tack ? 'from GPS COG' : 'needs COG') +
+        statCell('Intercept', interceptText, interceptSub) +
+      '</div>' +
+      '<div class="ll-advice">' + tacticalInsightText(nav, tideRate, tideDir, context) + '</div>' +
     '</div>';
   }
 
-  function tacticalInsightText(nav, tideRate, tideDir) {
+  function tacticalInsightText(nav, tideRate, tideDir, context) {
     var text = 'Track to mark is ' + Math.round(nav.bearing) + '&deg; for ' + nav.distance.toFixed(2) + 'nm. ';
+    if (context && context.intercept) {
+      text += 'On the current COG, intercept the ' + context.tack.targetLayline + ' layline in ' + context.intercept.distance.toFixed(2) + 'nm';
+      if (context.interceptSeconds != null) text += ' / ' + context.interceptTimeLabel;
+      text += '. ';
+    } else if (context && context.cog == null) {
+      text += 'Move with live GPS enabled in Settings to get COG and layline intercept time. ';
+    } else if (nav.portStatus === 'no wind') {
+      text += 'Enter forecast wind direction before layline interception can be calculated. ';
+    } else {
+      text += 'Current COG does not cross the target layline in the plotted sailing area. ';
+    }
     if (nav.closerLayline) {
       text += nav.closerLayline + ' layline is closer at ' + nav.closerDistance.toFixed(2) + 'nm cross-track. ';
     }
@@ -1572,6 +1775,10 @@
     return (value > 0 ? '+' : '') + Math.round(value) + '&deg;';
   }
 
+  function signedDegreesText(value) {
+    return (value > 0 ? '+' : '') + Math.round(value) + ' deg';
+  }
+
   function svgPoint(cx, cy, bearing, length) {
     return {
       x: Math.round(cx + Math.sin(toRad(bearing)) * length),
@@ -1579,12 +1786,237 @@
     };
   }
 
+  function svgPointText(point) {
+    return svgNumber(point.x) + ',' + svgNumber(point.y);
+  }
+
+  function svgNumber(value) {
+    return String(Math.round(value * 10) / 10);
+  }
+
   function boundedLabelX(value) {
-    return Math.max(8, Math.min(258, Math.round(value + 8)));
+    return Math.max(8, Math.min(286, Math.round(value + 8)));
   }
 
   function boundedLabelY(value) {
     return Math.max(18, Math.min(286, Math.round(value)));
+  }
+
+  function tacticalMapBounds(points) {
+    var minX = points[0].x;
+    var maxX = points[0].x;
+    var minY = points[0].y;
+    var maxY = points[0].y;
+
+    points.forEach(function (point) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    });
+
+    var spanX = Math.max(maxX - minX, 0.2);
+    var spanY = Math.max(maxY - minY, 0.2);
+    var pad = Math.max(spanX, spanY) * 0.14 + 0.04;
+    return {
+      minX: minX - pad,
+      maxX: maxX + pad,
+      minY: minY - pad,
+      maxY: maxY + pad,
+      spanX: spanX + pad * 2,
+      spanY: spanY + pad * 2
+    };
+  }
+
+  function tacticalMapProjector(bounds) {
+    var width = 320;
+    var height = 300;
+    var pad = 22;
+    var scale = Math.min((width - pad * 2) / bounds.spanX, (height - pad * 2) / bounds.spanY);
+    var drawWidth = bounds.spanX * scale;
+    var drawHeight = bounds.spanY * scale;
+    var offsetX = (width - drawWidth) / 2;
+    var offsetY = (height - drawHeight) / 2;
+
+    return function (point) {
+      return {
+        x: offsetX + (point.x - bounds.minX) * scale,
+        y: height - offsetY - (point.y - bounds.minY) * scale
+      };
+    };
+  }
+
+  function chartTileLayerSvg(context) {
+    var tilePlan = chartTilePlan(context);
+    if (!tilePlan.tiles.length) return '';
+
+    return '<g class="chart-bg" clip-path="url(#chartclip)">' +
+      tilePlan.tiles.map(function (tile) {
+        return '<image class="chart-tile" href="https://tile.openstreetmap.org/' + tilePlan.zoom + '/' + tile.x + '/' + tile.y + '.png" x="' + svgNumber(tile.x1) + '" y="' + svgNumber(tile.y1) + '" width="' + svgNumber(tile.width) + '" height="' + svgNumber(tile.height) + '" preserveAspectRatio="none"></image>' +
+          '<image class="seamark-tile" href="https://tiles.openseamap.org/seamark/' + tilePlan.zoom + '/' + tile.x + '/' + tile.y + '.png" x="' + svgNumber(tile.x1) + '" y="' + svgNumber(tile.y1) + '" width="' + svgNumber(tile.width) + '" height="' + svgNumber(tile.height) + '" preserveAspectRatio="none"></image>';
+      }).join('') +
+    '</g>';
+  }
+
+  function chartTilePlan(context) {
+    var geo = localBoundsToGeo(context.bounds, context.originLat);
+    var zoom = chartZoomForSpan(Math.max(context.bounds.spanX, context.bounds.spanY));
+    var plan = buildChartTilePlan(context, geo, zoom);
+
+    while (plan.tiles.length > 18 && zoom > 10) {
+      zoom -= 1;
+      plan = buildChartTilePlan(context, geo, zoom);
+    }
+    return plan;
+  }
+
+  function buildChartTilePlan(context, geo, zoom) {
+    var maxTile = Math.pow(2, zoom) - 1;
+    var xMin = clampTile(lonToTileX(geo.west, zoom), maxTile);
+    var xMax = clampTile(lonToTileX(geo.east, zoom), maxTile);
+    var yMin = clampTile(latToTileY(geo.north, zoom), maxTile);
+    var yMax = clampTile(latToTileY(geo.south, zoom), maxTile);
+    var tiles = [];
+
+    for (var x = xMin; x <= xMax; x += 1) {
+      for (var y = yMin; y <= yMax; y += 1) {
+        var west = tileXToLon(x, zoom);
+        var east = tileXToLon(x + 1, zoom);
+        var north = tileYToLat(y, zoom);
+        var south = tileYToLat(y + 1, zoom);
+        var nw = context.project(localNmPoint({ lat: north, lon: west }, context.originLat));
+        var se = context.project(localNmPoint({ lat: south, lon: east }, context.originLat));
+        var x1 = Math.min(nw.x, se.x);
+        var y1 = Math.min(nw.y, se.y);
+        var width = Math.abs(se.x - nw.x);
+        var height = Math.abs(se.y - nw.y);
+        if (width > 0 && height > 0) {
+          tiles.push({ x: x, y: y, x1: x1, y1: y1, width: width, height: height });
+        }
+      }
+    }
+
+    return { zoom: zoom, tiles: tiles };
+  }
+
+  function chartZoomForSpan(spanNm) {
+    if (spanNm <= 0.8) return 15;
+    if (spanNm <= 1.6) return 14;
+    if (spanNm <= 3.2) return 13;
+    if (spanNm <= 6.4) return 12;
+    return 11;
+  }
+
+  function localBoundsToGeo(bounds, originLat) {
+    var lonScale = 60 * Math.cos(toRad(originLat));
+    return {
+      west: bounds.minX / lonScale,
+      east: bounds.maxX / lonScale,
+      south: Math.max(-85, bounds.minY / 60),
+      north: Math.min(85, bounds.maxY / 60)
+    };
+  }
+
+  function lonToTileX(lon, zoom) {
+    return Math.floor((lon + 180) / 360 * Math.pow(2, zoom));
+  }
+
+  function latToTileY(lat, zoom) {
+    var latRad = toRad(Math.max(-85, Math.min(85, lat)));
+    return Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * Math.pow(2, zoom));
+  }
+
+  function tileXToLon(x, zoom) {
+    return x / Math.pow(2, zoom) * 360 - 180;
+  }
+
+  function tileYToLat(y, zoom) {
+    var n = Math.PI - 2 * Math.PI * y / Math.pow(2, zoom);
+    return toDeg(Math.atan((Math.exp(n) - Math.exp(-n)) / 2));
+  }
+
+  function clampTile(value, maxTile) {
+    return Math.max(0, Math.min(maxTile, value));
+  }
+
+  function offsetPoint(point, bearing, distance) {
+    var unit = bearingUnit(bearing);
+    return {
+      x: point.x + unit.x * distance,
+      y: point.y + unit.y * distance
+    };
+  }
+
+  function bearingUnit(bearing) {
+    return {
+      x: Math.sin(toRad(bearing)),
+      y: Math.cos(toRad(bearing))
+    };
+  }
+
+  function gpsCourseNumber(actual) {
+    var settings = activeSettings();
+    var actualCourse = toNumber(actual && actual.gpsCourse);
+    if (actualCourse != null) return actualCourse;
+    return toNumber(settings.gpsCourse);
+  }
+
+  function gpsSpeedNumber(actual) {
+    var settings = activeSettings();
+    var actualSpeed = toNumber(actual && actual.gpsSpeed);
+    if (actualSpeed != null) return actualSpeed;
+    return toNumber(settings.gpsSpeed);
+  }
+
+  function currentTackFromCog(cog, nav) {
+    var portDiff = Math.abs(signedAngle(cog - nav.port));
+    var stbdDiff = Math.abs(signedAngle(cog - nav.stbd));
+    if (portDiff <= stbdDiff) {
+      return {
+        currentTack: 'Port',
+        targetLayline: 'Starboard',
+        targetHeading: nav.stbd,
+        headingDiff: portDiff
+      };
+    }
+    return {
+      currentTack: 'Starboard',
+      targetLayline: 'Port',
+      targetHeading: nav.port,
+      headingDiff: stbdDiff
+    };
+  }
+
+  function lineRayLaylineIntercept(boatPoint, markPoint, currentBearing, laylineHeading) {
+    var a = bearingUnit(currentBearing);
+    var b = bearingUnit(laylineHeading);
+    var dx = markPoint.x - boatPoint.x;
+    var dy = markPoint.y - boatPoint.y;
+    var det = a.x * b.y - a.y * b.x;
+    if (Math.abs(det) < 0.0001) return null;
+
+    var t = (dx * b.y - dy * b.x) / det;
+    var s = (a.x * dy - a.y * dx) / det;
+    if (t < 0 || s < 0) return null;
+
+    return {
+      point: {
+        x: boatPoint.x + a.x * t,
+        y: boatPoint.y + a.y * t
+      },
+      distance: t,
+      laylineDistance: s
+    };
+  }
+
+  function formatDurationShort(totalSeconds) {
+    var seconds = Math.max(0, Math.round(totalSeconds));
+    if (seconds < 60) return seconds + 's';
+    var minutes = Math.floor(seconds / 60);
+    var remainder = seconds % 60;
+    if (minutes < 60) return minutes + 'm ' + String(remainder).padStart(2, '0') + 's';
+    var hours = Math.floor(minutes / 60);
+    return hours + 'h ' + String(minutes % 60).padStart(2, '0') + 'm';
   }
 
   function actualLogCard(race) {
@@ -1652,8 +2084,8 @@
       correction: correction,
       port: port == null ? 0 : port,
       stbd: stbd == null ? 0 : stbd,
-      portStatus: portDelta == null ? 'no wind' : Math.round(portDelta) + '&deg; off',
-      stbdStatus: stbdDelta == null ? 'no wind' : Math.round(stbdDelta) + '&deg; off',
+      portStatus: portDelta == null ? 'no wind' : Math.round(portDelta) + ' deg off',
+      stbdStatus: stbdDelta == null ? 'no wind' : Math.round(stbdDelta) + ' deg off',
       portDistance: portDistance,
       stbdDistance: stbdDistance,
       closerLayline: closerLayline,
@@ -1717,8 +2149,8 @@
     var lat = position.coords.latitude.toFixed(5);
     var lon = position.coords.longitude.toFixed(5);
     var time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    var speedKnots = position.coords.speed == null ? '' : (position.coords.speed * 1.94384).toFixed(1) + 'kt';
-    var course = position.coords.heading == null ? '' : Math.round(position.coords.heading) + 'deg';
+    var speedKnots = Number.isFinite(position.coords.speed) ? (position.coords.speed * 1.94384).toFixed(1) + 'kt' : '';
+    var course = Number.isFinite(position.coords.heading) ? Math.round(position.coords.heading) + 'deg' : '';
     var accuracy = position.coords.accuracy == null ? '' : 'accuracy ' + Math.round(position.coords.accuracy) + 'm';
 
     actual.legIndex = parseInt(valueOf('actual-leg') || actual.legIndex || '0', 10);
