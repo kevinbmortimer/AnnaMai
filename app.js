@@ -2,9 +2,10 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.5.4';
+  var APP_VERSION = '0.5.6';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v8';
+  var CACHE_NAME = 'anna-mai-v10';
+  var gpsWatchId = null;
   var BOAT = {
     name: 'Anna Mai',
     type: 'Swan 36',
@@ -167,6 +168,10 @@
       startEpoch: '',
       startSource: '',
       lineSpeed: '',
+      gpsAccuracy: '',
+      gpsSpeed: '',
+      gpsCourse: '',
+      gpsMode: '',
       lastFix: ''
     };
   }
@@ -179,6 +184,8 @@
       lastSettingsSaved: '',
       gpsStatus: '',
       lastGps: '',
+      lastGpsLat: '',
+      lastGpsLon: '',
       lastGpsTime: '',
       gpsAccuracy: '',
       gpsSpeed: '',
@@ -539,17 +546,7 @@
     }
 
     navigator.geolocation.getCurrentPosition(function (position) {
-      var settings = activeSettings();
-      var speedKnots = position.coords.speed == null ? '' : (position.coords.speed * 1.94384).toFixed(1) + 'kt';
-      var course = position.coords.heading == null ? '' : Math.round(position.coords.heading) + 'deg';
-      settings.gpsStatus = 'Granted';
-      settings.lastGps = position.coords.latitude.toFixed(5) + ', ' + position.coords.longitude.toFixed(5);
-      settings.lastGpsTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      settings.gpsAccuracy = position.coords.accuracy == null ? '' : 'accuracy ' + Math.round(position.coords.accuracy) + 'm';
-      settings.gpsSpeed = speedKnots;
-      settings.gpsCourse = course;
-      saveState();
-      renderSettings();
+      storeGpsPosition(position, 'settings');
     }, function (err) {
       var settings = activeSettings();
       settings.gpsStatus = err.code === 1 ? 'Denied' : 'Failed';
@@ -1415,6 +1412,10 @@
     var mark = next ? markForCourseEntry(next) : null;
     var boat = actualBoatPosition(actual);
     var nav = boat && mark && hasCoords(mark) ? actualNavNumbers(boat, mark, forecast, course) : null;
+    var displayLat = actual.boatLat || (boat ? Number(boat.lat).toFixed(5) : '');
+    var displayLon = actual.boatLon || (boat ? Number(boat.lon).toFixed(5) : '');
+    var fixLabel = actual.lastFix || activeSettings().lastGpsTime || 'no position';
+    var gpsStatus = actual.gpsMode === 'live' ? 'live GPS' : actual.gpsMode === 'fix' ? 'GPS fix' : boat ? 'phone GPS' : 'manual';
 
     var selectorControl = select('actual-leg', legIndex, sequence.map(function (entry, index) {
       return { value: index, label: (index + 1) + ' - ' + entry.code + ' ' + entry.rounding.toUpperCase() };
@@ -1425,7 +1426,7 @@
       (sequence.length ? selector : '<div class="err">Set a course before using Actual navigation.</div>') +
       '<div class="nav-hero">' +
         actualBig('Bearing', nav ? Math.round(nav.bearing) : '--', 'deg', next ? next.code : 'no mark') +
-        actualBig('Distance', nav ? nav.distance.toFixed(2) : '--', 'nm', actual.lastFix || 'no position') +
+        actualBig('Distance', nav ? nav.distance.toFixed(2) : '--', 'nm', fixLabel) +
       '</div>' +
       tacticalMapPanel(nav, next, boat, mark, forecast) +
       '<div class="ll-hero">' +
@@ -1436,13 +1437,15 @@
         actualLaylineCard('Dist to port', nav && nav.portDistance != null ? nav.portDistance.toFixed(2) : '--', 'nm') +
         actualLaylineCard('Dist to stbd', nav && nav.stbdDistance != null ? nav.stbdDistance.toFixed(2) : '--', 'nm') +
       '</div>' +
-      '<div class="input-row"><label>Boat lat</label>' + input('actual-lat', actual.boatLat, '50.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
-      '<div class="input-row"><label>Boat lon</label>' + input('actual-lon', actual.boatLon, '-1.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
+      '<div class="input-row"><label>Boat lat</label>' + input('actual-lat', displayLat, '50.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
+      '<div class="input-row"><label>Boat lon</label>' + input('actual-lon', displayLon, '-1.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
       '<div class="ctrl-row">' +
         '<div class="ctrl set" onclick="saveActualNav()">SAVE<br>FIX</div>' +
         '<div class="ctrl go-btn" onclick="useDevicePosition()">GPS<br>FIX</div>' +
+        '<div class="ctrl sync" onclick="startLiveGps()">LIVE<br>GPS</div>' +
       '</div>' +
-      '<div class="ll-advice">' + (nav ? nav.advice : 'Enter a boat position or use GPS, and make sure the next mark has a position.') + '</div>',
+      '<div class="api-note">Position source: ' + esc(gpsStatus) + (actual.gpsAccuracy ? ' / ' + esc(actual.gpsAccuracy) : '') + '</div>' +
+      '<div class="ll-advice">' + (nav ? nav.advice : 'Use LIVE GPS or GPS FIX, and make sure the next mark has a position.') + '</div>',
       mark && hasCoords(mark) ? coordLabel(mark) : 'mark position needed'
     );
   }
@@ -1456,7 +1459,7 @@
   }
 
   function tacticalMapPanel(nav, next, boat, mark, forecast) {
-    var title = '<div class="map-title"><span>Tactical Map</span><span>North up</span></div>';
+    var title = '<div class="map-title"><span>Tactical Map</span><span>TWD from forecast</span></div>';
     if (!boat || !mark || !hasCoords(mark)) {
       return '<div class="ll-svg-wrap">' + title +
         '<div class="err">Map needs a GPS/manual boat position and a next mark position.</div>' +
@@ -1498,7 +1501,7 @@
         (stbdPoint ? '<text x="' + boundedLabelX(stbdPoint.x) + '" y="' + boundedLabelY(stbdPoint.y) + '">STBD ' + Math.round(nav.stbd) + '</text>' : '') +
         '<text x="14" y="288">' + legText + '</text>' +
       '</svg>' +
-      (nav.portStatus === 'no wind' ? '<div class="err">Enter wind direction in Settings to draw laylines. Course line is shown.</div>' : '') +
+      (nav.portStatus === 'no wind' ? '<div class="err">Enter forecast wind direction to draw laylines. Course line is shown.</div>' : '') +
     '</div>';
   }
 
@@ -1535,6 +1538,16 @@
   function actualBoatPosition(actual) {
     var lat = toNumber(actual.boatLat);
     var lon = toNumber(actual.boatLon);
+    if (lat == null || lon == null) {
+      var settings = activeSettings();
+      lat = toNumber(settings.lastGpsLat);
+      lon = toNumber(settings.lastGpsLon);
+      if ((lat == null || lon == null) && settings.lastGps) {
+        var parts = settings.lastGps.split(',');
+        lat = toNumber(parts[0]);
+        lon = toNumber(parts[1]);
+      }
+    }
     if (lat == null || lon == null) return null;
     return { code: 'BOAT', name: BOAT.name, lat: lat, lon: lon };
   }
@@ -1551,7 +1564,7 @@
     var stbdDelta = stbd == null ? null : Math.abs(signedAngle(bearing - stbd));
     var portDistance = port == null ? null : distanceToLayline(distance, bearing, port);
     var stbdDistance = stbd == null ? null : distanceToLayline(distance, bearing, stbd);
-    var best = portDelta == null ? 'Enter wind direction for layline headings.' : portDelta < stbdDelta ? 'Port tack is closer to the mark bearing.' : 'Starboard tack is closer to the mark bearing.';
+    var best = portDelta == null ? 'Enter forecast wind direction for layline headings.' : portDelta < stbdDelta ? 'Port tack is closer to the mark bearing.' : 'Starboard tack is closer to the mark bearing.';
 
     return {
       bearing: bearing,
@@ -1604,17 +1617,61 @@
     }
 
     navigator.geolocation.getCurrentPosition(function (position) {
-      var actual = activeActual();
-      actual.legIndex = parseInt(valueOf('actual-leg') || actual.legIndex || '0', 10);
-      actual.boatLat = position.coords.latitude.toFixed(5);
-      actual.boatLon = position.coords.longitude.toFixed(5);
-      actual.lineSpeed = valueOf('actual-line-speed') || actual.lineSpeed;
-      actual.lastFix = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      saveState();
-      renderRace();
+      storeGpsPosition(position, 'fix');
     }, function (err) {
       flash('GPS fix failed: ' + err.message);
     }, { enableHighAccuracy: true, timeout: 10000 });
+  }
+
+  function startLiveGps() {
+    if (!navigator.geolocation) {
+      flash('GPS is not available in this WebView.');
+      return;
+    }
+    if (gpsWatchId != null) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+    }
+    gpsWatchId = navigator.geolocation.watchPosition(function (position) {
+      storeGpsPosition(position, 'live');
+    }, function (err) {
+      flash('Live GPS failed: ' + err.message);
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
+    flash('Live GPS started for Race > Course.');
+  }
+
+  function storeGpsPosition(position, mode) {
+    var actual = activeActual();
+    var settings = activeSettings();
+    var lat = position.coords.latitude.toFixed(5);
+    var lon = position.coords.longitude.toFixed(5);
+    var time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    var speedKnots = position.coords.speed == null ? '' : (position.coords.speed * 1.94384).toFixed(1) + 'kt';
+    var course = position.coords.heading == null ? '' : Math.round(position.coords.heading) + 'deg';
+    var accuracy = position.coords.accuracy == null ? '' : 'accuracy ' + Math.round(position.coords.accuracy) + 'm';
+
+    actual.legIndex = parseInt(valueOf('actual-leg') || actual.legIndex || '0', 10);
+    actual.boatLat = lat;
+    actual.boatLon = lon;
+    actual.lineSpeed = valueOf('actual-line-speed') || actual.lineSpeed;
+    actual.lastFix = time;
+    actual.gpsAccuracy = accuracy;
+    actual.gpsSpeed = speedKnots;
+    actual.gpsCourse = course;
+    actual.gpsMode = mode;
+
+    settings.gpsStatus = 'Granted';
+    settings.lastGps = lat + ', ' + lon;
+    settings.lastGpsLat = lat;
+    settings.lastGpsLon = lon;
+    settings.lastGpsTime = time;
+    settings.gpsAccuracy = accuracy;
+    settings.gpsSpeed = speedKnots;
+    settings.gpsCourse = course;
+
+    saveState();
+    if (state.currentView === 'race') renderRace();
+    else if (state.currentView === 'settings') renderSettings();
   }
 
   function saveActualPolar() {
@@ -1698,7 +1755,7 @@
 
     if (windDir == null || lineBearing == null) {
       return card('Start Line Preference',
-        '<div class="err">Enter wind direction in Settings and line bearing in Marks. If COM/PIN coordinates are set, line bearing is calculated from pin to committee.</div>'
+        '<div class="err">Enter forecast wind direction and line bearing in Marks. If COM/PIN coordinates are set, line bearing is calculated from pin to committee.</div>'
       );
     }
 
@@ -1731,7 +1788,7 @@
   function laylineCard(forecast, course) {
     var windDir = toNumber(forecast.windDir);
     if (windDir == null) {
-      return card('Laylines', '<div class="err">Enter wind direction in Settings before calculating laylines.</div>');
+      return card('Laylines', '<div class="err">Enter forecast wind direction before calculating laylines.</div>');
     }
 
     var legs = courseLegs(course);
@@ -2058,6 +2115,7 @@
     window.selectActualLeg = selectActualLeg;
     window.saveActualNav = saveActualNav;
     window.useDevicePosition = useDevicePosition;
+    window.startLiveGps = startLiveGps;
     window.saveActualPolar = saveActualPolar;
     window.saveActualStart = saveActualStart;
     window.saveStartPage = saveStartPage;
