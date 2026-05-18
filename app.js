@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.5.2';
+  var APP_VERSION = '0.5.4';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v6';
+  var CACHE_NAME = 'anna-mai-v8';
   var BOAT = {
     name: 'Anna Mai',
     type: 'Swan 36',
@@ -179,7 +179,17 @@
       lastSettingsSaved: '',
       gpsStatus: '',
       lastGps: '',
-      lastGpsTime: ''
+      lastGpsTime: '',
+      gpsAccuracy: '',
+      gpsSpeed: '',
+      gpsCourse: '',
+      motionStatus: '',
+      lastMotion: '',
+      motionTime: '',
+      wakeStatus: '',
+      wakeTime: '',
+      soundStatus: '',
+      soundTime: ''
     };
   }
 
@@ -376,33 +386,10 @@
     var summary = forecastSummary(forecast);
 
     byId('v-forecast').innerHTML = raceStrip() +
-      apiFetchCard() +
       card(raceId + ' Forecast', summary, BOAT.name + ' / ' + BOAT.className) +
       racePlanCard(race) +
-      card('Update Forecast',
-        row('Start', input('fc-start', forecast.start, race.annaMaiStart === 'TBC' ? 'TBC / B2B' : race.annaMaiStart)) +
-        row('Wind dir', input('fc-wind-dir', forecast.windDir, 'degrees true', 'number', 'min="0" max="359" inputmode="numeric"')) +
-        row('Wind', input('fc-wind-speed', forecast.windSpeed, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
-        row('Gust', input('fc-wind-gust', forecast.windGust, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
-        row('Tide', select('fc-tide-state', forecast.tideState, [
-          { value: '', label: 'Not set' },
-          { value: 'Flood', label: 'Flood' },
-          { value: 'Ebb', label: 'Ebb' },
-          { value: 'Slack', label: 'Slack' },
-          { value: 'E set', label: 'E set' },
-          { value: 'W set', label: 'W set' },
-          { value: 'Current', label: 'Current' }
-        ])) +
-        row('Tide rate', input('fc-tide-rate', forecast.tideRate, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
-        row('Tide dir', input('fc-tide-dir', forecast.tideDir, 'degrees flowing to', 'number', 'min="0" max="359" inputmode="numeric"')) +
-        row('Swell ht', input('fc-swell-height', forecast.swellHeight, 'metres', 'number', 'step="0.1" inputmode="decimal"')) +
-        row('Swell per', input('fc-swell-period', forecast.swellPeriod, 'seconds', 'number', 'step="0.1" inputmode="decimal"')) +
-        row('Swell dir', input('fc-swell-dir', forecast.swellDir, 'degrees from', 'number', 'min="0" max="359" inputmode="numeric"')) +
-        row('Notes', input('fc-notes', forecast.notes, 'race briefing notes')) +
-        '<button class="btn-full" onclick="saveForecast()">SAVE FORECAST</button>'
-      ) +
-      card('Race Use',
-        '<div class="api-note" id="api-status">Values saved here feed the Race tab for ' + BOAT.name + ', ' + BOAT.type + ', ' + BOAT.className + '. API point: ' + RACE_AREA.label + '.</div>'
+      card('Forecast Source',
+        '<div class="api-note" id="api-status">Wind, tide, swell and notes are managed in Settings. Values shown here feed the Race tab for ' + BOAT.name + ', ' + BOAT.type + ', ' + BOAT.className + '.</div>'
       );
   }
 
@@ -415,6 +402,35 @@
         '<div class="ctrl set" onclick="saveForecast()">SAVE<br>MANUAL</div>' +
       '</div>' +
       '<div class="api-note" id="api-status">' + esc(last) + '. Uses Open-Meteo wind plus marine wave/current model at the RED course area and the Class 1 warning times in Settings.</div>'
+    );
+  }
+
+  function forecastEditorCard() {
+    var race = activeRace();
+    var forecast = activeForecast();
+    return card(activeRaceId() + ' Wind / Tide Forecast',
+      row('Start', input('fc-start', forecast.start, race.annaMaiStart === 'TBC' ? 'TBC / B2B' : race.annaMaiStart)) +
+      row('Wind dir', input('fc-wind-dir', forecast.windDir, 'degrees true', 'number', 'min="0" max="359" inputmode="numeric"')) +
+      row('Wind', input('fc-wind-speed', forecast.windSpeed, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
+      row('Gust', input('fc-wind-gust', forecast.windGust, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
+      row('Tide', select('fc-tide-state', forecast.tideState, [
+        { value: '', label: 'Not set' },
+        { value: 'Flood', label: 'Flood' },
+        { value: 'Ebb', label: 'Ebb' },
+        { value: 'Slack', label: 'Slack' },
+        { value: 'E set', label: 'E set' },
+        { value: 'W set', label: 'W set' },
+        { value: 'Current', label: 'Current' }
+      ])) +
+      row('Tide rate', input('fc-tide-rate', forecast.tideRate, 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
+      row('Tide dir', input('fc-tide-dir', forecast.tideDir, 'degrees flowing to', 'number', 'min="0" max="359" inputmode="numeric"')) +
+      row('Swell ht', input('fc-swell-height', forecast.swellHeight, 'metres', 'number', 'step="0.1" inputmode="decimal"')) +
+      row('Swell per', input('fc-swell-period', forecast.swellPeriod, 'seconds', 'number', 'step="0.1" inputmode="decimal"')) +
+      row('Swell dir', input('fc-swell-dir', forecast.swellDir, 'degrees from', 'number', 'min="0" max="359" inputmode="numeric"')) +
+      row('Notes', input('fc-notes', forecast.notes, 'race briefing notes')) +
+      '<button class="btn-full" onclick="saveForecast()">SAVE FORECAST</button>' +
+      '<div class="api-note">These values drive Race Plan, Start and Course tactical calls.</div>',
+      BOAT.name + ' / ' + BOAT.className
     );
   }
 
@@ -440,7 +456,9 @@
       return row(race.id + ' C1 warn', input('set-api-' + race.id, apiLookupTime(race), 'HH:MM', 'time'));
     }).join('');
 
-    byId('v-settings').innerHTML =
+    byId('v-settings').innerHTML = raceStrip() +
+      apiFetchCard() +
+      forecastEditorCard() +
       card('API Schedule',
         scheduleRows +
         row('Refresh note', input('set-refresh-minutes', settings.refreshMinutes, 'minutes', 'number', 'step="5" inputmode="numeric"')) +
@@ -454,11 +472,19 @@
       card('iPhone Permissions',
         '<div class="stat-row">' +
           statCell('GPS', settings.gpsStatus || 'Not checked', settings.lastGpsTime || 'tap request') +
-          statCell('Last fix', settings.lastGps || '--', 'settings test') +
+          statCell('Last fix', settings.lastGps || '--', settings.gpsAccuracy || 'settings test') +
+          statCell('SOG / COG', gpsMotionLabel(settings), 'from location') +
+          statCell('Motion', settings.motionStatus || 'Not checked', settings.lastMotion || 'compass / heel') +
+          statCell('Awake', settings.wakeStatus || 'Not checked', settings.wakeTime || 'screen lock') +
+          statCell('Sound', settings.soundStatus || 'Not checked', settings.soundTime || 'countdown alerts') +
         '</div>' +
         '<div class="ctrl-row">' +
           '<div class="ctrl go-btn" onclick="requestGpsPermission()">REQUEST<br>GPS</div>' +
-          '<div class="ctrl set" onclick="requestGpsPermission()">TEST<br>FIX</div>' +
+          '<div class="ctrl set" onclick="requestMotionPermission()">MOTION<br>COMPASS</div>' +
+        '</div>' +
+        '<div class="ctrl-row">' +
+          '<div class="ctrl sync" onclick="requestWakeLock()">KEEP<br>AWAKE</div>' +
+          '<div class="ctrl set" onclick="requestSoundPermission()">SOUND<br>HAPTIC</div>' +
         '</div>',
         'iOS prompt'
       ) +
@@ -477,6 +503,13 @@
 
   function versionRow(label, value) {
     return '<div class="version-row"><span>' + esc(label) + '</span><span>' + esc(value) + '</span></div>';
+  }
+
+  function gpsMotionLabel(settings) {
+    var parts = [];
+    if (settings.gpsSpeed) parts.push(settings.gpsSpeed);
+    if (settings.gpsCourse) parts.push(settings.gpsCourse);
+    return parts.length ? parts.join(' / ') : '--';
   }
 
   function saveSettings() {
@@ -507,9 +540,14 @@
 
     navigator.geolocation.getCurrentPosition(function (position) {
       var settings = activeSettings();
+      var speedKnots = position.coords.speed == null ? '' : (position.coords.speed * 1.94384).toFixed(1) + 'kt';
+      var course = position.coords.heading == null ? '' : Math.round(position.coords.heading) + 'deg';
       settings.gpsStatus = 'Granted';
       settings.lastGps = position.coords.latitude.toFixed(5) + ', ' + position.coords.longitude.toFixed(5);
       settings.lastGpsTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      settings.gpsAccuracy = position.coords.accuracy == null ? '' : 'accuracy ' + Math.round(position.coords.accuracy) + 'm';
+      settings.gpsSpeed = speedKnots;
+      settings.gpsCourse = course;
       saveState();
       renderSettings();
     }, function (err) {
@@ -520,6 +558,152 @@
       renderSettings();
       flash('GPS permission failed: ' + err.message);
     }, { enableHighAccuracy: true, timeout: 10000 });
+  }
+
+  function requestMotionPermission() {
+    Promise.all([
+      sensorPermission('DeviceMotionEvent'),
+      sensorPermission('DeviceOrientationEvent')
+    ]).then(function (results) {
+      var denied = results.some(function (result) { return result === 'denied'; });
+      var unavailable = results.every(function (result) { return result === 'unavailable'; });
+      var settings = activeSettings();
+      if (denied) {
+        settings.motionStatus = 'Denied';
+        settings.lastMotion = 'iOS blocked sensor access';
+        settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        saveState();
+        renderSettings();
+        return;
+      }
+      if (unavailable) {
+        settings.motionStatus = 'Unavailable';
+        settings.lastMotion = 'needs native/WebKit support';
+        settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        saveState();
+        renderSettings();
+        return;
+      }
+
+      settings.motionStatus = 'Listening';
+      settings.lastMotion = 'move phone to sample';
+      settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      saveState();
+      renderSettings();
+      listenForMotionSample();
+    }).catch(function (err) {
+      var settings = activeSettings();
+      settings.motionStatus = 'Failed';
+      settings.lastMotion = err.message;
+      settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      saveState();
+      renderSettings();
+    });
+  }
+
+  function sensorPermission(name) {
+    var ctor = window[name];
+    if (!ctor) return Promise.resolve('unavailable');
+    if (typeof ctor.requestPermission === 'function') return ctor.requestPermission();
+    return Promise.resolve('granted');
+  }
+
+  function listenForMotionSample() {
+    var done = false;
+    function finish(label) {
+      if (done) return;
+      done = true;
+      window.removeEventListener('deviceorientation', onOrientation);
+      window.removeEventListener('devicemotion', onMotion);
+      var settings = activeSettings();
+      settings.motionStatus = 'Granted';
+      settings.lastMotion = label;
+      settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      saveState();
+      renderSettings();
+    }
+    function onOrientation(event) {
+      var heading = event.webkitCompassHeading != null ? event.webkitCompassHeading : event.alpha;
+      finish(heading == null ? 'orientation ok' : 'heading ' + Math.round(heading) + 'deg');
+    }
+    function onMotion(event) {
+      var rate = event.rotationRate;
+      if (rate && (rate.alpha || rate.beta || rate.gamma)) finish('motion ok');
+    }
+    window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('devicemotion', onMotion);
+    setTimeout(function () {
+      finish('permission ok, no sample');
+    }, 1800);
+  }
+
+  function requestWakeLock() {
+    var settings = activeSettings();
+    if (!navigator.wakeLock || !navigator.wakeLock.request) {
+      settings.wakeStatus = 'Unavailable';
+      settings.wakeTime = 'needs native idle timer';
+      saveState();
+      renderSettings();
+      return;
+    }
+
+    navigator.wakeLock.request('screen').then(function (sentinel) {
+      window.annaMaiWakeLock = sentinel;
+      settings.wakeStatus = 'Active';
+      settings.wakeTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      sentinel.addEventListener('release', function () {
+        activeSettings().wakeStatus = 'Released';
+        activeSettings().wakeTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        saveState();
+        if (state.currentView === 'settings') renderSettings();
+      });
+      saveState();
+      renderSettings();
+    }).catch(function (err) {
+      settings.wakeStatus = 'Failed';
+      settings.wakeTime = err.message;
+      saveState();
+      renderSettings();
+    });
+  }
+
+  function requestSoundPermission() {
+    var AudioCtor = window.AudioContext || window.webkitAudioContext;
+    var settings = activeSettings();
+    if (!AudioCtor) {
+      settings.soundStatus = 'Unavailable';
+      settings.soundTime = 'no Web Audio';
+      saveState();
+      renderSettings();
+      return;
+    }
+
+    var ctx = window.annaMaiAudioContext || new AudioCtor();
+    window.annaMaiAudioContext = ctx;
+    ctx.resume().then(function () {
+      playPermissionTone(ctx);
+      if (navigator.vibrate) navigator.vibrate(35);
+      settings.soundStatus = navigator.vibrate ? 'Sound + haptic' : 'Sound ready';
+      settings.soundTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      saveState();
+      renderSettings();
+    }).catch(function (err) {
+      settings.soundStatus = 'Failed';
+      settings.soundTime = err.message;
+      saveState();
+      renderSettings();
+    });
+  }
+
+  function playPermissionTone(ctx) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.value = 0.04;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
   }
 
   function statCell(label, value, sub) {
@@ -585,7 +769,7 @@
       notes: valueOf('fc-notes')
     };
     saveState();
-    renderForecast();
+    renderCurrentView();
   }
 
   function fetchForecastApi() {
@@ -598,7 +782,7 @@
     ]).then(function (results) {
       applyApiForecasts(results[0], results[1]);
       saveState();
-      renderForecast();
+      renderCurrentView();
     }).catch(function (err) {
       if (status) status.textContent = 'API fetch failed: ' + err.message;
       flash('API fetch failed: ' + err.message);
@@ -1314,7 +1498,7 @@
         (stbdPoint ? '<text x="' + boundedLabelX(stbdPoint.x) + '" y="' + boundedLabelY(stbdPoint.y) + '">STBD ' + Math.round(nav.stbd) + '</text>' : '') +
         '<text x="14" y="288">' + legText + '</text>' +
       '</svg>' +
-      (nav.portStatus === 'no wind' ? '<div class="err">Enter wind direction in Forecast to draw laylines. Course line is shown.</div>' : '') +
+      (nav.portStatus === 'no wind' ? '<div class="err">Enter wind direction in Settings to draw laylines. Course line is shown.</div>' : '') +
     '</div>';
   }
 
@@ -1514,7 +1698,7 @@
 
     if (windDir == null || lineBearing == null) {
       return card('Start Line Preference',
-        '<div class="err">Enter wind direction in Forecast and line bearing in Marks. If COM/PIN coordinates are set, line bearing is calculated from pin to committee.</div>'
+        '<div class="err">Enter wind direction in Settings and line bearing in Marks. If COM/PIN coordinates are set, line bearing is calculated from pin to committee.</div>'
       );
     }
 
@@ -1547,7 +1731,7 @@
   function laylineCard(forecast, course) {
     var windDir = toNumber(forecast.windDir);
     if (windDir == null) {
-      return card('Laylines', '<div class="err">Enter wind direction in Forecast before calculating laylines.</div>');
+      return card('Laylines', '<div class="err">Enter wind direction in Settings before calculating laylines.</div>');
     }
 
     var legs = courseLegs(course);
@@ -1880,6 +2064,9 @@
     window.syncRcStart = syncRcStart;
     window.saveSettings = saveSettings;
     window.requestGpsPermission = requestGpsPermission;
+    window.requestMotionPermission = requestMotionPermission;
+    window.requestWakeLock = requestWakeLock;
+    window.requestSoundPermission = requestSoundPermission;
 
     showView(state.currentView || 'forecast');
     setInterval(function () {
