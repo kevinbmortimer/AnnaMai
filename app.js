@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.6.0';
+  var APP_VERSION = '0.6.1';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v14';
+  var CACHE_NAME = 'anna-mai-v15';
   var gpsWatchId = null;
   var BOAT = {
     name: 'Anna Mai',
@@ -1495,6 +1495,7 @@
     var windDir = toNumber(forecast.windDir);
     var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180), 28);
     var legText = nav.distance.toFixed(2) + 'nm / ' + Math.round(nav.bearing) + 'deg';
+    var insight = tacticalInsightPanel(nav, boat, mark, forecast);
 
     return '<div class="ll-svg-wrap">' + title +
       '<svg class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map">' +
@@ -1516,8 +1517,59 @@
         (stbdPoint ? '<text x="' + boundedLabelX(stbdPoint.x) + '" y="' + boundedLabelY(stbdPoint.y) + '">STBD ' + Math.round(nav.stbd) + '</text>' : '') +
         '<text x="14" y="288">' + legText + '</text>' +
       '</svg>' +
+      insight +
       (nav.portStatus === 'no wind' ? '<div class="err">Enter forecast wind direction to draw laylines. Course line is shown.</div>' : '') +
     '</div>';
+  }
+
+  function tacticalInsightPanel(nav, boat, mark, forecast) {
+    var windDir = toNumber(forecast.windDir);
+    var tideRate = toNumber(forecast.tideRate);
+    var tideDir = toNumber(forecast.tideDir);
+    var correction = nav.correction == null ? '--' : signedDegrees(nav.correction);
+    var closer = nav.closerLayline || '--';
+    var closerDistance = nav.closerDistance == null ? '--' : nav.closerDistance.toFixed(2) + 'nm';
+    var tideText = tideRate == null || tideDir == null
+      ? 'tide not set'
+      : tideRate.toFixed(2) + 'kt to ' + Math.round(tideDir) + '&deg;';
+
+    return '<div style="width:100%;margin-top:8px">' +
+      '<div class="stat-row">' +
+        statCell('Current GPS', coordLabel(boat), activeActual().gpsAccuracy || activeSettings().gpsAccuracy || 'phone') +
+        statCell('Next mark', coordLabel(mark), mark.code || 'mark') +
+      '</div>' +
+      '<div class="stat-row">' +
+        statCell('Bearing / Dist', Math.round(nav.bearing) + '&deg; / ' + nav.distance.toFixed(2) + 'nm', 'to mark') +
+        statCell('Forecast TWD', windDir == null ? '--' : Math.round(windDir) + '&deg;', 'from forecast') +
+        statCell('Tide set', tideText, 'layline correction ' + correction) +
+      '</div>' +
+      '<div class="stat-row">' +
+        statCell('Port LL', nav.portStatus === 'no wind' ? '--' : Math.round(nav.port) + '&deg;', nav.portDistance == null ? 'needs TWD' : nav.portDistance.toFixed(2) + 'nm away') +
+        statCell('Stbd LL', nav.stbdStatus === 'no wind' ? '--' : Math.round(nav.stbd) + '&deg;', nav.stbdDistance == null ? 'needs TWD' : nav.stbdDistance.toFixed(2) + 'nm away') +
+        statCell('Best call', closer, closerDistance) +
+      '</div>' +
+      '<div class="ll-advice">' + tacticalInsightText(nav, tideRate, tideDir) + '</div>' +
+    '</div>';
+  }
+
+  function tacticalInsightText(nav, tideRate, tideDir) {
+    var text = 'Track to mark is ' + Math.round(nav.bearing) + '&deg; for ' + nav.distance.toFixed(2) + 'nm. ';
+    if (nav.closerLayline) {
+      text += nav.closerLayline + ' layline is closer at ' + nav.closerDistance.toFixed(2) + 'nm cross-track. ';
+    }
+    if (nav.correction != null && Math.abs(nav.correction) >= 1) {
+      text += 'Current is moving the apparent layline by ' + signedDegrees(nav.correction) + '. ';
+    }
+    if (tideRate != null && tideDir != null && tideRate >= 0.3) {
+      text += 'Validate the tide set on deck before committing to the layline.';
+    } else {
+      text += 'Treat laylines as a clean-air guide until tide is confirmed.';
+    }
+    return text;
+  }
+
+  function signedDegrees(value) {
+    return (value > 0 ? '+' : '') + Math.round(value) + '&deg;';
   }
 
   function svgPoint(cx, cy, bearing, length) {
@@ -1588,17 +1640,24 @@
     var stbdDelta = stbd == null ? null : Math.abs(signedAngle(bearing - stbd));
     var portDistance = port == null ? null : distanceToLayline(distance, bearing, port);
     var stbdDistance = stbd == null ? null : distanceToLayline(distance, bearing, stbd);
+    var closerLayline = portDistance == null || stbdDistance == null ? '' : portDistance < stbdDistance ? 'Port' : 'Starboard';
+    var closerDistance = closerLayline === 'Port' ? portDistance : closerLayline === 'Starboard' ? stbdDistance : null;
     var best = portDelta == null ? 'Enter forecast wind direction for layline headings.' : portDelta < stbdDelta ? 'Port tack is closer to the mark bearing.' : 'Starboard tack is closer to the mark bearing.';
 
     return {
       bearing: bearing,
       distance: distance,
+      windDir: windDir,
+      tackAngle: tackAngle,
+      correction: correction,
       port: port == null ? 0 : port,
       stbd: stbd == null ? 0 : stbd,
       portStatus: portDelta == null ? 'no wind' : Math.round(portDelta) + '&deg; off',
       stbdStatus: stbdDelta == null ? 'no wind' : Math.round(stbdDelta) + '&deg; off',
       portDistance: portDistance,
       stbdDistance: stbdDistance,
+      closerLayline: closerLayline,
+      closerDistance: closerDistance,
       advice: 'Bearing to next mark is ' + Math.round(bearing) + '&deg; at ' + distance.toFixed(2) + 'nm. ' + best + laylineDistanceText(portDistance, stbdDistance)
     };
   }
