@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.5.6';
+  var APP_VERSION = '0.6.0';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v10';
+  var CACHE_NAME = 'anna-mai-v14';
   var gpsWatchId = null;
   var BOAT = {
     name: 'Anna Mai',
@@ -486,7 +486,8 @@
           statCell('Sound', settings.soundStatus || 'Not checked', settings.soundTime || 'countdown alerts') +
         '</div>' +
         '<div class="ctrl-row">' +
-          '<div class="ctrl go-btn" onclick="requestGpsPermission()">REQUEST<br>GPS</div>' +
+          '<div class="ctrl go-btn" onclick="requestGpsPermission()">GPS<br>FIX</div>' +
+          '<div class="ctrl sync" onclick="toggleLiveGps()">LIVE<br>GPS</div>' +
           '<div class="ctrl set" onclick="requestMotionPermission()">MOTION<br>COMPASS</div>' +
         '</div>' +
         '<div class="ctrl-row">' +
@@ -495,6 +496,7 @@
         '</div>',
         'iOS prompt'
       ) +
+      actualLogCard(activeRace()) +
       card('Version',
         '<div class="version-list">' +
           versionRow('App', APP_VERSION) +
@@ -1193,8 +1195,7 @@
   function renderCourseRace(race, forecast, course) {
     return card(activeRaceId() + ' Conditions', forecastSummary(forecast), forecast.start || 'time TBC') +
       actualNavCard(forecast, course) +
-      courseCard(course) +
-      actualLogCard(race);
+      courseCard(course);
   }
 
   function countdownCard(race, forecast) {
@@ -1262,21 +1263,21 @@
   function startLineDistanceCard(course) {
     var actual = activeActual();
     var metrics = startLineMetrics(actualBoatPosition(actual), course);
+    var boat = actualBoatPosition(actual);
+    var fixLabel = actual.lastFix || activeSettings().lastGpsTime || 'enable GPS in Settings';
     var body = metrics
       ? '<div class="stat-row">' +
           statCell('Line length', metrics.length.toFixed(2) + 'nm', 'pin to committee') +
           statCell('To pin', metrics.pinDistance.toFixed(2) + 'nm', metrics.position) +
           statCell('To committee', metrics.committeeDistance.toFixed(2) + 'nm', metrics.side) +
         '</div>'
-      : '<div class="err">Set COM and PIN positions, then save a GPS or manual boat position.</div>';
+      : '<div class="err">Set COM and PIN positions, then enable GPS in Settings.</div>';
 
     return card('Distance To Line',
       body +
-      '<div class="input-row"><label>Boat lat</label>' + input('actual-lat', actual.boatLat, '50.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
-      '<div class="input-row"><label>Boat lon</label>' + input('actual-lon', actual.boatLon, '-1.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
-      '<div class="ctrl-row">' +
-        '<div class="ctrl set" onclick="saveStartPage()">SAVE<br>FIX</div>' +
-        '<div class="ctrl go-btn" onclick="useDevicePosition()">GPS<br>FIX</div>' +
+      '<div class="stat-row">' +
+        statCell('GPS lat', boat ? Number(boat.lat).toFixed(5) : '--', fixLabel) +
+        statCell('GPS lon', boat ? Number(boat.lon).toFixed(5) : '--', actual.gpsAccuracy || 'phone position') +
       '</div>',
       metrics ? metrics.distance.toFixed(2) + 'nm' : 'needs line'
     );
@@ -1403,6 +1404,23 @@
     return { speed: last.speed, angle: last.angle };
   }
 
+  function blendedPolarTable() {
+    var modes = ['upwind', 'downwind', 'reach'];
+    var result = {};
+    modes.forEach(function (mode) {
+      result[mode] = POLAR_SEED[mode].map(function (row) {
+        var target = polarTarget(row.tws, mode);
+        return {
+          tws: row.tws,
+          baselineSpeed: row.speed,
+          blendedSpeed: Number(target.speed.toFixed(2)),
+          angle: target.angle
+        };
+      });
+    });
+    return result;
+  }
+
   function actualNavCard(forecast, course) {
     var actual = activeActual();
     var sequence = courseSequence(course);
@@ -1437,15 +1455,12 @@
         actualLaylineCard('Dist to port', nav && nav.portDistance != null ? nav.portDistance.toFixed(2) : '--', 'nm') +
         actualLaylineCard('Dist to stbd', nav && nav.stbdDistance != null ? nav.stbdDistance.toFixed(2) : '--', 'nm') +
       '</div>' +
-      '<div class="input-row"><label>Boat lat</label>' + input('actual-lat', displayLat, '50.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
-      '<div class="input-row"><label>Boat lon</label>' + input('actual-lon', displayLon, '-1.xxxxx', 'number', 'step="0.00001" inputmode="decimal"') + '</div>' +
-      '<div class="ctrl-row">' +
-        '<div class="ctrl set" onclick="saveActualNav()">SAVE<br>FIX</div>' +
-        '<div class="ctrl go-btn" onclick="useDevicePosition()">GPS<br>FIX</div>' +
-        '<div class="ctrl sync" onclick="startLiveGps()">LIVE<br>GPS</div>' +
+      '<div class="stat-row">' +
+        statCell('GPS lat', displayLat || '--', fixLabel) +
+        statCell('GPS lon', displayLon || '--', actual.gpsSpeed || 'phone position') +
       '</div>' +
       '<div class="api-note">Position source: ' + esc(gpsStatus) + (actual.gpsAccuracy ? ' / ' + esc(actual.gpsAccuracy) : '') + '</div>' +
-      '<div class="ll-advice">' + (nav ? nav.advice : 'Use LIVE GPS or GPS FIX, and make sure the next mark has a position.') + '</div>',
+      '<div class="ll-advice">' + (nav ? nav.advice : 'Enable GPS in Settings and make sure the next mark has a position.') + '</div>',
       mark && hasCoords(mark) ? coordLabel(mark) : 'mark position needed'
     );
   }
@@ -1462,7 +1477,7 @@
     var title = '<div class="map-title"><span>Tactical Map</span><span>TWD from forecast</span></div>';
     if (!boat || !mark || !hasCoords(mark)) {
       return '<div class="ll-svg-wrap">' + title +
-        '<div class="err">Map needs a GPS/manual boat position and a next mark position.</div>' +
+        '<div class="err">Map needs iPhone GPS from Settings and a next mark position.</div>' +
       '</div>';
     }
     if (!nav) {
@@ -1521,7 +1536,14 @@
   }
 
   function actualLogCard(race) {
-    return card('Actual Log',
+    var recent = state.polarSamples.slice(-3).reverse();
+    var recentRows = recent.length
+      ? '<div class="version-list">' + recent.map(function (sample) {
+        return versionRow(sample.race + ' ' + sample.mode, sample.tws + 'kt TWS / ' + sample.speed + 'kt BSP');
+      }).join('') + '</div>'
+      : '<div class="api-note">No polar samples saved yet.</div>';
+
+    return card('Polar Recording',
       row('Observed TWS', input('actual-tws', '', 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
       row('Observed BSP', input('actual-bsp', '', 'knots', 'number', 'step="0.1" inputmode="decimal"')) +
       row('Mode', select('actual-mode', 'upwind', [
@@ -1530,8 +1552,10 @@
         { value: 'reach', label: 'Reach' }
       ])) +
       '<button class="btn-full" onclick="saveActualPolar()">SAVE POLAR SAMPLE</button>' +
-      '<div class="api-note">Save simple speed samples during racing. Prediction blends these with the seed polar for later races.</div>',
-      race.day
+      '<button class="btn-full" onclick="downloadPolarFile()" style="margin-top:7px">DOWNLOAD POLAR FILE</button>' +
+      '<div class="api-note">Adjustment is automatic: matching samples within 2.5kt TWS are averaged and blended 35% into the ORC baseline target speed. Target angles remain from the baseline.</div>' +
+      recentRows,
+      race.id + ' / ' + race.day
     );
   }
 
@@ -1599,31 +1623,8 @@
     renderRace();
   }
 
-  function saveActualNav() {
-    var actual = activeActual();
-    actual.legIndex = parseInt(valueOf('actual-leg') || actual.legIndex || '0', 10);
-    actual.boatLat = valueOf('actual-lat');
-    actual.boatLon = valueOf('actual-lon');
-    actual.lineSpeed = valueOf('actual-line-speed') || actual.lineSpeed;
-    actual.lastFix = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    saveState();
-    renderRace();
-  }
-
-  function useDevicePosition() {
-    if (!navigator.geolocation) {
-      flash('GPS is not available in this WebView.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(function (position) {
-      storeGpsPosition(position, 'fix');
-    }, function (err) {
-      flash('GPS fix failed: ' + err.message);
-    }, { enableHighAccuracy: true, timeout: 10000 });
-  }
-
-  function startLiveGps() {
+  function toggleLiveGps() {
+    var settings = activeSettings();
     if (!navigator.geolocation) {
       flash('GPS is not available in this WebView.');
       return;
@@ -1631,13 +1632,24 @@
     if (gpsWatchId != null) {
       navigator.geolocation.clearWatch(gpsWatchId);
       gpsWatchId = null;
+      settings.gpsStatus = 'Live stopped';
+      settings.lastGpsTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      saveState();
+      renderSettings();
+      return;
     }
+    settings.gpsStatus = 'Live starting';
+    saveState();
+    renderSettings();
     gpsWatchId = navigator.geolocation.watchPosition(function (position) {
       storeGpsPosition(position, 'live');
     }, function (err) {
+      activeSettings().gpsStatus = 'Live failed';
+      activeSettings().lastGpsTime = err.message;
+      saveState();
+      if (state.currentView === 'settings') renderSettings();
       flash('Live GPS failed: ' + err.message);
     }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
-    flash('Live GPS started for Race > Course.');
   }
 
   function storeGpsPosition(position, mode) {
@@ -1691,7 +1703,34 @@
       time: new Date().toISOString()
     });
     saveState();
-    renderRace();
+    renderCurrentView();
+  }
+
+  function downloadPolarFile() {
+    var payload = {
+      boat: BOAT,
+      source: POLAR_SOURCE,
+      exportedAt: new Date().toISOString(),
+      adjustment: {
+        automatic: true,
+        blend: '65% ORC baseline speed / 35% matching observed sample average',
+        twsWindowKt: 2.5,
+        angles: 'Baseline ORC target angles retained'
+      },
+      samples: state.polarSamples,
+      blendedPolar: blendedPolarTable()
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'anna-mai-polar-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1000);
   }
 
   function saveActualStart() {
@@ -1708,9 +1747,6 @@
     actual.startTime = valueOf('actual-start') || actual.startTime;
     actual.startEpoch = actual.startTime ? startEpochForRaceTime(activeRace(), actual.startTime) : actual.startEpoch;
     actual.lineSpeed = valueOf('actual-line-speed') || actual.lineSpeed;
-    actual.boatLat = valueOf('actual-lat') || actual.boatLat;
-    actual.boatLon = valueOf('actual-lon') || actual.boatLon;
-    actual.lastFix = actual.boatLat && actual.boatLon ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : actual.lastFix;
     if (actual.startTime) actual.startSource = actual.startSource || 'Manual RC start time';
     saveState();
     renderRace();
@@ -1723,8 +1759,6 @@
     actual.startTime = target.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     actual.startSource = offsetSeconds ? 'RC VHF sync: ' + formatDuration(offsetSeconds) + ' to start' : 'RC VHF sync: start signal';
     actual.lineSpeed = valueOf('actual-line-speed') || actual.lineSpeed;
-    actual.boatLat = valueOf('actual-lat') || actual.boatLat;
-    actual.boatLon = valueOf('actual-lon') || actual.boatLon;
     saveState();
     renderRace();
   }
@@ -2113,18 +2147,17 @@
     window.deleteMark = deleteMark;
     window.setRaceTab = setRaceTab;
     window.selectActualLeg = selectActualLeg;
-    window.saveActualNav = saveActualNav;
-    window.useDevicePosition = useDevicePosition;
-    window.startLiveGps = startLiveGps;
     window.saveActualPolar = saveActualPolar;
     window.saveActualStart = saveActualStart;
     window.saveStartPage = saveStartPage;
     window.syncRcStart = syncRcStart;
     window.saveSettings = saveSettings;
     window.requestGpsPermission = requestGpsPermission;
+    window.toggleLiveGps = toggleLiveGps;
     window.requestMotionPermission = requestMotionPermission;
     window.requestWakeLock = requestWakeLock;
     window.requestSoundPermission = requestSoundPermission;
+    window.downloadPolarFile = downloadPolarFile;
 
     showView(state.currentView || 'forecast');
     setInterval(function () {
