@@ -2,14 +2,19 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.6';
+  var APP_VERSION = '0.7.9';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v30';
+  var CACHE_NAME = 'anna-mai-v33';
   var MIN_TACTICAL_ZOOM = 0.75;
-  var MAX_TACTICAL_ZOOM = 24;
+  var MAX_TACTICAL_ZOOM = 48;
+  var PIN_PORT_DISTANCE_NM = 100 / 1852;
+  var FIN_STBD_DISTANCE_NM = 50 / 1852;
+  var TELEMETRY_MIN_INTERVAL_MS = 5000;
+  var TELEMETRY_MAX_SAMPLES = 30000;
   var gpsWatchId = null;
   var compassWatchActive = false;
   var compassLastSave = 0;
+  var telemetryLastSave = 0;
   var BOAT = {
     name: 'Anna Mai',
     type: 'Swan 36',
@@ -177,7 +182,13 @@
       gpsSpeed: '',
       gpsCourse: '',
       gpsMode: '',
-      lastFix: ''
+      lastFix: '',
+      lastLineSide: '',
+      startCrossed: '',
+      lastMarkCode: '',
+      lastMarkDistance: '',
+      closestMarkDistance: '',
+      lastAutoAdvance: ''
     };
   }
 
@@ -206,7 +217,10 @@
       wakeStatus: '',
       wakeTime: '',
       soundStatus: '',
-      soundTime: ''
+      soundTime: '',
+      telemetryStatus: '',
+      telemetryLast: '',
+      telemetryLastDay: ''
     };
   }
 
@@ -231,6 +245,7 @@
       actuals: saved.actuals || {},
       settings: Object.assign(defaultSettings(), saved.settings || {}),
       polarSamples: Array.isArray(saved.polarSamples) ? saved.polarSamples : [],
+      telemetryLog: Array.isArray(saved.telemetryLog) ? saved.telemetryLog : [],
       marks: Array.isArray(saved.marks) && saved.marks.length ? saved.marks : DEFAULT_MARKS.slice()
     };
 
@@ -475,6 +490,7 @@
 
     byId('v-settings').innerHTML = raceStrip() +
       iphonePermissionsCard(settings) +
+      telemetryLogCard(activeRace()) +
       apiFetchCard() +
       forecastEditorCard() +
       card('API Schedule',
@@ -533,6 +549,69 @@
     if (settings.gpsSpeed) parts.push(settings.gpsSpeed);
     if (settings.gpsCourse) parts.push(settings.gpsCourse);
     return parts.length ? parts.join(' / ') : '--';
+  }
+
+  function telemetryLogCard(race) {
+    var today = localDateString();
+    var raceDate = race && race.date ? race.date : today;
+    var todayStats = telemetryStats(today);
+    var raceStats = telemetryStats(raceDate);
+    var total = state.telemetryLog.length;
+    var last = state.telemetryLog.length ? state.telemetryLog[state.telemetryLog.length - 1] : null;
+    var lastText = last ? (last.timeLocal || last.time || 'sample saved') : 'waiting for GPS';
+    var status = gpsWatchId != null ? 'RUNNING' : activeSettings().telemetryStatus || 'READY';
+    var raceButton = raceDate === today ? '' : '<button class="btn-full" onclick="downloadTelemetryDay(\'' + raceDate + '\')" style="margin-top:7px">DOWNLOAD ' + esc(race.id) + ' LOG</button>';
+    var dayButtons = telemetryDays().filter(function (day) { return day !== today && day !== raceDate; }).slice(-5).map(function (day) {
+      return '<button class="btn-full" onclick="downloadTelemetryDay(\'' + day + '\')" style="margin-top:7px">DOWNLOAD ' + esc(day) + ' LOG</button>';
+    }).join('');
+
+    return card('Boat Data Log',
+      '<div class="stat-row">' +
+        statCell('Status', status, gpsWatchId != null ? 'live GPS logging' : 'starts with Live GPS') +
+        statCell('Today', String(todayStats.count), todayStats.last || today) +
+        statCell(race ? race.id : 'Race day', String(raceStats.count), raceDate) +
+        statCell('Total', String(total), lastText) +
+      '</div>' +
+      '<button class="btn-full" onclick="downloadTelemetryDay(\'' + today + '\')">DOWNLOAD TODAY LOG</button>' +
+      raceButton +
+      dayButtons +
+      '<button class="btn-full" onclick="clearTelemetryDay(\'' + today + '\')" style="margin-top:7px">CLEAR TODAY LOG</button>' +
+      '<div class="api-note">Log samples are captured automatically from Live GPS about every 5 seconds with GPS, COG/SOG, compass, forecast, active leg, mark bearing/distance, laylines and start-line distance.</div>',
+      activeSettings().telemetryLast || 'no samples yet'
+    );
+  }
+
+  function telemetryStats(day) {
+    var count = 0;
+    var last = '';
+    state.telemetryLog.forEach(function (sample) {
+      if (sample.day !== day) return;
+      count += 1;
+      last = sample.timeLocal || sample.time || last;
+    });
+    return { count: count, last: last };
+  }
+
+  function telemetryDays() {
+    var seen = {};
+    state.telemetryLog.forEach(function (sample) {
+      if (sample.day) seen[sample.day] = true;
+    });
+    return Object.keys(seen).sort();
+  }
+
+  function telemetryCounterCard() {
+    var today = localDateString();
+    var stats = telemetryStats(today);
+    var status = gpsWatchId != null ? 'RUNNING' : activeSettings().telemetryStatus || 'READY';
+    return card('Boat Data Log',
+      '<div class="stat-row">' +
+        statCell('Status', status, gpsWatchId != null ? 'live GPS' : 'start in Settings') +
+        statCell('Samples today', String(stats.count), stats.last || today) +
+        statCell('Total', String(state.telemetryLog.length), activeSettings().telemetryLast || 'no samples') +
+      '</div>',
+      'auto'
+    );
   }
 
   function saveSettings() {
@@ -1135,7 +1214,7 @@
     return card('WL Mark Bearings From Committee',
       '<div class="wlbd-list">' + rows + '</div>' +
       '<button class="btn-full" onclick="saveWlMarksFromCommittee()">SET WL MARK POSITIONS</button>' +
-      '<div class="api-note">Enter the RC supplied true bearing and distance for each course mark. The app projects each position from ' + esc(course.committee || 'COM') + '; gate midpoint navigation uses both 4S and 4P once set.</div>',
+      '<div class="api-note">Enter the RC supplied true bearing and distance for 3, 3A, 4S and 4P. The app projects them from ' + esc(course.committee || 'COM') + '; PIN and FIN are auto-derived from forecast wind: PIN 100m port, FIN 50m starboard.</div>',
       committeeText
     );
   }
@@ -1144,6 +1223,7 @@
     var seen = {};
     var marks = [];
     courseSequence(course).forEach(function (entry) {
+      if (entry.rounding === 'finish') return;
       entry.code.split('/').forEach(function (code) {
         if (seen[code]) return;
         seen[code] = true;
@@ -1225,6 +1305,7 @@
     course.lineBearing = valueOf('mk-line-bearing');
     course.boatSpeed = valueOf('mk-boat-speed');
     course.tackAngle = valueOf('mk-tack-angle');
+    applyLineAssumption(course);
     saveState();
     renderMarks();
   }
@@ -1359,6 +1440,8 @@
       updated += 1;
     }
 
+    applyLineAssumption(course);
+
     if (!updated) {
       flash('Enter at least one WL mark bearing and distance.');
       return;
@@ -1419,6 +1502,7 @@
   function renderCourseRace(race, forecast, course) {
     return card(activeRaceId() + ' Conditions', forecastSummary(forecast), forecast.start || 'time TBC') +
       actualNavCard(forecast, course) +
+      telemetryCounterCard() +
       courseCard(course);
   }
 
@@ -1538,7 +1622,7 @@
       var model = wlModel(course) === 'long' ? 'Long WL3' : 'Normal WL2';
       return '<div class="leg-rec">' +
         '<div class="leg-rec-title">' + model + ' selected</div>' +
-        '<div class="leg-rec-body">' + wlModelText(course) + ' Enter the RC mark positions for 3, 3A, 4S/4P and FIN when available to unlock bearing, distance and tide-specific leg calls.</div>' +
+        '<div class="leg-rec-body">' + wlModelText(course) + ' Enter the RC mark positions for 3, 3A and 4S/4P when available. PIN and FIN come from the forecast-wind line assumption.</div>' +
       '</div>' +
       '<div class="leg-rec">' +
         '<div class="leg-rec-title">Crew focus</div>' +
@@ -1755,7 +1839,7 @@
     var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
     actual.legIndex = legIndex;
     var next = sequence[legIndex];
-    var mark = next ? markForCourseEntry(next) : null;
+    var mark = next ? markForCourseEntry(next, course) : null;
     var boat = actualBoatPosition(actual);
     var nav = boat && mark && hasCoords(mark) ? actualNavNumbers(boat, mark, forecast, course) : null;
     var displayLat = actual.boatLat || (boat ? Number(boat.lat).toFixed(5) : '');
@@ -1786,6 +1870,7 @@
       '<div class="stat-row">' +
         statCell('GPS lat', displayLat || '--', fixLabel) +
         statCell('GPS lon', displayLon || '--', actual.gpsSpeed || 'phone position') +
+        statCell('Auto nav', actual.lastAutoAdvance || 'watching', actual.closestMarkDistance ? Number(actual.closestMarkDistance).toFixed(2) + 'nm closest' : actual.startCrossed ? 'started ' + actual.startCrossed : 'start/mark') +
       '</div>' +
       '<div class="api-note">Position source: ' + esc(gpsStatus) + (actual.gpsAccuracy ? ' / ' + esc(actual.gpsAccuracy) : '') + '</div>' +
       '<div class="ll-advice">' + (nav ? nav.advice : 'Enable GPS in Settings and make sure the next mark has a position.') + '</div>',
@@ -1833,10 +1918,13 @@
     var chartTiles = chartTileLayerSvg(context);
     var startLineSvg = context.startLine ? (
       '<line class="start-line" x1="' + svgNumber(context.startLine.pinSvg.x) + '" y1="' + svgNumber(context.startLine.pinSvg.y) + '" x2="' + svgNumber(context.startLine.committeeSvg.x) + '" y2="' + svgNumber(context.startLine.committeeSvg.y) + '"></line>' +
+      (context.startLine.finishSvg ? '<line class="finish-line" x1="' + svgNumber(context.startLine.committeeSvg.x) + '" y1="' + svgNumber(context.startLine.committeeSvg.y) + '" x2="' + svgNumber(context.startLine.finishSvg.x) + '" y2="' + svgNumber(context.startLine.finishSvg.y) + '"></line>' : '') +
       '<circle class="line-dot" cx="' + svgNumber(context.startLine.pinSvg.x) + '" cy="' + svgNumber(context.startLine.pinSvg.y) + '" r="4"></circle>' +
       '<circle class="line-dot" cx="' + svgNumber(context.startLine.committeeSvg.x) + '" cy="' + svgNumber(context.startLine.committeeSvg.y) + '" r="4"></circle>' +
+      (context.startLine.finishSvg ? '<circle class="finish-dot" cx="' + svgNumber(context.startLine.finishSvg.x) + '" cy="' + svgNumber(context.startLine.finishSvg.y) + '" r="4"></circle>' : '') +
       '<text x="' + boundedLabelX(context.startLine.pinSvg.x) + '" y="' + boundedLabelY(context.startLine.pinSvg.y - 7) + '">PIN</text>' +
-      '<text x="' + boundedLabelX(context.startLine.committeeSvg.x) + '" y="' + boundedLabelY(context.startLine.committeeSvg.y - 7) + '">COM</text>'
+      '<text x="' + boundedLabelX(context.startLine.committeeSvg.x) + '" y="' + boundedLabelY(context.startLine.committeeSvg.y - 7) + '">COM</text>' +
+      (context.startLine.finishSvg ? '<text x="' + boundedLabelX(context.startLine.finishSvg.x) + '" y="' + boundedLabelY(context.startLine.finishSvg.y - 7) + '">FIN</text>' : '')
     ) : '';
     var gateLineSvg = context.gateLines.map(function (gate) {
       return '<line class="gate-line" x1="' + svgNumber(gate.stbdSvg.x) + '" y1="' + svgNumber(gate.stbdSvg.y) + '" x2="' + svgNumber(gate.portSvg.x) + '" y2="' + svgNumber(gate.portSvg.y) + '"></line>' +
@@ -1899,7 +1987,7 @@
     var gateEntries = uniqueGateEntries(sequence.slice(legIndex));
     var startLineMarks = startLineMarksForCourse(course);
     sequence.slice(legIndex + 1).forEach(function (entry) {
-      var routeMark = markForCourseEntry(entry);
+      var routeMark = markForCourseEntry(entry, course);
       if (routeMark && hasCoords(routeMark)) {
         routeMarks.push({ mark: routeMark, label: entry.code, point: null });
       }
@@ -1918,6 +2006,10 @@
     if (startLineMarks) {
       latTotal += Number(startLineMarks.pin.lat) + Number(startLineMarks.committee.lat);
       latCount += 2;
+      if (startLineMarks.finish && hasCoords(startLineMarks.finish)) {
+        latTotal += Number(startLineMarks.finish.lat);
+        latCount += 1;
+      }
     }
 
     var originLat = latTotal / latCount;
@@ -1941,10 +2033,13 @@
     var startLine = startLineMarks ? {
       pin: startLineMarks.pin,
       committee: startLineMarks.committee,
+      finish: startLineMarks.finish || null,
       pinPoint: localNmPoint(startLineMarks.pin, originLat),
       committeePoint: localNmPoint(startLineMarks.committee, originLat),
+      finishPoint: startLineMarks.finish && hasCoords(startLineMarks.finish) ? localNmPoint(startLineMarks.finish, originLat) : null,
       pinSvg: null,
-      committeeSvg: null
+      committeeSvg: null,
+      finishSvg: null
     } : null;
 
     var nextPoint = routeMarks[0].point;
@@ -1970,19 +2065,20 @@
 
     var interceptSeconds = intercept && speed && speed > 0.2 ? intercept.distance / speed * 3600 : null;
     var interceptTimeLabel = interceptSeconds == null ? '--' : formatDurationShort(interceptSeconds);
-    var boundsPoints = [boatPoint, nextPoint].concat(routeMarks.map(function (item) { return item.point; }));
+    var focusPoints = [nextPoint].concat(routeMarks.map(function (item) { return item.point; }));
     gateLines.forEach(function (gate) {
-      boundsPoints.push(gate.stbdPoint, gate.portPoint);
+      focusPoints.push(gate.stbdPoint, gate.portPoint);
     });
-    if (startLine) boundsPoints.push(startLine.pinPoint, startLine.committeePoint);
-    if (portBack) boundsPoints.push(portBack);
-    if (stbdBack) boundsPoints.push(stbdBack);
-    if (cogEnd) boundsPoints.push(cogEnd);
-    if (intercept && intercept.distance <= Math.max(nav.distance * 8, 3)) boundsPoints.push(intercept.point);
-    var rawBounds = tacticalMapBounds(boundsPoints);
+    if (startLine) {
+      focusPoints.push(startLine.pinPoint, startLine.committeePoint);
+      if (startLine.finishPoint) focusPoints.push(startLine.finishPoint);
+    }
+    if (portBack) focusPoints.push(portBack);
+    if (stbdBack) focusPoints.push(stbdBack);
+    var rawBounds = tacticalMapBounds(focusPoints);
     var zoom = tacticalMapZoom();
     var pan = tacticalMapPan();
-    var zoomBounds = zoomedMapBounds(rawBounds, boatPoint, zoom);
+    var zoomBounds = zoomedMapBounds(rawBounds, boundsCenter(rawBounds), zoom);
     var bounds = pannedMapBounds(zoomBounds, pan);
     var viewSpanX = bounds.spanX;
     var viewSpanY = bounds.spanY;
@@ -1995,6 +2091,7 @@
     if (startLine) {
       startLine.pinSvg = projector(startLine.pinPoint);
       startLine.committeeSvg = projector(startLine.committeePoint);
+      if (startLine.finishPoint) startLine.finishSvg = projector(startLine.finishPoint);
     }
 
     return {
@@ -2237,6 +2334,9 @@
     var phoneHeading = phoneCompassHeading();
     var basis = phoneHeading != null ? phoneHeading : context.cog;
     var basisLabel = phoneHeading != null ? 'phone compass' : context.cog != null ? 'COG fallback' : 'needs Motion Compass';
+    var compassNote = basis == null
+      ? '<div class="err">Compass needs Settings &gt; Motion Compass, or moving GPS COG as a fallback.</div>'
+      : phoneHeading == null ? '<div class="api-note">Use Settings &gt; Motion Compass for the arrow to move as the phone turns. Until then this uses COG when available.</div>' : '';
     var markRel = basis == null ? null : signedAngle(nav.bearing - basis);
     var markMeters = Math.round(nav.distance * 1852);
     var laylineMeters = context.intercept ? Math.round(context.intercept.distance * 1852) + 'm' : '--';
@@ -2279,12 +2379,13 @@
         (context.cog == null ? '' : compassArrow('compass-cog-arrow', 'cog', context.cog, basis, 'COG')) +
         '<circle class="bearing-center" cx="110" cy="110" r="5"></circle>' +
       '</svg>' +
-      (phoneHeading == null ? '<div class="api-note">Use Settings &gt; Motion Compass for the arrow to move as the phone turns. Until then this uses COG when available.</div>' : '') +
+      compassNote +
     '</div>';
   }
 
   function compassArrow(id, cls, bearing, basis, label) {
     if (bearing == null || !Number.isFinite(Number(bearing))) return '';
+    if (basis == null || !Number.isFinite(Number(basis))) return '';
     var relative = basis == null ? 0 : signedAngle(Number(bearing) - basis);
     return '<g id="' + id + '" class="bearing-arrow ' + cls + '" data-bearing="' + svgNumber(Number(bearing)) + '" transform="rotate(' + svgNumber(relative) + ' 110 110)">' +
       '<line x1="110" y1="110" x2="110" y2="34"></line>' +
@@ -2459,6 +2560,13 @@
       maxY: maxY + pad,
       spanX: spanX + pad * 2,
       spanY: spanY + pad * 2
+    };
+  }
+
+  function boundsCenter(bounds) {
+    return {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2
     };
   }
 
@@ -2707,7 +2815,7 @@
       ])) +
       '<button class="btn-full" onclick="saveActualPolar()">SAVE POLAR SAMPLE</button>' +
       '<button class="btn-full" onclick="downloadPolarFile()" style="margin-top:7px">DOWNLOAD POLAR FILE</button>' +
-      '<div class="api-note">Adjustment is automatic: matching samples within 2.5kt TWS are averaged and blended 35% into the ORC baseline target speed. Target angles remain from the baseline.</div>' +
+      '<div class="api-note">Adjustment is automatic: matching samples within 2.5kt TWS are averaged and blended 35% into the ORC baseline target speed. Each sample also stores GPS, COG/SOG, forecast wind/tide, active leg and nav numbers for later analysis.</div>' +
       recentRows,
       race.id + ' / ' + race.day
     );
@@ -2777,6 +2885,69 @@
     return ' ' + closer + ' layline is closer at about ' + distance + 'nm cross-track.';
   }
 
+  function updateAutoProgress(actual) {
+    var boat = actualBoatPosition(actual);
+    var course = activeCourse();
+    if (!boat || !course) return;
+
+    updateStartCrossing(actual, boat, course);
+    updateMarkProgress(actual, boat, course);
+  }
+
+  function updateStartCrossing(actual, boat, course) {
+    if (actual.startCrossed) return;
+    var metrics = startLineMetrics(boat, course);
+    if (!metrics) return;
+
+    var previousSide = actual.lastLineSide;
+    actual.lastLineSide = metrics.sideKey || '';
+
+    if (!previousSide || previousSide === actual.lastLineSide) return;
+    if (metrics.lineT < -0.15 || metrics.lineT > 1.15 || metrics.distance > 0.08) return;
+
+    actual.startCrossed = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    actual.lastAutoAdvance = actual.startCrossed + ' crossed start line';
+    if (state.currentView === 'race' && state.raceTab === 'start') state.raceTab = 'course';
+  }
+
+  function updateMarkProgress(actual, boat, course) {
+    var sequence = courseSequence(course);
+    if (!sequence.length) return;
+
+    var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), sequence.length - 1);
+    var next = sequence[legIndex];
+    var mark = next ? markForCourseEntry(next, course) : null;
+    if (!mark || !hasCoords(mark)) return;
+
+    var distance = distanceNm(boat, mark);
+    if (actual.lastMarkCode !== next.code) {
+      actual.lastMarkCode = next.code;
+      actual.lastMarkDistance = String(distance);
+      actual.closestMarkDistance = String(distance);
+      return;
+    }
+
+    var lastDistance = toNumber(actual.lastMarkDistance);
+    var closest = toNumber(actual.closestMarkDistance);
+    if (closest == null || distance < closest) {
+      closest = distance;
+      actual.closestMarkDistance = String(distance);
+    }
+
+    var passedClose = closest != null && closest <= 0.055 && distance > closest + 0.015;
+    var passedVeryClose = distance <= 0.025;
+    if ((passedClose || passedVeryClose) && legIndex < sequence.length - 1) {
+      actual.legIndex = legIndex + 1;
+      actual.lastMarkCode = sequence[legIndex + 1].code;
+      actual.lastMarkDistance = '';
+      actual.closestMarkDistance = '';
+      actual.lastAutoAdvance = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' advanced after ' + next.code;
+      return;
+    }
+
+    actual.lastMarkDistance = String(distance);
+  }
+
   function selectActualLeg() {
     var actual = activeActual();
     actual.legIndex = parseInt(valueOf('actual-leg') || '0', 10);
@@ -2842,9 +3013,94 @@
     settings.gpsSpeed = speedKnots;
     settings.gpsCourse = course;
 
+    updateAutoProgress(actual);
+    recordTelemetrySample(position, mode);
     saveState();
     if (state.currentView === 'race') renderRace();
     else if (state.currentView === 'settings') renderSettings();
+  }
+
+  function recordTelemetrySample(position, mode) {
+    var now = Date.now();
+    if (mode === 'live' && telemetryLastSave && now - telemetryLastSave < TELEMETRY_MIN_INTERVAL_MS) return;
+    telemetryLastSave = now;
+
+    state.telemetryLog.push(buildTelemetrySample(position, mode, now));
+    if (state.telemetryLog.length > TELEMETRY_MAX_SAMPLES) {
+      state.telemetryLog = state.telemetryLog.slice(state.telemetryLog.length - TELEMETRY_MAX_SAMPLES);
+    }
+
+    var settings = activeSettings();
+    settings.telemetryStatus = 'RUNNING';
+    settings.telemetryLast = new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    settings.telemetryLastDay = localDateString(new Date(now));
+  }
+
+  function buildTelemetrySample(position, mode, now) {
+    var actual = activeActual();
+    var course = activeCourse();
+    var forecast = activeForecast();
+    var race = activeRace();
+    var sequence = courseSequence(course);
+    var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
+    var next = sequence[legIndex];
+    var mark = next ? markForCourseEntry(next, course) : null;
+    var boat = actualBoatPosition(actual);
+    var nav = boat && mark && hasCoords(mark) ? actualNavNumbers(boat, mark, forecast, course) : null;
+    var line = startLineMetrics(boat, course);
+
+    return {
+      day: localDateString(new Date(now)),
+      time: new Date(now).toISOString(),
+      timeLocal: new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      race: activeRaceId(),
+      raceDate: race.date,
+      source: mode,
+      gps: {
+        lat: Number(position.coords.latitude.toFixed(6)),
+        lon: Number(position.coords.longitude.toFixed(6)),
+        accuracyM: position.coords.accuracy == null ? null : Math.round(position.coords.accuracy),
+        sogKt: Number.isFinite(position.coords.speed) ? Number((position.coords.speed * 1.94384).toFixed(2)) : null,
+        cogDeg: Number.isFinite(position.coords.heading) ? Math.round(position.coords.heading) : null
+      },
+      compass: {
+        headingDeg: phoneCompassHeading()
+      },
+      forecast: {
+        windSpeedKt: toNumber(forecast.windSpeed),
+        windDirDeg: toNumber(forecast.windDir),
+        gustKt: toNumber(forecast.windGust),
+        tideRateKt: toNumber(forecast.tideRate),
+        tideDirDeg: toNumber(forecast.tideDir),
+        tideSourceTime: forecast.tideSourceTime || ''
+      },
+      course: {
+        type: course.type,
+        model: course.type === 'wl' ? wlModel(course) : 'rtc',
+        legIndex: legIndex,
+        nextMark: next ? next.code : '',
+        nextRounding: next ? next.rounding : '',
+        startCrossed: actual.startCrossed || '',
+        closestMarkDistanceNm: toNumber(actual.closestMarkDistance),
+        lastAutoAdvance: actual.lastAutoAdvance || ''
+      },
+      nav: nav ? {
+        bearingDeg: Number(nav.bearing.toFixed(1)),
+        distanceNm: Number(nav.distance.toFixed(3)),
+        portLaylineDeg: Math.round(nav.port),
+        stbdLaylineDeg: Math.round(nav.stbd),
+        portDistanceNm: nav.portDistance == null ? null : Number(nav.portDistance.toFixed(3)),
+        stbdDistanceNm: nav.stbdDistance == null ? null : Number(nav.stbdDistance.toFixed(3)),
+        tideCorrectionDeg: nav.correction == null ? null : Number(nav.correction.toFixed(1))
+      } : null,
+      startLine: line ? {
+        distanceNm: Number(line.distance.toFixed(3)),
+        pinDistanceNm: Number(line.pinDistance.toFixed(3)),
+        committeeDistanceNm: Number(line.committeeDistance.toFixed(3)),
+        position: line.position,
+        side: line.side
+      } : null
+    };
   }
 
   function saveActualPolar() {
@@ -2856,12 +3112,53 @@
       return;
     }
 
+    var actual = activeActual();
+    var course = activeCourse();
+    var forecast = activeForecast();
+    var sequence = courseSequence(course);
+    var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
+    var next = sequence[legIndex];
+    var mark = next ? markForCourseEntry(next, course) : null;
+    var boat = actualBoatPosition(actual);
+    var nav = boat && mark && hasCoords(mark) ? actualNavNumbers(boat, mark, forecast, course) : null;
+
     state.polarSamples.push({
       race: activeRaceId(),
       mode: mode,
       tws: tws,
       speed: speed,
-      time: new Date().toISOString()
+      time: new Date().toISOString(),
+      gps: {
+        lat: boat ? Number(boat.lat) : null,
+        lon: boat ? Number(boat.lon) : null,
+        sog: gpsSpeedNumber(actual),
+        cog: gpsCourseNumber(actual),
+        accuracy: actual.gpsAccuracy || activeSettings().gpsAccuracy || '',
+        fixTime: actual.lastFix || activeSettings().lastGpsTime || ''
+      },
+      forecast: {
+        windSpeed: toNumber(forecast.windSpeed),
+        windDir: toNumber(forecast.windDir),
+        tideRate: toNumber(forecast.tideRate),
+        tideDir: toNumber(forecast.tideDir),
+        tideSourceTime: forecast.tideSourceTime || ''
+      },
+      course: {
+        type: course.type,
+        model: course.type === 'wl' ? wlModel(course) : 'rtc',
+        legIndex: legIndex,
+        nextMark: next ? next.code : '',
+        nextRounding: next ? next.rounding : ''
+      },
+      nav: nav ? {
+        bearing: Number(nav.bearing.toFixed(1)),
+        distanceNm: Number(nav.distance.toFixed(3)),
+        portLayline: Math.round(nav.port),
+        stbdLayline: Math.round(nav.stbd),
+        portDistanceNm: nav.portDistance == null ? null : Number(nav.portDistance.toFixed(3)),
+        stbdDistanceNm: nav.stbdDistance == null ? null : Number(nav.stbdDistance.toFixed(3)),
+        tideCorrectionDeg: nav.correction == null ? null : Number(nav.correction.toFixed(1))
+      } : null
     });
     saveState();
     renderCurrentView();
@@ -2879,6 +3176,7 @@
         angles: 'Baseline ORC target angles retained'
       },
       samples: state.polarSamples,
+      telemetrySamples: state.telemetryLog,
       blendedPolar: blendedPolarTable()
     };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -2892,6 +3190,63 @@
     setTimeout(function () {
       URL.revokeObjectURL(url);
     }, 1000);
+  }
+
+  function downloadTelemetryDay(day) {
+    var targetDay = day || localDateString();
+    var telemetry = state.telemetryLog.filter(function (sample) {
+      return sample.day === targetDay;
+    });
+    var polar = state.polarSamples.filter(function (sample) {
+      return localDateString(new Date(sample.time)) === targetDay;
+    });
+    var payload = {
+      boat: BOAT,
+      source: 'Anna Mai hybrid app daily boat log',
+      exportedAt: new Date().toISOString(),
+      day: targetDay,
+      race: activeRaceId(),
+      raceDate: activeRace().date,
+      telemetryCount: telemetry.length,
+      polarSampleCount: polar.length,
+      telemetry: telemetry,
+      polarSamples: polar
+    };
+    downloadJson(payload, 'anna-mai-log-' + targetDay + '.json');
+  }
+
+  function clearTelemetryDay(day) {
+    var targetDay = day || localDateString();
+    if (!window.confirm || window.confirm('Clear boat log samples for ' + targetDay + '?')) {
+      state.telemetryLog = state.telemetryLog.filter(function (sample) {
+        return sample.day !== targetDay;
+      });
+      activeSettings().telemetryStatus = state.telemetryLog.length ? 'READY' : 'EMPTY';
+      saveState();
+      renderCurrentView();
+    }
+  }
+
+  function downloadJson(payload, filename) {
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  function localDateString(date) {
+    var value = date || new Date();
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) value = new Date();
+    return value.getFullYear() + '-' +
+      String(value.getMonth() + 1).padStart(2, '0') + '-' +
+      String(value.getDate()).padStart(2, '0');
   }
 
   function saveActualStart() {
@@ -3044,12 +3399,12 @@
 
   function courseLegs(course) {
     var sequence = courseSequence(course);
-    var start = startMidpoint(course);
+    var start = courseStartReference(course);
     var legs = [];
     var from = start;
 
     sequence.forEach(function (entry) {
-      var to = markForCourseEntry(entry);
+      var to = markForCourseEntry(entry, course);
       if (from && to && hasCoords(from) && hasCoords(to)) {
         legs.push({
           label: (from.code || 'START') + '-' + entry.code,
@@ -3063,8 +3418,14 @@
     return legs;
   }
 
-  function markForCourseEntry(entry) {
-    if (entry.code.indexOf('/') === -1) return findMark(entry.code);
+  function markForCourseEntry(entry, course) {
+    if (entry.code.indexOf('/') === -1) {
+      if (course && entry.code === course.finish) {
+        var line = lineAssumption(course);
+        if (line && line.finish) return line.finish;
+      }
+      return findMark(entry.code);
+    }
     var parts = entry.code.split('/');
     var a = findMark(parts[0]);
     var b = findMark(parts[1]);
@@ -3075,6 +3436,66 @@
       lat: (Number(a.lat) + Number(b.lat)) / 2,
       lon: (Number(a.lon) + Number(b.lon)) / 2
     };
+  }
+
+  function lineAssumption(course) {
+    var committee = findMark(course.committee || 'COM');
+    var windDir = toNumber(activeForecast().windDir);
+    if (!committee || !hasCoords(committee) || windDir == null) return null;
+
+    var axis = normalize(windDir);
+    var pinBearing = normalize(axis - 90);
+    var finBearing = normalize(axis + 90);
+    var pinPoint = destinationPoint(committee, pinBearing, PIN_PORT_DISTANCE_NM);
+    var finPoint = destinationPoint(committee, finBearing, FIN_STBD_DISTANCE_NM);
+
+    return {
+      axis: axis,
+      lineBearing: normalize(axis + 90),
+      committee: committee,
+      pin: {
+        code: course.pin || 'PIN',
+        name: 'Auto PIN, 100m port of RC',
+        lat: pinPoint.lat.toFixed(5),
+        lon: pinPoint.lon.toFixed(5),
+        role: 'start'
+      },
+      finish: {
+        code: course.finish || 'FIN',
+        name: 'Auto FIN, 50m starboard of RC',
+        lat: finPoint.lat.toFixed(5),
+        lon: finPoint.lon.toFixed(5),
+        role: 'finish'
+      }
+    };
+  }
+
+  function applyLineAssumption(course) {
+    var line = lineAssumption(course);
+    if (!line) return false;
+
+    var pin = findMark(course.pin || 'PIN');
+    var finish = findMark(course.finish || 'FIN');
+    if (pin) {
+      pin.name = pin.name || line.pin.name;
+      pin.lat = line.pin.lat;
+      pin.lon = line.pin.lon;
+      pin.role = pin.role || 'start';
+      pin.autoLine = 'wind-perpendicular';
+      pin.autoDistance = '100m port of RC';
+      pin.autoBearing = String(Math.round(normalize(line.axis - 90)));
+    }
+    if (finish) {
+      finish.name = finish.name || line.finish.name;
+      finish.lat = line.finish.lat;
+      finish.lon = line.finish.lon;
+      finish.role = finish.role || 'finish';
+      finish.autoLine = 'wind-perpendicular';
+      finish.autoDistance = '50m starboard of RC';
+      finish.autoBearing = String(Math.round(normalize(line.axis + 90)));
+    }
+    course.lineBearing = String(Math.round(line.lineBearing));
+    return true;
   }
 
   function uniqueGateEntries(sequence) {
@@ -3103,6 +3524,15 @@
   }
 
   function startLineMarksForCourse(course) {
+    var assumed = lineAssumption(course);
+    if (assumed) {
+      return {
+        pin: assumed.pin,
+        committee: assumed.committee,
+        finish: assumed.finish
+      };
+    }
+
     var pin = findMark(course.pin);
     var committee = findMark(course.committee);
     if (!pin || !committee || !hasCoords(pin) || !hasCoords(committee)) return null;
@@ -3112,21 +3542,48 @@
     };
   }
 
-  function startMidpoint(course) {
-    var pin = findMark(course.pin);
+  function courseStartReference(course) {
+    var midpoint = startMidpoint(course);
+    if (midpoint) return midpoint;
+
     var committee = findMark(course.committee);
-    if (!pin || !committee || !hasCoords(pin) || !hasCoords(committee)) return null;
+    if (committee && hasCoords(committee)) {
+      return {
+        code: 'START',
+        name: 'Start reference from committee boat',
+        lat: committee.lat,
+        lon: committee.lon
+      };
+    }
+
+    var pin = findMark(course.pin);
+    if (pin && hasCoords(pin)) {
+      return {
+        code: 'START',
+        name: 'Start reference from pin end',
+        lat: pin.lat,
+        lon: pin.lon
+      };
+    }
+
+    return null;
+  }
+
+  function startMidpoint(course) {
+    var line = startLineMarksForCourse(course);
+    if (!line || !line.pin || !line.committee || !hasCoords(line.pin) || !hasCoords(line.committee)) return null;
     return {
       code: 'START',
       name: 'Start line midpoint',
-      lat: (Number(pin.lat) + Number(committee.lat)) / 2,
-      lon: (Number(pin.lon) + Number(committee.lon)) / 2
+      lat: (Number(line.pin.lat) + Number(line.committee.lat)) / 2,
+      lon: (Number(line.pin.lon) + Number(line.committee.lon)) / 2
     };
   }
 
   function startLineMetrics(boat, course) {
-    var pin = findMark(course.pin);
-    var committee = findMark(course.committee);
+    var line = startLineMarksForCourse(course);
+    var pin = line && line.pin;
+    var committee = line && line.committee;
     if (!boat || !pin || !committee || !hasCoords(boat) || !hasCoords(pin) || !hasCoords(committee)) return null;
 
     var originLat = (Number(pin.lat) + Number(committee.lat) + Number(boat.lat)) / 3;
@@ -3154,7 +3611,9 @@
       pinDistance: distanceNm(boat, pin),
       committeeDistance: distanceNm(boat, committee),
       position: t < 0 ? 'pin extension' : t > 1 ? 'committee extension' : 'between ends',
-      side: sideValue >= 0 ? 'line port side' : 'line starboard side'
+      side: sideValue >= 0 ? 'line port side' : 'line starboard side',
+      sideKey: sideValue >= 0 ? 'port' : 'starboard',
+      lineT: t
     };
   }
 
@@ -3166,6 +3625,9 @@
   }
 
   function getLineBearing(course) {
+    var assumed = lineAssumption(course);
+    if (assumed) return assumed.lineBearing;
+
     var manual = toNumber(course.lineBearing);
     if (manual != null) return normalize(manual);
 
@@ -3368,6 +3830,8 @@
     window.requestWakeLock = requestWakeLock;
     window.requestSoundPermission = requestSoundPermission;
     window.downloadPolarFile = downloadPolarFile;
+    window.downloadTelemetryDay = downloadTelemetryDay;
+    window.clearTelemetryDay = clearTelemetryDay;
 
     if (activeSettings().compassHeading) startCompassWatch();
     showView(state.currentView || 'forecast');
