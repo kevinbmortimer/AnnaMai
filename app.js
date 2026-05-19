@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.5';
+  var APP_VERSION = '0.7.6';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v29';
+  var CACHE_NAME = 'anna-mai-v30';
   var MIN_TACTICAL_ZOOM = 0.75;
   var MAX_TACTICAL_ZOOM = 24;
   var gpsWatchId = null;
@@ -1551,9 +1551,9 @@
 
   function wlModelText(course) {
     if (wlModel(course) === 'long') {
-      return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4P port, Finish.';
+      return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, Finish.';
     }
-    return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4P port, Finish.';
+    return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, Finish.';
   }
 
   function genericCrewFocus(forecast, course) {
@@ -1831,6 +1831,20 @@
     var insight = tacticalInsightPanel(nav, boat, mark, forecast, context);
     var compass = compassBearingPanel(nav, next, context);
     var chartTiles = chartTileLayerSvg(context);
+    var startLineSvg = context.startLine ? (
+      '<line class="start-line" x1="' + svgNumber(context.startLine.pinSvg.x) + '" y1="' + svgNumber(context.startLine.pinSvg.y) + '" x2="' + svgNumber(context.startLine.committeeSvg.x) + '" y2="' + svgNumber(context.startLine.committeeSvg.y) + '"></line>' +
+      '<circle class="line-dot" cx="' + svgNumber(context.startLine.pinSvg.x) + '" cy="' + svgNumber(context.startLine.pinSvg.y) + '" r="4"></circle>' +
+      '<circle class="line-dot" cx="' + svgNumber(context.startLine.committeeSvg.x) + '" cy="' + svgNumber(context.startLine.committeeSvg.y) + '" r="4"></circle>' +
+      '<text x="' + boundedLabelX(context.startLine.pinSvg.x) + '" y="' + boundedLabelY(context.startLine.pinSvg.y - 7) + '">PIN</text>' +
+      '<text x="' + boundedLabelX(context.startLine.committeeSvg.x) + '" y="' + boundedLabelY(context.startLine.committeeSvg.y - 7) + '">COM</text>'
+    ) : '';
+    var gateLineSvg = context.gateLines.map(function (gate) {
+      return '<line class="gate-line" x1="' + svgNumber(gate.stbdSvg.x) + '" y1="' + svgNumber(gate.stbdSvg.y) + '" x2="' + svgNumber(gate.portSvg.x) + '" y2="' + svgNumber(gate.portSvg.y) + '"></line>' +
+        '<circle class="gate-dot" cx="' + svgNumber(gate.stbdSvg.x) + '" cy="' + svgNumber(gate.stbdSvg.y) + '" r="4"></circle>' +
+        '<circle class="gate-dot" cx="' + svgNumber(gate.portSvg.x) + '" cy="' + svgNumber(gate.portSvg.y) + '" r="4"></circle>' +
+        '<text x="' + boundedLabelX(gate.stbdSvg.x) + '" y="' + boundedLabelY(gate.stbdSvg.y - 7) + '">' + esc(gate.stbd.code) + '</text>' +
+        '<text x="' + boundedLabelX(gate.portSvg.x) + '" y="' + boundedLabelY(gate.portSvg.y - 7) + '">' + esc(gate.port.code) + '</text>';
+    }).join('');
     var markLabels = context.routeMarks.map(function (item, index) {
       var point = context.project(item.point);
       var label = item.label || item.mark.code || 'MARK';
@@ -1858,6 +1872,8 @@
         '<text class="chart-attrib" x="18" y="30">Map tiles: OpenStreetMap / OpenSeaMap</text>' +
         '<text x="18" y="286">VIEW ' + esc(context.viewLabel) + (context.panLabel ? ' / ' + esc(context.panLabel) : '') + '</text>' +
         (windPoint ? '<line class="wind-line" x1="286" y1="52" x2="' + windPoint.x + '" y2="' + windPoint.y + '"></line><text x="245" y="34">TWD ' + Math.round(windDir) + '</text>' : '') +
+        startLineSvg +
+        gateLineSvg +
         '<polyline class="course-route" points="' + routeSvg + '"></polyline>' +
         (portSvg ? '<line class="port-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(portSvg.x) + '" y2="' + svgNumber(portSvg.y) + '"></line>' : '') +
         (stbdSvg ? '<line class="stbd-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(stbdSvg.x) + '" y2="' + svgNumber(stbdSvg.y) + '"></line>' : '') +
@@ -1880,6 +1896,8 @@
   function tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual) {
     var sequence = courseSequence(course);
     var routeMarks = [{ mark: mark, label: next ? next.code : mark.code, point: null }];
+    var gateEntries = uniqueGateEntries(sequence.slice(legIndex));
+    var startLineMarks = startLineMarksForCourse(course);
     sequence.slice(legIndex + 1).forEach(function (entry) {
       var routeMark = markForCourseEntry(entry);
       if (routeMark && hasCoords(routeMark)) {
@@ -1893,12 +1911,41 @@
       latTotal += Number(item.mark.lat);
       latCount += 1;
     });
+    gateEntries.forEach(function (gate) {
+      latTotal += Number(gate.stbd.lat) + Number(gate.port.lat);
+      latCount += 2;
+    });
+    if (startLineMarks) {
+      latTotal += Number(startLineMarks.pin.lat) + Number(startLineMarks.committee.lat);
+      latCount += 2;
+    }
 
     var originLat = latTotal / latCount;
     var boatPoint = localNmPoint(boat, originLat);
     routeMarks.forEach(function (item) {
       item.point = localNmPoint(item.mark, originLat);
     });
+    var gateLines = gateEntries.map(function (gate) {
+      var stbdPoint = localNmPoint(gate.stbd, originLat);
+      var portPoint = localNmPoint(gate.port, originLat);
+      return {
+        code: gate.code,
+        stbd: gate.stbd,
+        port: gate.port,
+        stbdPoint: stbdPoint,
+        portPoint: portPoint,
+        stbdSvg: null,
+        portSvg: null
+      };
+    });
+    var startLine = startLineMarks ? {
+      pin: startLineMarks.pin,
+      committee: startLineMarks.committee,
+      pinPoint: localNmPoint(startLineMarks.pin, originLat),
+      committeePoint: localNmPoint(startLineMarks.committee, originLat),
+      pinSvg: null,
+      committeeSvg: null
+    } : null;
 
     var nextPoint = routeMarks[0].point;
     var hasLaylines = nav.portStatus !== 'no wind' && nav.stbdStatus !== 'no wind';
@@ -1924,6 +1971,10 @@
     var interceptSeconds = intercept && speed && speed > 0.2 ? intercept.distance / speed * 3600 : null;
     var interceptTimeLabel = interceptSeconds == null ? '--' : formatDurationShort(interceptSeconds);
     var boundsPoints = [boatPoint, nextPoint].concat(routeMarks.map(function (item) { return item.point; }));
+    gateLines.forEach(function (gate) {
+      boundsPoints.push(gate.stbdPoint, gate.portPoint);
+    });
+    if (startLine) boundsPoints.push(startLine.pinPoint, startLine.committeePoint);
     if (portBack) boundsPoints.push(portBack);
     if (stbdBack) boundsPoints.push(stbdBack);
     if (cogEnd) boundsPoints.push(cogEnd);
@@ -1936,10 +1987,22 @@
     var viewSpanX = bounds.spanX;
     var viewSpanY = bounds.spanY;
 
+    var projector = tacticalMapProjector(bounds);
+    gateLines.forEach(function (gate) {
+      gate.stbdSvg = projector(gate.stbdPoint);
+      gate.portSvg = projector(gate.portPoint);
+    });
+    if (startLine) {
+      startLine.pinSvg = projector(startLine.pinPoint);
+      startLine.committeeSvg = projector(startLine.committeePoint);
+    }
+
     return {
       boatPoint: boatPoint,
       nextPoint: nextPoint,
       routeMarks: routeMarks,
+      gateLines: gateLines,
+      startLine: startLine,
       portBack: portBack,
       stbdBack: stbdBack,
       portReference: portReference,
@@ -1964,7 +2027,7 @@
       originLat: originLat,
       bounds: bounds,
       rawBounds: rawBounds,
-      project: tacticalMapProjector(bounds)
+      project: projector
     };
   }
 
@@ -2966,7 +3029,9 @@
         sequence.push({ code: course.gateStbd + '/' + course.gatePort, rounding: 'gate' });
       }
     }
-    if (course.gatePort) sequence.push({ code: course.gatePort, rounding: 'port' });
+    if (course.gatePort && course.gateStbd) {
+      sequence.push({ code: course.gateStbd + '/' + course.gatePort, rounding: 'gate' });
+    }
     if (course.finish) sequence.push({ code: course.finish, rounding: 'finish' });
     return sequence;
   }
@@ -3009,6 +3074,41 @@
       name: 'Gate midpoint',
       lat: (Number(a.lat) + Number(b.lat)) / 2,
       lon: (Number(a.lon) + Number(b.lon)) / 2
+    };
+  }
+
+  function uniqueGateEntries(sequence) {
+    var seen = {};
+    var gates = [];
+    sequence.forEach(function (entry) {
+      var gate = gateMarksForEntry(entry);
+      if (!gate || seen[gate.code]) return;
+      seen[gate.code] = true;
+      gates.push(gate);
+    });
+    return gates;
+  }
+
+  function gateMarksForEntry(entry) {
+    if (!entry || !entry.code || entry.code.indexOf('/') === -1) return null;
+    var parts = entry.code.split('/');
+    var stbd = findMark(parts[0]);
+    var port = findMark(parts[1]);
+    if (!stbd || !port || !hasCoords(stbd) || !hasCoords(port)) return null;
+    return {
+      code: entry.code,
+      stbd: stbd,
+      port: port
+    };
+  }
+
+  function startLineMarksForCourse(course) {
+    var pin = findMark(course.pin);
+    var committee = findMark(course.committee);
+    if (!pin || !committee || !hasCoords(pin) || !hasCoords(committee)) return null;
+    return {
+      pin: pin,
+      committee: committee
     };
   }
 
