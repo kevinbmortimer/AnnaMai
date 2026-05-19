@@ -1,7 +1,7 @@
 // Anna Mai Race Bridge - Service Worker
 // Caches the app shell for offline use
 
-const CACHE_NAME = 'anna-mai-v22';
+const CACHE_NAME = 'anna-mai-v24';
 const CACHE_URLS = [
   './',
   './index.html',
@@ -31,8 +31,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch - serve from cache, fall back to network
-// Network-first for API calls, cache-first for app shell
+// Fetch - network-first for app shell/API, cache fallback for poor signal
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
     return;
@@ -40,7 +39,6 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
 
-  // Always go network-first for external APIs (weather, tiles)
   if (url.hostname !== self.location.hostname) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -50,7 +48,19 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache-first for app shell
+  if (isAppShellRequest(url)) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) {
@@ -75,3 +85,13 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+function isAppShellRequest(url) {
+  const path = url.pathname.split('/').pop() || 'index.html';
+  return path === 'index.html' ||
+    path === 'app.js' ||
+    path === 'sw.js' ||
+    path === 'manifest.json' ||
+    path === 'icon-192.png' ||
+    path === 'icon-512.png';
+}

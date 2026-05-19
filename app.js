@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.6.8';
+  var APP_VERSION = '0.7.0';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v22';
+  var CACHE_NAME = 'anna-mai-v24';
   var gpsWatchId = null;
   var compassWatchActive = false;
   var compassLastSave = 0;
@@ -196,6 +196,8 @@
       compassHeading: '',
       compassTime: '',
       mapZoom: '1',
+      mapPanX: '',
+      mapPanY: '',
       motionStatus: '',
       lastMotion: '',
       motionTime: '',
@@ -1835,7 +1837,7 @@
 
     return '<div class="ll-svg-wrap">' + title +
       mapZoomControls(context) +
-      '<svg class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map">' +
+      '<svg id="tactical-map-svg" class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map" data-span-x="' + svgNumber(context.bounds.spanX) + '" data-span-y="' + svgNumber(context.bounds.spanY) + '" onpointerdown="return startTacticalPan(event)" onpointermove="return moveTacticalPan(event)" onpointerup="return endTacticalPan(event)" onpointercancel="return endTacticalPan(event)" ontouchstart="return startTacticalPan(event)" ontouchmove="return moveTacticalPan(event)" ontouchend="return endTacticalPan(event)" ontouchcancel="return endTacticalPan(event)">' +
         '<defs>' +
           '<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#80CBC4"></path></marker>' +
           '<marker id="boatarr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#fff"></path></marker>' +
@@ -1851,7 +1853,7 @@
         '<line class="thin" x1="232" y1="16" x2="232" y2="268"></line>' +
         '<text x="154" y="18">N</text>' +
         '<text class="chart-attrib" x="18" y="30">Map tiles: OpenStreetMap / OpenSeaMap</text>' +
-        '<text x="18" y="286">SAIL AREA ' + esc(context.areaLabel) + '</text>' +
+        '<text x="18" y="286">VIEW ' + esc(context.viewLabel) + (context.panLabel ? ' / ' + esc(context.panLabel) : '') + '</text>' +
         (windPoint ? '<line class="wind-line" x1="286" y1="52" x2="' + windPoint.x + '" y2="' + windPoint.y + '"></line><text x="245" y="34">TWD ' + Math.round(windDir) + '</text>' : '') +
         '<polyline class="course-route" points="' + routeSvg + '"></polyline>' +
         (portSvg ? '<line class="port-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(portSvg.x) + '" y2="' + svgNumber(portSvg.y) + '"></line>' : '') +
@@ -1922,7 +1924,8 @@
     if (intercept && intercept.distance <= Math.max(nav.distance * 8, 3)) boundsPoints.push(intercept.point);
     var rawBounds = tacticalMapBounds(boundsPoints);
     var zoom = tacticalMapZoom();
-    var bounds = zoomedMapBounds(rawBounds, boatPoint, zoom);
+    var pan = tacticalMapPan();
+    var bounds = pannedMapBounds(zoomedMapBounds(rawBounds, boatPoint, zoom), pan);
 
     return {
       boatPoint: boatPoint,
@@ -1940,7 +1943,10 @@
       speed: speed,
       speedSource: speedSource,
       zoom: zoom,
+      pan: pan,
       areaLabel: rawBounds.spanX.toFixed(2) + ' x ' + rawBounds.spanY.toFixed(2) + 'nm',
+      viewLabel: bounds.spanX.toFixed(2) + ' x ' + bounds.spanY.toFixed(2) + 'nm',
+      panLabel: pan.x || pan.y ? 'PAN ' + pan.x.toFixed(2) + ',' + pan.y.toFixed(2) + 'nm' : '',
       originLat: originLat,
       bounds: bounds,
       rawBounds: rawBounds,
@@ -1950,25 +1956,33 @@
 
   function mapZoomControls(context) {
     return '<div class="map-tools">' +
-      '<button type="button" onclick="changeTacticalZoom(-0.25)">-</button>' +
-      '<span>ZOOM ' + context.zoom.toFixed(2) + 'x</span>' +
-      '<button type="button" onclick="changeTacticalZoom(0.25)">+</button>' +
-      '<button type="button" onclick="resetTacticalZoom()">FIT</button>' +
+      '<button type="button" onclick="return changeTacticalZoom(event,-0.5)">-</button>' +
+      '<span>ZOOM ' + context.zoom.toFixed(2) + 'x / ' + esc(context.viewLabel) + '</span>' +
+      '<button type="button" onclick="return changeTacticalZoom(event,0.5)">+</button>' +
+      '<button type="button" onclick="return resetTacticalZoom(event)">FIT</button>' +
     '</div>';
   }
 
-  function changeTacticalZoom(delta) {
+  function changeTacticalZoom(eventOrDelta, maybeDelta) {
+    if (eventOrDelta && eventOrDelta.preventDefault) eventOrDelta.preventDefault();
+    var delta = maybeDelta == null ? Number(eventOrDelta) : Number(maybeDelta);
     var settings = activeSettings();
     var next = Math.max(0.75, Math.min(4, tacticalMapZoom() + delta));
     settings.mapZoom = next.toFixed(2);
     saveState();
-    if (state.currentView === 'race') renderRace();
+    renderCurrentView();
+    return false;
   }
 
-  function resetTacticalZoom() {
-    activeSettings().mapZoom = '1';
+  function resetTacticalZoom(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    var settings = activeSettings();
+    settings.mapZoom = '1';
+    settings.mapPanX = '';
+    settings.mapPanY = '';
     saveState();
-    if (state.currentView === 'race') renderRace();
+    renderCurrentView();
+    return false;
   }
 
   function tacticalMapZoom() {
@@ -1989,6 +2003,79 @@
       spanX: spanX,
       spanY: spanY
     };
+  }
+
+  function tacticalMapPan() {
+    var settings = activeSettings();
+    return {
+      x: toNumber(settings.mapPanX) || 0,
+      y: toNumber(settings.mapPanY) || 0
+    };
+  }
+
+  function pannedMapBounds(bounds, pan) {
+    if (!pan || (!pan.x && !pan.y)) return bounds;
+    return {
+      minX: bounds.minX + pan.x,
+      maxX: bounds.maxX + pan.x,
+      minY: bounds.minY + pan.y,
+      maxY: bounds.maxY + pan.y,
+      spanX: bounds.spanX,
+      spanY: bounds.spanY
+    };
+  }
+
+  function startTacticalPan(event) {
+    var point = tacticalPanPoint(event);
+    if (!point) return false;
+    var target = event.currentTarget || byId('tactical-map-svg');
+    if (target && target.setPointerCapture && event.pointerId != null) {
+      try { target.setPointerCapture(event.pointerId); } catch (err) {}
+    }
+    window.annaMaiPan = {
+      x: point.x,
+      y: point.y,
+      moved: false,
+      spanX: toNumber(target && target.getAttribute('data-span-x')) || 1,
+      spanY: toNumber(target && target.getAttribute('data-span-y')) || 1,
+      startPan: tacticalMapPan()
+    };
+    if (event.preventDefault) event.preventDefault();
+    return false;
+  }
+
+  function moveTacticalPan(event) {
+    if (!window.annaMaiPan) return false;
+    var point = tacticalPanPoint(event);
+    if (!point) return false;
+    var pan = window.annaMaiPan;
+    var dxPx = point.x - pan.x;
+    var dyPx = point.y - pan.y;
+    if (Math.abs(dxPx) + Math.abs(dyPx) > 2) pan.moved = true;
+    var dxNm = -dxPx / 320 * pan.spanX;
+    var dyNm = dyPx / 300 * pan.spanY;
+    var settings = activeSettings();
+    settings.mapPanX = (pan.startPan.x + dxNm).toFixed(4);
+    settings.mapPanY = (pan.startPan.y + dyNm).toFixed(4);
+    saveState();
+    renderCurrentView();
+    window.annaMaiPan = null;
+    if (event.preventDefault) event.preventDefault();
+    return false;
+  }
+
+  function endTacticalPan(event) {
+    if (event && event.preventDefault && window.annaMaiPan && window.annaMaiPan.moved) event.preventDefault();
+    window.annaMaiPan = null;
+    return false;
+  }
+
+  function tacticalPanPoint(event) {
+    var source = event && event.touches && event.touches.length ? event.touches[0]
+      : event && event.changedTouches && event.changedTouches.length ? event.changedTouches[0]
+        : event;
+    if (!source || source.clientX == null || source.clientY == null) return null;
+    return { x: source.clientX, y: source.clientY };
   }
 
   function compassBearingPanel(nav, next, context) {
@@ -3024,7 +3111,11 @@
     window.setRaceTab = setRaceTab;
     window.selectActualLeg = selectActualLeg;
     window.changeTacticalZoom = changeTacticalZoom;
+    window.zoomTacticalMap = changeTacticalZoom;
     window.resetTacticalZoom = resetTacticalZoom;
+    window.startTacticalPan = startTacticalPan;
+    window.moveTacticalPan = moveTacticalPan;
+    window.endTacticalPan = endTacticalPan;
     window.saveActualPolar = saveActualPolar;
     window.saveActualStart = saveActualStart;
     window.saveStartPage = saveStartPage;
