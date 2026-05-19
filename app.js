@@ -2,10 +2,12 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.6.6';
+  var APP_VERSION = '0.6.8';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v20';
+  var CACHE_NAME = 'anna-mai-v22';
   var gpsWatchId = null;
+  var compassWatchActive = false;
+  var compassLastSave = 0;
   var BOAT = {
     name: 'Anna Mai',
     type: 'Swan 36',
@@ -137,6 +139,7 @@
       waveDir: '',
       apiUpdated: '',
       apiSource: '',
+      tideTimeline: [],
       notes: ''
     };
   }
@@ -190,6 +193,9 @@
       gpsAccuracy: '',
       gpsSpeed: '',
       gpsCourse: '',
+      compassHeading: '',
+      compassTime: '',
+      mapZoom: '1',
       motionStatus: '',
       lastMotion: '',
       motionTime: '',
@@ -497,7 +503,7 @@
         statCell('GPS', settings.gpsStatus || 'Not checked', settings.lastGpsTime || 'tap request') +
         statCell('Last fix', settings.lastGps || '--', settings.gpsAccuracy || 'settings test') +
         statCell('SOG / COG', gpsMotionLabel(settings), 'from location') +
-        statCell('Motion', settings.motionStatus || 'Not checked', settings.lastMotion || 'compass / heel') +
+        statCell('Compass', settings.compassHeading ? settings.compassHeading + ' deg' : settings.motionStatus || 'Not checked', settings.compassTime || settings.lastMotion || 'phone bearing') +
         statCell('Awake', settings.wakeStatus || 'Not checked', settings.wakeTime || 'screen lock') +
         statCell('Sound', settings.soundStatus || 'Not checked', settings.soundTime || 'countdown alerts') +
       '</div>' +
@@ -593,6 +599,7 @@
       settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       saveState();
       renderSettings();
+      startCompassWatch();
       listenForMotionSample();
     }).catch(function (err) {
       var settings = activeSettings();
@@ -619,14 +626,16 @@
       window.removeEventListener('deviceorientation', onOrientation);
       window.removeEventListener('devicemotion', onMotion);
       var settings = activeSettings();
-      settings.motionStatus = 'Granted';
+      settings.motionStatus = settings.compassHeading ? 'Live' : 'Granted';
       settings.lastMotion = label;
       settings.motionTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       saveState();
       renderSettings();
+      startCompassWatch();
     }
     function onOrientation(event) {
-      var heading = event.webkitCompassHeading != null ? event.webkitCompassHeading : event.alpha;
+      var heading = compassHeadingFromEvent(event);
+      if (heading != null) recordCompassHeading(heading, true);
       finish(heading == null ? 'orientation ok' : 'heading ' + Math.round(heading) + 'deg');
     }
     function onMotion(event) {
@@ -638,6 +647,46 @@
     setTimeout(function () {
       finish('permission ok, no sample');
     }, 1800);
+  }
+
+  function startCompassWatch() {
+    if (compassWatchActive || !window.addEventListener) return;
+    compassWatchActive = true;
+    window.addEventListener('deviceorientation', onCompassOrientation, true);
+    window.addEventListener('deviceorientationabsolute', onCompassOrientation, true);
+  }
+
+  function onCompassOrientation(event) {
+    var heading = compassHeadingFromEvent(event);
+    if (heading == null) return;
+    recordCompassHeading(heading, false);
+  }
+
+  function compassHeadingFromEvent(event) {
+    if (!event) return null;
+    if (event.webkitCompassHeading != null && Number.isFinite(Number(event.webkitCompassHeading))) {
+      return normalize(Number(event.webkitCompassHeading));
+    }
+    if (event.alpha != null && Number.isFinite(Number(event.alpha))) {
+      return normalize(Number(event.alpha));
+    }
+    return null;
+  }
+
+  function recordCompassHeading(heading, forceSave) {
+    var rounded = Math.round(normalize(heading));
+    var settings = activeSettings();
+    var now = Date.now();
+    settings.compassHeading = String(rounded);
+    settings.compassTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    settings.motionStatus = 'Live';
+    settings.lastMotion = 'heading ' + rounded + 'deg';
+    updateCompassViewer(rounded);
+    if (forceSave || now - compassLastSave > 1000) {
+      compassLastSave = now;
+      saveState();
+      if (state.currentView === 'settings' && !isEditingField()) renderSettings();
+    }
   }
 
   function requestWakeLock() {
@@ -760,6 +809,7 @@
       tideState: valueOf('fc-tide-state'),
       tideRate: valueOf('fc-tide-rate'),
       tideDir: valueOf('fc-tide-dir'),
+      tideTimeline: existing.tideTimeline || [],
       seaLevel: existing.seaLevel || '',
       swellHeight: valueOf('fc-swell-height'),
       swellPeriod: valueOf('fc-swell-period'),
@@ -837,10 +887,13 @@
       var weatherIndex = nearestIndex(weather.hourly && weather.hourly.time, target);
       var marineIndex = nearestIndex(marine.hourly && marine.hourly.time, target);
       var forecast = state.forecasts[race.id] || defaultForecast(race);
-      var currentKmh = valueAt(marine, 'ocean_current_velocity', marineIndex);
+      var currentKmh = valueAtIso(marine, 'ocean_current_velocity', target);
+      if (currentKmh == null) currentKmh = valueAt(marine, 'ocean_current_velocity', marineIndex);
       var currentKn = currentKmh == null ? null : currentKmh * 0.539957;
-      var currentDir = valueAt(marine, 'ocean_current_direction', marineIndex);
+      var currentDir = directionAtIso(marine, 'ocean_current_direction', target);
+      if (currentDir == null) currentDir = valueAt(marine, 'ocean_current_direction', marineIndex);
       var tideState = tideStateFromCurrent(currentKn, currentDir);
+      var tideTimeline = buildTideTimeline(marine, race, lookupTime);
       var waveHeight = valueAt(marine, 'wave_height', marineIndex);
       var wavePeriod = valueAt(marine, 'wave_period', marineIndex);
       var waveDir = valueAt(marine, 'wave_direction', marineIndex);
@@ -853,6 +906,7 @@
         tideState: tideState || forecast.tideState,
         tideRate: cleanNumber(currentKn, 2, forecast.tideRate),
         tideDir: cleanNumber(currentDir, 0, forecast.tideDir),
+        tideTimeline: tideTimeline.length ? tideTimeline : forecast.tideTimeline || [],
         seaLevel: cleanNumber(valueAt(marine, 'sea_level_height_msl', marineIndex), 2, forecast.seaLevel),
         swellHeight: cleanNumber(valueAt(marine, 'swell_wave_height', marineIndex), 2, forecast.swellHeight || cleanNumber(waveHeight, 2, '')),
         swellPeriod: cleanNumber(valueAt(marine, 'swell_wave_period', marineIndex), 1, forecast.swellPeriod || cleanNumber(wavePeriod, 1, '')),
@@ -885,6 +939,83 @@
     if (!payload || !payload.hourly || !payload.hourly[key] || index < 0) return null;
     var value = payload.hourly[key][index];
     return value == null || Number.isNaN(value) ? null : value;
+  }
+
+  function valueAtIso(payload, key, targetIso) {
+    var bracket = hourlyBracket(payload, key, targetIso);
+    if (!bracket) return null;
+    if (bracket.low === bracket.high) return bracket.lowValue;
+    return bracket.lowValue + (bracket.highValue - bracket.lowValue) * bracket.pct;
+  }
+
+  function directionAtIso(payload, key, targetIso) {
+    var bracket = hourlyBracket(payload, key, targetIso);
+    if (!bracket) return null;
+    if (bracket.low === bracket.high) return normalize(bracket.lowValue);
+    return normalize(bracket.lowValue + signedAngle(bracket.highValue - bracket.lowValue) * bracket.pct);
+  }
+
+  function hourlyBracket(payload, key, targetIso) {
+    var times = payload && payload.hourly && payload.hourly.time;
+    var values = payload && payload.hourly && payload.hourly[key];
+    if (!Array.isArray(times) || !Array.isArray(values) || !times.length) return null;
+
+    var target = isoMinutes(targetIso);
+    var last = times.length - 1;
+    if (target <= isoMinutes(times[0])) return hourlyBracketValues(values, 0, 0, 0);
+    if (target >= isoMinutes(times[last])) return hourlyBracketValues(values, last, last, 0);
+
+    for (var i = 1; i < times.length; i += 1) {
+      var highTime = isoMinutes(times[i]);
+      if (target <= highTime) {
+        var lowTime = isoMinutes(times[i - 1]);
+        var pct = highTime === lowTime ? 0 : (target - lowTime) / (highTime - lowTime);
+        return hourlyBracketValues(values, i - 1, i, pct);
+      }
+    }
+    return null;
+  }
+
+  function hourlyBracketValues(values, low, high, pct) {
+    var lowValue = values[low];
+    var highValue = values[high];
+    if (lowValue == null || highValue == null || Number.isNaN(lowValue) || Number.isNaN(highValue)) return null;
+    return {
+      low: low,
+      high: high,
+      lowValue: Number(lowValue),
+      highValue: Number(highValue),
+      pct: pct
+    };
+  }
+
+  function buildTideTimeline(marine, race, lookupTime) {
+    return [0, 15, 30, 45, 60].map(function (offset) {
+      var target = localIsoAddMinutes(race.date, lookupTime, offset);
+      var currentKmh = valueAtIso(marine, 'ocean_current_velocity', target);
+      var currentDir = directionAtIso(marine, 'ocean_current_direction', target);
+      var currentKn = currentKmh == null ? null : currentKmh * 0.539957;
+      if (currentKn == null && currentDir == null) return null;
+      return {
+        offset: offset,
+        time: target.slice(11, 16),
+        rate: currentKn == null ? '' : Number(currentKn.toFixed(2)),
+        dir: currentDir == null ? '' : Math.round(currentDir),
+        state: tideStateFromCurrent(currentKn, currentDir)
+      };
+    }).filter(Boolean);
+  }
+
+  function localIsoAddMinutes(date, hhmm, offsetMinutes) {
+    var match = String(hhmm || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!date || !match) return date + 'T00:00';
+    var target = new Date(date + 'T' + match[1].padStart(2, '0') + ':' + match[2] + ':00');
+    target.setMinutes(target.getMinutes() + offsetMinutes);
+    return target.getFullYear() + '-' +
+      String(target.getMonth() + 1).padStart(2, '0') + '-' +
+      String(target.getDate()).padStart(2, '0') + 'T' +
+      String(target.getHours()).padStart(2, '0') + ':' +
+      String(target.getMinutes()).padStart(2, '0');
   }
 
   function cleanNumber(value, places, fallback) {
@@ -1376,10 +1507,13 @@
     var windSpeed = toNumber(forecast.windSpeed) || 10;
     var target = polarTarget(windSpeed, 'upwind');
     var downwind = polarTarget(windSpeed, 'downwind');
-    var legs = courseLegs(course);
+    var legs = timedCourseLegs(courseLegs(course), forecast, course);
+    var tideModel = tideModelSummary(forecast);
     var legNote = legs.length
-      ? legs.slice(0, 3).map(function (leg) {
-        return '<div class="leg-rec"><div class="leg-rec-title">' + esc(leg.label) + '</div><div class="leg-rec-body">' + legPrediction(leg, forecast, course) + '</div></div>';
+      ? legs.map(function (leg) {
+        var legForecast = tideForecastForElapsed(forecast, leg.startMinutes);
+        var title = 'L' + (leg.index + 1) + ' +' + Math.round(leg.startMinutes) + 'm ' + leg.label;
+        return '<div class="leg-rec"><div class="leg-rec-title">' + esc(title) + '</div><div class="leg-rec-body">' + legPrediction(leg, legForecast, course) + '</div></div>';
       }).join('')
       : coursePatternAdvice(forecast, course);
 
@@ -1388,9 +1522,10 @@
         statCell('Upwind target', target.speed.toFixed(1) + 'kt', target.angle + ' deg TWA') +
         statCell('Downwind target', downwind.speed.toFixed(1) + 'kt', downwind.angle + ' deg TWA') +
         statCell('Tack angle', course.tackAngle || '42', 'degrees') +
+        statCell('Tide model', tideModel.value, tideModel.sub) +
       '</div>' +
       legNote +
-      '<div class="api-note">Targets start from the ' + esc(POLAR_SOURCE) + ' and blend with Actual tab samples as they are logged.</div>'
+      '<div class="api-note">Recommendations render the full selected course. Tide is applied per leg from the API timeline when available; otherwise the single forecast tide set is used. Targets start from the ' + esc(POLAR_SOURCE) + ' and blend with Actual tab samples as they are logged.</div>'
     );
   }
 
@@ -1437,6 +1572,7 @@
     var tideRate = toNumber(forecast.tideRate);
     var tideDir = toNumber(forecast.tideDir);
     var text = 'Bearing ' + Math.round(leg.bearing) + '&deg;, distance ' + leg.distance.toFixed(2) + 'nm. ';
+    if (leg.durationMinutes != null) text += 'Approx ' + Math.round(leg.durationMinutes) + 'm leg. ';
     if (windDir != null) {
       var twa = Math.abs(signedAngle(leg.bearing - windDir));
       if (twa < 70) {
@@ -1450,8 +1586,107 @@
     if (tideRate != null && tideDir != null && tideRate >= 0.2) {
       var cross = Math.sin(toRad(signedAngle(tideDir - leg.bearing)));
       text += cross > 0 ? 'Current pushes right of track.' : 'Current pushes left of track.';
+      if (forecast.tideSourceTime) text += ' Tide sample ' + forecast.tideSourceTime + '.';
     }
     return text;
+  }
+
+  function timedCourseLegs(legs, forecast, course) {
+    var elapsed = 0;
+    return legs.map(function (leg, index) {
+      var speed = legTimingSpeed(leg, forecast, course);
+      var duration = speed > 0 ? leg.distance / speed * 60 : null;
+      var timed = Object.assign({}, leg, {
+        index: index,
+        startMinutes: elapsed,
+        durationMinutes: duration
+      });
+      if (duration != null) elapsed += duration;
+      return timed;
+    });
+  }
+
+  function legTimingSpeed(leg, forecast, course) {
+    var windDir = toNumber(forecast.windDir);
+    var windSpeed = toNumber(forecast.windSpeed) || 10;
+    var fallback = toNumber(course.boatSpeed) || 5.5;
+    if (windDir == null) return fallback;
+
+    var twa = Math.abs(signedAngle(leg.bearing - windDir));
+    var mode = twa < 70 ? 'upwind' : twa > 120 ? 'downwind' : 'reach';
+    return polarTarget(windSpeed, mode).speed || fallback;
+  }
+
+  function tideModelSummary(forecast) {
+    var timeline = Array.isArray(forecast.tideTimeline) ? forecast.tideTimeline.filter(validTideSample) : [];
+    if (timeline.length > 1) {
+      var first = timeline[0];
+      var last = timeline[timeline.length - 1];
+      return {
+        value: '+0 to +' + Math.round(last.offset) + 'm',
+        sub: tideSampleLabel(first) + ' -> ' + tideSampleLabel(last)
+      };
+    }
+    if (forecast.tideRate || forecast.tideDir) {
+      return {
+        value: 'single set',
+        sub: (forecast.tideRate || '--') + 'kt to ' + (forecast.tideDir || '--') + ' deg'
+      };
+    }
+    return { value: 'not set', sub: 'no current data' };
+  }
+
+  function tideForecastForElapsed(forecast, elapsedMinutes) {
+    var timeline = Array.isArray(forecast.tideTimeline) ? forecast.tideTimeline.filter(validTideSample) : [];
+    if (timeline.length < 2) return forecast;
+
+    var target = Math.max(0, elapsedMinutes || 0);
+    var low = timeline[0];
+    var high = timeline[timeline.length - 1];
+
+    for (var i = 1; i < timeline.length; i += 1) {
+      if (target <= timeline[i].offset) {
+        low = timeline[i - 1];
+        high = timeline[i];
+        break;
+      }
+    }
+
+    var span = high.offset - low.offset;
+    var pct = span <= 0 ? 0 : Math.max(0, Math.min(1, (target - low.offset) / span));
+    var rate = Number(low.rate) + (Number(high.rate) - Number(low.rate)) * pct;
+    var dir = normalize(Number(low.dir) + signedAngle(Number(high.dir) - Number(low.dir)) * pct);
+
+    return Object.assign({}, forecast, {
+      tideRate: rate.toFixed(2),
+      tideDir: String(Math.round(dir)),
+      tideState: tideStateFromCurrent(rate, dir),
+      tideSourceTime: '+' + Math.round(target) + 'm / ' + interpolatedTimeLabel(low, high, pct)
+    });
+  }
+
+  function validTideSample(sample) {
+    return sample && toNumber(sample.rate) != null && toNumber(sample.dir) != null;
+  }
+
+  function tideSampleLabel(sample) {
+    return sample.rate + 'kt to ' + sample.dir + ' deg';
+  }
+
+  function interpolatedTimeLabel(low, high, pct) {
+    if (!low.time || !high.time) return 'API tide';
+    if (pct <= 0.02) return low.time;
+    if (pct >= 0.98) return high.time;
+    var lowMinutes = clockMinutes(low.time);
+    var highMinutes = clockMinutes(high.time);
+    if (highMinutes < lowMinutes) highMinutes += 1440;
+    var minutes = Math.round(lowMinutes + (highMinutes - lowMinutes) * pct) % 1440;
+    return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function clockMinutes(value) {
+    var match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    return match ? Number(match[1]) * 60 + Number(match[2]) : 0;
   }
 
   function targetCall(windSpeed, mode) {
@@ -1564,7 +1799,7 @@
   }
 
   function tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) {
-    var title = '<div class="map-title"><span>Tactical Map</span><span>TWD from forecast</span></div>';
+    var title = '<div class="map-title"><span>Tactical Map</span><span>COG track / TWD forecast</span></div>';
     if (!boat || !mark || !hasCoords(mark)) {
       return '<div class="ll-svg-wrap">' + title +
         '<div class="err">Map needs iPhone GPS from Settings and a next mark position.</div>' +
@@ -1589,6 +1824,7 @@
     var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180), 28);
     var legText = nav.distance.toFixed(2) + 'nm / ' + Math.round(nav.bearing) + 'deg';
     var insight = tacticalInsightPanel(nav, boat, mark, forecast, context);
+    var compass = compassBearingPanel(nav, next, context);
     var chartTiles = chartTileLayerSvg(context);
     var markLabels = context.routeMarks.map(function (item, index) {
       var point = context.project(item.point);
@@ -1598,6 +1834,7 @@
     }).join('');
 
     return '<div class="ll-svg-wrap">' + title +
+      mapZoomControls(context) +
       '<svg class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map">' +
         '<defs>' +
           '<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#80CBC4"></path></marker>' +
@@ -1629,6 +1866,7 @@
         (interceptSvg ? '<circle class="intercept-dot" cx="' + svgNumber(interceptSvg.x) + '" cy="' + svgNumber(interceptSvg.y) + '" r="5"></circle><text x="' + boundedLabelX(interceptSvg.x) + '" y="' + boundedLabelY(interceptSvg.y - 9) + '">INT ' + esc(context.interceptTimeLabel) + '</text>' : '') +
         '<text x="206" y="286">' + legText + '</text>' +
       '</svg>' +
+      compass +
       insight +
       (nav.portStatus === 'no wind' ? '<div class="err">Enter forecast wind direction to draw laylines. Course line is shown.</div>' : '') +
     '</div>';
@@ -1682,7 +1920,9 @@
     if (stbdBack) boundsPoints.push(stbdBack);
     if (cogEnd) boundsPoints.push(cogEnd);
     if (intercept && intercept.distance <= Math.max(nav.distance * 8, 3)) boundsPoints.push(intercept.point);
-    var bounds = tacticalMapBounds(boundsPoints);
+    var rawBounds = tacticalMapBounds(boundsPoints);
+    var zoom = tacticalMapZoom();
+    var bounds = zoomedMapBounds(rawBounds, boatPoint, zoom);
 
     return {
       boatPoint: boatPoint,
@@ -1699,11 +1939,144 @@
       interceptTimeLabel: interceptTimeLabel,
       speed: speed,
       speedSource: speedSource,
-      areaLabel: bounds.spanX.toFixed(2) + ' x ' + bounds.spanY.toFixed(2) + 'nm',
+      zoom: zoom,
+      areaLabel: rawBounds.spanX.toFixed(2) + ' x ' + rawBounds.spanY.toFixed(2) + 'nm',
       originLat: originLat,
       bounds: bounds,
+      rawBounds: rawBounds,
       project: tacticalMapProjector(bounds)
     };
+  }
+
+  function mapZoomControls(context) {
+    return '<div class="map-tools">' +
+      '<button type="button" onclick="changeTacticalZoom(-0.25)">-</button>' +
+      '<span>ZOOM ' + context.zoom.toFixed(2) + 'x</span>' +
+      '<button type="button" onclick="changeTacticalZoom(0.25)">+</button>' +
+      '<button type="button" onclick="resetTacticalZoom()">FIT</button>' +
+    '</div>';
+  }
+
+  function changeTacticalZoom(delta) {
+    var settings = activeSettings();
+    var next = Math.max(0.75, Math.min(4, tacticalMapZoom() + delta));
+    settings.mapZoom = next.toFixed(2);
+    saveState();
+    if (state.currentView === 'race') renderRace();
+  }
+
+  function resetTacticalZoom() {
+    activeSettings().mapZoom = '1';
+    saveState();
+    if (state.currentView === 'race') renderRace();
+  }
+
+  function tacticalMapZoom() {
+    return Math.max(0.75, Math.min(4, toNumber(activeSettings().mapZoom) || 1));
+  }
+
+  function zoomedMapBounds(bounds, center, zoom) {
+    if (!zoom || Math.abs(zoom - 1) < 0.01) return bounds;
+    var spanX = bounds.spanX / zoom;
+    var spanY = bounds.spanY / zoom;
+    var cx = center ? center.x : (bounds.minX + bounds.maxX) / 2;
+    var cy = center ? center.y : (bounds.minY + bounds.maxY) / 2;
+    return {
+      minX: cx - spanX / 2,
+      maxX: cx + spanX / 2,
+      minY: cy - spanY / 2,
+      maxY: cy + spanY / 2,
+      spanX: spanX,
+      spanY: spanY
+    };
+  }
+
+  function compassBearingPanel(nav, next, context) {
+    var phoneHeading = phoneCompassHeading();
+    var basis = phoneHeading != null ? phoneHeading : context.cog;
+    var basisLabel = phoneHeading != null ? 'phone compass' : context.cog != null ? 'COG fallback' : 'needs Motion Compass';
+    var markRel = basis == null ? null : signedAngle(nav.bearing - basis);
+    var markMeters = Math.round(nav.distance * 1852);
+    var laylineMeters = context.intercept ? Math.round(context.intercept.distance * 1852) + 'm' : '--';
+    var laylineTime = context.intercept ? context.interceptTimeLabel : '--';
+    var laylineLabel = context.intercept && context.tack ? context.tack.targetLayline + ' layline' : 'layline';
+    var headingText = phoneHeading == null ? '--' : Math.round(phoneHeading) + ' deg';
+    var markText = markRel == null ? Math.round(nav.bearing) + ' deg true' : relativeAngleLabel(markRel);
+    var markCode = next ? next.code : 'MARK';
+
+    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + svgNumber(nav.port) + '" data-stbd-bearing="' + svgNumber(nav.stbd) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
+      '<div class="bearing-readout">' +
+        '<div><span>Next mark</span><strong id="compass-mark-angle">' + esc(markText) + '</strong><em>' + esc(markCode) + ' / ' + markMeters + 'm</em></div>' +
+        '<div><span>Phone heading</span><strong id="compass-phone-heading">' + esc(headingText) + '</strong><em id="compass-heading-source">' + esc(basisLabel) + '</em></div>' +
+        '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineTime) + ' at current speed</em></div>' +
+      '</div>' +
+      '<svg class="bearing-svg" viewBox="0 0 220 220" role="img" aria-label="Phone compass bearing to next mark and laylines">' +
+        '<circle class="bearing-ring" cx="110" cy="110" r="92"></circle>' +
+        '<circle class="bearing-ring inner" cx="110" cy="110" r="48"></circle>' +
+        '<line class="bearing-axis" x1="110" y1="18" x2="110" y2="202"></line>' +
+        '<line class="bearing-axis" x1="18" y1="110" x2="202" y2="110"></line>' +
+        '<text x="104" y="16">AHEAD</text>' +
+        '<text x="102" y="216">ASTERN</text>' +
+        '<text x="5" y="113">L</text>' +
+        '<text x="208" y="113">R</text>' +
+        '<line class="phone-forward" x1="110" y1="110" x2="110" y2="26"></line>' +
+        compassArrow('compass-mark-arrow', 'mark', nav.bearing, basis, markCode) +
+        (nav.portStatus === 'no wind' ? '' : compassArrow('compass-port-arrow', 'port', nav.port, basis, 'P')) +
+        (nav.stbdStatus === 'no wind' ? '' : compassArrow('compass-stbd-arrow', 'stbd', nav.stbd, basis, 'S')) +
+        (context.cog == null ? '' : compassArrow('compass-cog-arrow', 'cog', context.cog, basis, 'COG')) +
+        '<circle class="bearing-center" cx="110" cy="110" r="5"></circle>' +
+      '</svg>' +
+      (phoneHeading == null ? '<div class="api-note">Use Settings &gt; Motion Compass for the arrow to move as the phone turns. Until then this uses COG when available.</div>' : '') +
+    '</div>';
+  }
+
+  function compassArrow(id, cls, bearing, basis, label) {
+    if (bearing == null || !Number.isFinite(Number(bearing))) return '';
+    var relative = basis == null ? 0 : signedAngle(Number(bearing) - basis);
+    return '<g id="' + id + '" class="bearing-arrow ' + cls + '" data-bearing="' + svgNumber(Number(bearing)) + '" transform="rotate(' + svgNumber(relative) + ' 110 110)">' +
+      '<line x1="110" y1="110" x2="110" y2="34"></line>' +
+      '<path d="M110 24 L103 40 L117 40 Z"></path>' +
+      '<text x="121" y="45">' + esc(label) + '</text>' +
+    '</g>';
+  }
+
+  function phoneCompassHeading() {
+    return toNumber(activeSettings().compassHeading);
+  }
+
+  function relativeAngleLabel(angle) {
+    if (angle == null || !Number.isFinite(Number(angle))) return '--';
+    var rounded = Math.round(signedAngle(angle));
+    if (Math.abs(rounded) <= 2) return 'AHEAD';
+    if (Math.abs(Math.abs(rounded) - 180) <= 2) return 'ASTERN';
+    return Math.abs(rounded) + ' deg ' + (rounded < 0 ? 'L' : 'R');
+  }
+
+  function updateCompassViewer(heading) {
+    var panel = byId('phone-compass-panel');
+    var phoneHeading = toNumber(heading);
+    if (!panel || phoneHeading == null) return;
+
+    updateCompassArrow('compass-mark-arrow', phoneHeading);
+    updateCompassArrow('compass-port-arrow', phoneHeading);
+    updateCompassArrow('compass-stbd-arrow', phoneHeading);
+    updateCompassArrow('compass-cog-arrow', phoneHeading);
+
+    var markBearing = toNumber(panel.getAttribute('data-mark-bearing'));
+    var markEl = byId('compass-mark-angle');
+    var headingEl = byId('compass-phone-heading');
+    var sourceEl = byId('compass-heading-source');
+    if (markEl && markBearing != null) markEl.textContent = relativeAngleLabel(signedAngle(markBearing - phoneHeading));
+    if (headingEl) headingEl.textContent = Math.round(phoneHeading) + ' deg';
+    if (sourceEl) sourceEl.textContent = 'phone compass';
+  }
+
+  function updateCompassArrow(id, phoneHeading) {
+    var el = byId(id);
+    if (!el) return;
+    var bearing = toNumber(el.getAttribute('data-bearing'));
+    if (bearing == null) return;
+    el.setAttribute('transform', 'rotate(' + svgNumber(signedAngle(bearing - phoneHeading)) + ' 110 110)');
   }
 
   function tacticalInsightPanel(nav, boat, mark, forecast, context) {
@@ -1721,8 +2094,10 @@
     var tackText = context.tack ? context.tack.currentTack : '--';
     var interceptText = context.intercept ? context.tack.targetLayline + ' layline' : '--';
     var interceptSub = context.intercept
-      ? context.intercept.distance.toFixed(2) + 'nm / ' + context.interceptTimeLabel + (context.speedSource ? ' using ' + context.speedSource : '')
+      ? context.interceptTimeLabel + (context.speedSource ? ' using ' + context.speedSource : '')
       : context.cog == null ? 'needs GPS COG' : 'no crossing on current COG';
+    var markOffCog = context.cog == null ? '--' : relativeAngleLabel(signedAngle(nav.bearing - context.cog));
+    var interceptMeters = context.intercept ? Math.round(context.intercept.distance * 1852) + 'm' : '--';
 
     return '<div style="width:100%;margin-top:8px">' +
       '<div class="stat-row">' +
@@ -1741,8 +2116,9 @@
       '</div>' +
       '<div class="stat-row">' +
         statCell('Boat COG / SOG', cogText + ' / ' + sogText, context.speedSource || 'GPS movement') +
+        statCell('Mark off COG', markOffCog, 'track relative') +
         statCell('Current tack', tackText, context.tack ? 'from GPS COG' : 'needs COG') +
-        statCell('Intercept', interceptText, interceptSub) +
+        statCell('Intercept', interceptText, interceptMeters + ' / ' + interceptSub) +
       '</div>' +
       '<div class="ll-advice">' + tacticalInsightText(nav, tideRate, tideDir, context) + '</div>' +
     '</div>';
@@ -2320,7 +2696,7 @@
       return card('Laylines', '<div class="err">Enter forecast wind direction before calculating laylines.</div>');
     }
 
-    var legs = courseLegs(course);
+    var legs = timedCourseLegs(courseLegs(course), forecast, course);
     if (!legs.length) {
       return card('Laylines', '<div class="err">Set course marks and mark positions before calculating laylines.</div>');
     }
@@ -2331,9 +2707,10 @@
     var stbdHeading = normalize(windDir - tackAngle);
 
     var rows = legs.map(function (leg) {
-      var correction = tideCorrection(forecast, leg.bearing, boatSpeed);
+      var legForecast = tideForecastForElapsed(forecast, leg.startMinutes);
+      var correction = tideCorrection(legForecast, leg.bearing, boatSpeed);
       return '<tr>' +
-        '<td>' + esc(leg.label) + '</td>' +
+        '<td>' + esc('L' + (leg.index + 1) + ' +' + Math.round(leg.startMinutes) + 'm ' + leg.label) + '</td>' +
         '<td>' + Math.round(leg.bearing) + '&deg;</td>' +
         '<td>' + leg.distance.toFixed(2) + 'nm</td>' +
         '<td>' + Math.round(normalize(portHeading + correction)) + '&deg;</td>' +
@@ -2646,6 +3023,8 @@
     window.deleteMark = deleteMark;
     window.setRaceTab = setRaceTab;
     window.selectActualLeg = selectActualLeg;
+    window.changeTacticalZoom = changeTacticalZoom;
+    window.resetTacticalZoom = resetTacticalZoom;
     window.saveActualPolar = saveActualPolar;
     window.saveActualStart = saveActualStart;
     window.saveStartPage = saveStartPage;
@@ -2658,6 +3037,7 @@
     window.requestSoundPermission = requestSoundPermission;
     window.downloadPolarFile = downloadPolarFile;
 
+    if (activeSettings().compassHeading) startCompassWatch();
     showView(state.currentView || 'forecast');
     setInterval(function () {
       updateTimestamp();
