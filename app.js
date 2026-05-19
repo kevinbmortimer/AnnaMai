@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.9';
+  var APP_VERSION = '0.8.0';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v33';
+  var CACHE_NAME = 'anna-mai-v34';
   var MIN_TACTICAL_ZOOM = 0.75;
   var MAX_TACTICAL_ZOOM = 48;
   var PIN_PORT_DISTANCE_NM = 100 / 1852;
@@ -1835,7 +1835,7 @@
 
   function actualNavCard(forecast, course) {
     var actual = activeActual();
-    var sequence = courseSequence(course);
+    var sequence = navSequence(course);
     var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
     actual.legIndex = legIndex;
     var next = sequence[legIndex];
@@ -1855,7 +1855,7 @@
     return card('Actual - Next Mark',
       (sequence.length ? selector : '<div class="err">Set a course before using Actual navigation.</div>') +
       '<div class="nav-hero">' +
-        actualBig('Bearing', nav ? Math.round(nav.bearing) : '--', 'deg', next ? next.code : 'no mark') +
+        actualBig('Bearing', nav ? Math.round(nav.bearing) : '--', 'deg', next ? navTargetLabel(next) : 'no mark') +
         actualBig('Distance', nav ? nav.distance.toFixed(2) : '--', 'nm', fixLabel) +
       '</div>' +
       tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) +
@@ -1982,7 +1982,7 @@
   }
 
   function tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual) {
-    var sequence = courseSequence(course);
+    var sequence = navSequence(course);
     var routeMarks = [{ mark: mark, label: next ? next.code : mark.code, point: null }];
     var gateEntries = uniqueGateEntries(sequence.slice(legIndex));
     var startLineMarks = startLineMarksForCourse(course);
@@ -2351,7 +2351,7 @@
     var stbdLaylineLabel = context.stbdReference ? 'S ' + formatMeters(context.stbdReference.distance) : '--';
     var headingText = phoneHeading == null ? '--' : Math.round(phoneHeading) + ' deg';
     var markText = markRel == null ? Math.round(nav.bearing) + ' deg true' : relativeAngleLabel(markRel);
-    var markCode = next ? next.code : 'MARK';
+    var markCode = next ? navTargetLabel(next) : 'MARK';
 
     return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + (portLaylineBearing == null ? '' : svgNumber(portLaylineBearing)) + '" data-stbd-bearing="' + (stbdLaylineBearing == null ? '' : svgNumber(stbdLaylineBearing)) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
       '<div class="bearing-readout">' +
@@ -2360,6 +2360,7 @@
         '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineSub) + '</em></div>' +
       '</div>' +
       '<div class="bearing-readout single">' +
+        '<div><span>Current target</span><strong>' + esc(markCode) + '</strong><em>' + Math.round(nav.bearing) + ' deg true / ' + markMeters + 'm</em></div>' +
         '<div><span>Phone heading</span><strong id="compass-phone-heading">' + esc(headingText) + '</strong><em id="compass-heading-source">' + esc(basisLabel) + '</em></div>' +
       '</div>' +
       '<svg class="bearing-svg" viewBox="0 0 220 220" role="img" aria-label="Phone compass bearing to next mark and laylines">' +
@@ -2907,14 +2908,22 @@
 
     actual.startCrossed = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     actual.lastAutoAdvance = actual.startCrossed + ' crossed start line';
+    actual.legIndex = Math.max(parseInt(actual.legIndex || 0, 10), 1);
+    actual.lastMarkCode = '';
+    actual.lastMarkDistance = '';
+    actual.closestMarkDistance = '';
     if (state.currentView === 'race' && state.raceTab === 'start') state.raceTab = 'course';
   }
 
   function updateMarkProgress(actual, boat, course) {
-    var sequence = courseSequence(course);
+    var sequence = navSequence(course);
     if (!sequence.length) return;
 
     var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), sequence.length - 1);
+    if (legIndex === 0) {
+      if (actual.startCrossed && sequence.length > 1) actual.legIndex = 1;
+      return;
+    }
     var next = sequence[legIndex];
     var mark = next ? markForCourseEntry(next, course) : null;
     if (!mark || !hasCoords(mark)) return;
@@ -2951,6 +2960,10 @@
   function selectActualLeg() {
     var actual = activeActual();
     actual.legIndex = parseInt(valueOf('actual-leg') || '0', 10);
+    actual.lastMarkCode = '';
+    actual.lastMarkDistance = '';
+    actual.closestMarkDistance = '';
+    actual.lastAutoAdvance = 'manual leg ' + (actual.legIndex + 1);
     saveState();
     renderRace();
   }
@@ -3041,7 +3054,7 @@
     var course = activeCourse();
     var forecast = activeForecast();
     var race = activeRace();
-    var sequence = courseSequence(course);
+    var sequence = navSequence(course);
     var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
     var next = sequence[legIndex];
     var mark = next ? markForCourseEntry(next, course) : null;
@@ -3115,7 +3128,7 @@
     var actual = activeActual();
     var course = activeCourse();
     var forecast = activeForecast();
-    var sequence = courseSequence(course);
+    var sequence = navSequence(course);
     var legIndex = Math.min(Math.max(parseInt(actual.legIndex || 0, 10), 0), Math.max(sequence.length - 1, 0));
     var next = sequence[legIndex];
     var mark = next ? markForCourseEntry(next, course) : null;
@@ -3370,6 +3383,19 @@
     );
   }
 
+  function navSequence(course) {
+    var start = courseStartReference(course);
+    var sequence = start ? [{ code: 'START', rounding: 'line' }] : [];
+    return sequence.concat(courseSequence(course));
+  }
+
+  function navTargetLabel(entry) {
+    if (!entry) return '';
+    if (entry.code === 'START') return 'START LINE';
+    if (entry.rounding === 'gate') return entry.code + ' GATE';
+    return entry.code;
+  }
+
   function courseSequence(course) {
     if (course.type === 'rtc') {
       return course.cans.slice();
@@ -3420,6 +3446,7 @@
 
   function markForCourseEntry(entry, course) {
     if (entry.code.indexOf('/') === -1) {
+      if (entry.code === 'START') return startMidpoint(course) || courseStartReference(course);
       if (course && entry.code === course.finish) {
         var line = lineAssumption(course);
         if (line && line.finish) return line.finish;
