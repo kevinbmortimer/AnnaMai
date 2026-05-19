@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.6.4';
+  var APP_VERSION = '0.6.6';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v18';
+  var CACHE_NAME = 'anna-mai-v20';
   var gpsWatchId = null;
   var BOAT = {
     name: 'Anna Mai',
@@ -464,6 +464,7 @@
     }).join('');
 
     byId('v-settings').innerHTML = raceStrip() +
+      iphonePermissionsCard(settings) +
       apiFetchCard() +
       forecastEditorCard() +
       card('API Schedule',
@@ -475,26 +476,6 @@
         '<button class="btn-full" onclick="saveSettings()">SAVE SETTINGS</button>' +
         '<div class="api-note">Forecast and tide API samples are taken from the Class 1 warning signal. First races use first warning + 6 min; back-to-back races use the estimated IRC3 start minus 17 min.</div>',
         settings.lastSettingsSaved || 'not saved'
-      ) +
-      card('iPhone Permissions',
-        '<div class="stat-row">' +
-          statCell('GPS', settings.gpsStatus || 'Not checked', settings.lastGpsTime || 'tap request') +
-          statCell('Last fix', settings.lastGps || '--', settings.gpsAccuracy || 'settings test') +
-          statCell('SOG / COG', gpsMotionLabel(settings), 'from location') +
-          statCell('Motion', settings.motionStatus || 'Not checked', settings.lastMotion || 'compass / heel') +
-          statCell('Awake', settings.wakeStatus || 'Not checked', settings.wakeTime || 'screen lock') +
-          statCell('Sound', settings.soundStatus || 'Not checked', settings.soundTime || 'countdown alerts') +
-        '</div>' +
-        '<div class="ctrl-row">' +
-          '<div class="ctrl go-btn" onclick="requestGpsPermission()">GPS<br>FIX</div>' +
-          '<div class="ctrl sync" onclick="toggleLiveGps()">LIVE<br>GPS</div>' +
-          '<div class="ctrl set" onclick="requestMotionPermission()">MOTION<br>COMPASS</div>' +
-        '</div>' +
-        '<div class="ctrl-row">' +
-          '<div class="ctrl sync" onclick="requestWakeLock()">KEEP<br>AWAKE</div>' +
-          '<div class="ctrl set" onclick="requestSoundPermission()">SOUND<br>HAPTIC</div>' +
-        '</div>',
-        'iOS prompt'
       ) +
       actualLogCard(activeRace()) +
       card('Version',
@@ -508,6 +489,29 @@
           versionRow('Polar', POLAR_SOURCE) +
         '</div>'
       );
+  }
+
+  function iphonePermissionsCard(settings) {
+    return card('iPhone Permissions',
+      '<div class="stat-row">' +
+        statCell('GPS', settings.gpsStatus || 'Not checked', settings.lastGpsTime || 'tap request') +
+        statCell('Last fix', settings.lastGps || '--', settings.gpsAccuracy || 'settings test') +
+        statCell('SOG / COG', gpsMotionLabel(settings), 'from location') +
+        statCell('Motion', settings.motionStatus || 'Not checked', settings.lastMotion || 'compass / heel') +
+        statCell('Awake', settings.wakeStatus || 'Not checked', settings.wakeTime || 'screen lock') +
+        statCell('Sound', settings.soundStatus || 'Not checked', settings.soundTime || 'countdown alerts') +
+      '</div>' +
+      '<div class="ctrl-row">' +
+        '<div class="ctrl go-btn" onclick="requestGpsPermission()">GPS<br>FIX</div>' +
+        '<div class="ctrl sync" onclick="toggleLiveGps()">LIVE<br>GPS</div>' +
+        '<div class="ctrl set" onclick="requestMotionPermission()">MOTION<br>COMPASS</div>' +
+      '</div>' +
+      '<div class="ctrl-row">' +
+        '<div class="ctrl sync" onclick="requestWakeLock()">KEEP<br>AWAKE</div>' +
+        '<div class="ctrl set" onclick="requestSoundPermission()">SOUND<br>HAPTIC</div>' +
+      '</div>',
+      'iOS prompt'
+    );
   }
 
   function versionRow(label, value) {
@@ -2634,6 +2638,10 @@
     window.toggleCanRounding = toggleCanRounding;
     window.saveMark = saveMark;
     window.saveMarkFromCommittee = saveMarkFromCommittee;
+    window.saveWlMarksFromCommittee = saveWlMarksFromCommittee;
+    window.saveWLMarksFromCommittee = saveWlMarksFromCommittee;
+    window.saveW1MarksFromCommittee = saveWlMarksFromCommittee;
+    window.saveW1MarksFromComitte = saveWlMarksFromCommittee;
     window.editMark = editMark;
     window.deleteMark = deleteMark;
     window.setRaceTab = setRaceTab;
