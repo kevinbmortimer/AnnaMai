@@ -2,9 +2,11 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.3';
+  var APP_VERSION = '0.7.5';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v27';
+  var CACHE_NAME = 'anna-mai-v29';
+  var MIN_TACTICAL_ZOOM = 0.75;
+  var MAX_TACTICAL_ZOOM = 24;
   var gpsWatchId = null;
   var compassWatchActive = false;
   var compassLastSave = 0;
@@ -1903,6 +1905,8 @@
     var laylineLength = Math.max(nav.distance * 1.8, 0.6);
     var portBack = hasLaylines ? offsetPoint(nextPoint, normalize(nav.port + 180), laylineLength) : null;
     var stbdBack = hasLaylines ? offsetPoint(nextPoint, normalize(nav.stbd + 180), laylineLength) : null;
+    var portReference = hasLaylines ? laylineReferenceFromBoat(boatPoint, nextPoint, nav.port) : null;
+    var stbdReference = hasLaylines ? laylineReferenceFromBoat(boatPoint, nextPoint, nav.stbd) : null;
     var cog = gpsCourseNumber(actual);
     var sog = gpsSpeedNumber(actual);
     var cogEnd = cog == null ? null : offsetPoint(boatPoint, cog, Math.max(0.16, Math.min(nav.distance * 0.45, 0.7)));
@@ -1938,6 +1942,8 @@
       routeMarks: routeMarks,
       portBack: portBack,
       stbdBack: stbdBack,
+      portReference: portReference,
+      stbdReference: stbdReference,
       cog: cog,
       sog: sog,
       cogEnd: cogEnd,
@@ -1964,9 +1970,9 @@
 
   function mapZoomControls(context) {
     return '<div class="map-tools">' +
-      '<button type="button" onclick="return zoomTacticalMap(-0.5)">-</button>' +
+      '<button type="button" onclick="return zoomTacticalMap(-1)">-</button>' +
       '<span>ZOOM ' + context.zoom.toFixed(2) + 'x / ' + esc(context.viewLabel) + '</span>' +
-      '<button type="button" onclick="return zoomTacticalMap(0.5)">+</button>' +
+      '<button type="button" onclick="return zoomTacticalMap(1)">+</button>' +
       '<button type="button" onclick="return fitTacticalMap()">FIT</button>' +
     '</div>';
   }
@@ -2002,7 +2008,7 @@
   }
 
   function clampTacticalZoom(value) {
-    return Math.max(0.75, Math.min(4, Number(value) || 1));
+    return Math.max(MIN_TACTICAL_ZOOM, Math.min(MAX_TACTICAL_ZOOM, Number(value) || 1));
   }
 
   function zoomedMapBounds(bounds, center, zoom) {
@@ -2176,16 +2182,18 @@
     var laylineSub = context.intercept && context.tack
       ? laylineTime + ' at current speed'
       : context.cog == null ? 'needs GPS COG' : 'no forward intercept on current COG';
-    var portLaylineLabel = nav.portStatus === 'no wind' ? '--' : 'P ' + Math.round(nav.port);
-    var stbdLaylineLabel = nav.stbdStatus === 'no wind' ? '--' : 'S ' + Math.round(nav.stbd);
+    var portLaylineBearing = context.portReference ? context.portReference.bearing : null;
+    var stbdLaylineBearing = context.stbdReference ? context.stbdReference.bearing : null;
+    var portLaylineLabel = context.portReference ? 'P ' + formatMeters(context.portReference.distance) : '--';
+    var stbdLaylineLabel = context.stbdReference ? 'S ' + formatMeters(context.stbdReference.distance) : '--';
     var headingText = phoneHeading == null ? '--' : Math.round(phoneHeading) + ' deg';
     var markText = markRel == null ? Math.round(nav.bearing) + ' deg true' : relativeAngleLabel(markRel);
     var markCode = next ? next.code : 'MARK';
 
-    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + (nav.portStatus === 'no wind' ? '' : svgNumber(nav.port)) + '" data-stbd-bearing="' + (nav.stbdStatus === 'no wind' ? '' : svgNumber(nav.stbd)) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
+    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + (portLaylineBearing == null ? '' : svgNumber(portLaylineBearing)) + '" data-stbd-bearing="' + (stbdLaylineBearing == null ? '' : svgNumber(stbdLaylineBearing)) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
       '<div class="bearing-readout">' +
         '<div><span>Next mark</span><strong id="compass-mark-angle">' + esc(markText) + '</strong><em>' + esc(markCode) + ' / ' + markMeters + 'm</em></div>' +
-        '<div><span>Laylines</span><strong>' + esc(portLaylineLabel) + ' / ' + esc(stbdLaylineLabel) + '</strong><em>port / starboard headings</em></div>' +
+        '<div><span>Laylines</span><strong>' + esc(portLaylineLabel) + ' / ' + esc(stbdLaylineLabel) + '</strong><em>nearest point from GPS</em></div>' +
         '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineSub) + '</em></div>' +
       '</div>' +
       '<div class="bearing-readout single">' +
@@ -2202,8 +2210,8 @@
         '<text x="208" y="113">R</text>' +
         '<line class="phone-forward" x1="110" y1="110" x2="110" y2="26"></line>' +
         compassArrow('compass-mark-arrow', 'mark', nav.bearing, basis, markCode) +
-        (nav.portStatus === 'no wind' ? '' : compassArrow('compass-port-arrow', 'port', nav.port, basis, 'P')) +
-        (nav.stbdStatus === 'no wind' ? '' : compassArrow('compass-stbd-arrow', 'stbd', nav.stbd, basis, 'S')) +
+        (portLaylineBearing == null ? '' : compassArrow('compass-port-arrow', 'port', portLaylineBearing, basis, 'P')) +
+        (stbdLaylineBearing == null ? '' : compassArrow('compass-stbd-arrow', 'stbd', stbdLaylineBearing, basis, 'S')) +
         (context.interceptBearing == null ? '' : compassArrow('compass-intercept-arrow', 'intercept', context.interceptBearing, basis, 'LL')) +
         (context.cog == null ? '' : compassArrow('compass-cog-arrow', 'cog', context.cog, basis, 'COG')) +
         '<circle class="bearing-center" cx="110" cy="110" r="5"></circle>' +
@@ -2463,6 +2471,10 @@
   }
 
   function chartZoomForSpan(spanNm) {
+    if (spanNm <= 0.08) return 19;
+    if (spanNm <= 0.16) return 18;
+    if (spanNm <= 0.32) return 17;
+    if (spanNm <= 0.5) return 16;
     if (spanNm <= 0.8) return 15;
     if (spanNm <= 1.6) return 14;
     if (spanNm <= 3.2) return 13;
@@ -2572,8 +2584,36 @@
     };
   }
 
+  function laylineReferenceFromBoat(boatPoint, markPoint, laylineHeading) {
+    var ray = bearingUnit(normalize(laylineHeading + 180));
+    var boatFromMark = {
+      x: boatPoint.x - markPoint.x,
+      y: boatPoint.y - markPoint.y
+    };
+    var alongRay = Math.max(0, boatFromMark.x * ray.x + boatFromMark.y * ray.y);
+    var nearest = {
+      x: markPoint.x + ray.x * alongRay,
+      y: markPoint.y + ray.y * alongRay
+    };
+    var dx = nearest.x - boatPoint.x;
+    var dy = nearest.y - boatPoint.y;
+    var distance = Math.sqrt(dx * dx + dy * dy);
+    return {
+      point: nearest,
+      distance: distance,
+      bearing: distance < 0.005 ? normalize(laylineHeading) : bearingBetweenLocalPoints(boatPoint, nearest)
+    };
+  }
+
   function bearingBetweenLocalPoints(fromPoint, toPoint) {
     return normalize(toDeg(Math.atan2(toPoint.x - fromPoint.x, toPoint.y - fromPoint.y)));
+  }
+
+  function formatMeters(distanceNmValue) {
+    if (distanceNmValue == null || !Number.isFinite(Number(distanceNmValue))) return '--';
+    var meters = Math.round(Number(distanceNmValue) * 1852);
+    if (meters >= 1000) return (meters / 1000).toFixed(1) + 'km';
+    return meters + 'm';
   }
 
   function formatDurationShort(totalSeconds) {
