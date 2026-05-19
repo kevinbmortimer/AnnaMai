@@ -1,7 +1,7 @@
 // Anna Mai Race Bridge - Service Worker
 // Caches the app shell for offline use
 
-const CACHE_NAME = 'anna-mai-v26';
+const CACHE_NAME = 'anna-mai-v27';
 const CACHE_URLS = [
   './',
   './index.html',

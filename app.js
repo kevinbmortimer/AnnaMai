@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.2';
+  var APP_VERSION = '0.7.3';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v26';
+  var CACHE_NAME = 'anna-mai-v27';
   var gpsWatchId = null;
   var compassWatchActive = false;
   var compassLastSave = 0;
@@ -1815,7 +1815,7 @@
 
     var context = tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual);
     var boatSvg = context.project(context.boatPoint);
-    var mapViewBox = tacticalSvgViewBox(context.zoom, boatSvg);
+    var mapViewBox = '0 0 320 300';
     var nextSvg = context.project(context.nextPoint);
     var routePoints = [context.boatPoint].concat(context.routeMarks.map(function (item) { return item.point; }));
     var routeSvg = routePoints.map(function (point) { return svgPointText(context.project(point)); }).join(' ');
@@ -1927,9 +1927,10 @@
     var rawBounds = tacticalMapBounds(boundsPoints);
     var zoom = tacticalMapZoom();
     var pan = tacticalMapPan();
-    var bounds = pannedMapBounds(rawBounds, pan);
-    var viewSpanX = bounds.spanX / zoom;
-    var viewSpanY = bounds.spanY / zoom;
+    var zoomBounds = zoomedMapBounds(rawBounds, boatPoint, zoom);
+    var bounds = pannedMapBounds(zoomBounds, pan);
+    var viewSpanX = bounds.spanX;
+    var viewSpanY = bounds.spanY;
 
     return {
       boatPoint: boatPoint,
@@ -2020,16 +2021,6 @@
     };
   }
 
-  function tacticalSvgViewBox(zoom, center) {
-    var width = 320 / Math.max(1, zoom || 1);
-    var height = 300 / Math.max(1, zoom || 1);
-    var cx = center && Number.isFinite(center.x) ? center.x : 160;
-    var cy = center && Number.isFinite(center.y) ? center.y : 150;
-    var x = Math.max(0, Math.min(320 - width, cx - width / 2));
-    var y = Math.max(0, Math.min(300 - height, cy - height / 2));
-    return [svgNumber(x), svgNumber(y), svgNumber(width), svgNumber(height)].join(' ');
-  }
-
   function tacticalMapPan() {
     var settings = activeSettings();
     return {
@@ -2051,6 +2042,11 @@
   }
 
   function startTacticalPan(event) {
+    if (window.annaMaiMapGesture && event && String(event.type || '').indexOf('pointer') === 0) {
+      if (event.preventDefault) event.preventDefault();
+      return false;
+    }
+
     var target = event.currentTarget || byId('tactical-map-svg');
     var pinch = tacticalPinchInfo(event);
     if (pinch && target) {
@@ -2059,7 +2055,6 @@
         startDistance: pinch.distance,
         startZoom: tacticalMapZoom(),
         nextZoom: tacticalMapZoom(),
-        center: tacticalSvgCenter(target),
         moved: false,
         target: target
       };
@@ -2081,7 +2076,6 @@
       spanY: toNumber(target && target.getAttribute('data-span-y')) || 1,
       startPan: tacticalMapPan(),
       nextPan: tacticalMapPan(),
-      startViewBox: tacticalCurrentViewBox(target),
       target: target
     };
     if (event.preventDefault) event.preventDefault();
@@ -2098,10 +2092,7 @@
       var nextZoom = clampTacticalZoom(gesture.startZoom * (pinch.distance / gesture.startDistance));
       gesture.nextZoom = nextZoom;
       gesture.moved = true;
-      if (gesture.target) {
-        gesture.target.setAttribute('viewBox', tacticalSvgViewBox(nextZoom, gesture.center));
-        updateMapZoomLabel(nextZoom, gesture.target);
-      }
+      updateMapZoomLabel(nextZoom, gesture.target);
       if (event.preventDefault) event.preventDefault();
       return false;
     }
@@ -2117,7 +2108,7 @@
       x: gesture.startPan.x + dxNm,
       y: gesture.startPan.y + dyNm
     };
-    updateTacticalPanViewBox(gesture, dxPx, dyPx);
+    updateMapPanLabel(gesture.nextPan, gesture.target);
     if (event.preventDefault) event.preventDefault();
     return false;
   }
@@ -2163,55 +2154,14 @@
     };
   }
 
-  function tacticalSvgCenter(target) {
-    return {
-      x: toNumber(target && target.getAttribute('data-boat-x')) || 160,
-      y: toNumber(target && target.getAttribute('data-boat-y')) || 150
-    };
-  }
-
-  function tacticalClientToSvg(target, clientX, clientY) {
-    if (!target || !target.getBoundingClientRect) return null;
-    var rect = target.getBoundingClientRect();
-    if (!rect || !rect.width || !rect.height) return null;
-    var viewBox = tacticalCurrentViewBox(target);
-    return {
-      x: viewBox.x + (clientX - rect.left) / rect.width * viewBox.width,
-      y: viewBox.y + (clientY - rect.top) / rect.height * viewBox.height
-    };
-  }
-
-  function tacticalCurrentViewBox(target) {
-    var value = target && target.getAttribute('viewBox');
-    var parts = String(value || '0 0 320 300').trim().split(/[,\s]+/).map(Number);
-    return {
-      x: Number.isFinite(parts[0]) ? parts[0] : 0,
-      y: Number.isFinite(parts[1]) ? parts[1] : 0,
-      width: Number.isFinite(parts[2]) && parts[2] > 0 ? parts[2] : 320,
-      height: Number.isFinite(parts[3]) && parts[3] > 0 ? parts[3] : 300
-    };
-  }
-
-  function updateTacticalPanViewBox(gesture, dxPx, dyPx) {
-    if (!gesture || !gesture.target || !gesture.startViewBox) return;
-    var rect = gesture.target.getBoundingClientRect ? gesture.target.getBoundingClientRect() : null;
-    var widthPx = rect && rect.width ? rect.width : 320;
-    var heightPx = rect && rect.height ? rect.height : 300;
-    var nextX = gesture.startViewBox.x - dxPx / widthPx * gesture.startViewBox.width;
-    var nextY = gesture.startViewBox.y - dyPx / heightPx * gesture.startViewBox.height;
-    nextX = Math.max(0, Math.min(320 - gesture.startViewBox.width, nextX));
-    nextY = Math.max(0, Math.min(300 - gesture.startViewBox.height, nextY));
-    gesture.target.setAttribute('viewBox', [
-      svgNumber(nextX),
-      svgNumber(nextY),
-      svgNumber(gesture.startViewBox.width),
-      svgNumber(gesture.startViewBox.height)
-    ].join(' '));
-  }
-
   function updateMapZoomLabel(zoom, target) {
     var label = target && target.parentNode ? target.parentNode.querySelector('.map-tools span') : null;
-    if (label) label.textContent = 'ZOOM ' + zoom.toFixed(2) + 'x';
+    if (label) label.textContent = 'ZOOM ' + zoom.toFixed(2) + 'x / release to redraw';
+  }
+
+  function updateMapPanLabel(pan, target) {
+    var label = target && target.parentNode ? target.parentNode.querySelector('.map-tools span') : null;
+    if (label) label.textContent = 'PAN ' + pan.x.toFixed(2) + ',' + pan.y.toFixed(2) + 'nm / release to redraw';
   }
 
   function compassBearingPanel(nav, next, context) {
@@ -2226,15 +2176,20 @@
     var laylineSub = context.intercept && context.tack
       ? laylineTime + ' at current speed'
       : context.cog == null ? 'needs GPS COG' : 'no forward intercept on current COG';
+    var portLaylineLabel = nav.portStatus === 'no wind' ? '--' : 'P ' + Math.round(nav.port);
+    var stbdLaylineLabel = nav.stbdStatus === 'no wind' ? '--' : 'S ' + Math.round(nav.stbd);
     var headingText = phoneHeading == null ? '--' : Math.round(phoneHeading) + ' deg';
     var markText = markRel == null ? Math.round(nav.bearing) + ' deg true' : relativeAngleLabel(markRel);
     var markCode = next ? next.code : 'MARK';
 
-    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
+    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + (nav.portStatus === 'no wind' ? '' : svgNumber(nav.port)) + '" data-stbd-bearing="' + (nav.stbdStatus === 'no wind' ? '' : svgNumber(nav.stbd)) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
       '<div class="bearing-readout">' +
         '<div><span>Next mark</span><strong id="compass-mark-angle">' + esc(markText) + '</strong><em>' + esc(markCode) + ' / ' + markMeters + 'm</em></div>' +
-        '<div><span>Phone heading</span><strong id="compass-phone-heading">' + esc(headingText) + '</strong><em id="compass-heading-source">' + esc(basisLabel) + '</em></div>' +
+        '<div><span>Laylines</span><strong>' + esc(portLaylineLabel) + ' / ' + esc(stbdLaylineLabel) + '</strong><em>port / starboard headings</em></div>' +
         '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineSub) + '</em></div>' +
+      '</div>' +
+      '<div class="bearing-readout single">' +
+        '<div><span>Phone heading</span><strong id="compass-phone-heading">' + esc(headingText) + '</strong><em id="compass-heading-source">' + esc(basisLabel) + '</em></div>' +
       '</div>' +
       '<svg class="bearing-svg" viewBox="0 0 220 220" role="img" aria-label="Phone compass bearing to next mark and laylines">' +
         '<circle class="bearing-ring" cx="110" cy="110" r="92"></circle>' +
@@ -2247,6 +2202,8 @@
         '<text x="208" y="113">R</text>' +
         '<line class="phone-forward" x1="110" y1="110" x2="110" y2="26"></line>' +
         compassArrow('compass-mark-arrow', 'mark', nav.bearing, basis, markCode) +
+        (nav.portStatus === 'no wind' ? '' : compassArrow('compass-port-arrow', 'port', nav.port, basis, 'P')) +
+        (nav.stbdStatus === 'no wind' ? '' : compassArrow('compass-stbd-arrow', 'stbd', nav.stbd, basis, 'S')) +
         (context.interceptBearing == null ? '' : compassArrow('compass-intercept-arrow', 'intercept', context.interceptBearing, basis, 'LL')) +
         (context.cog == null ? '' : compassArrow('compass-cog-arrow', 'cog', context.cog, basis, 'COG')) +
         '<circle class="bearing-center" cx="110" cy="110" r="5"></circle>' +
@@ -2283,6 +2240,8 @@
     if (!panel || phoneHeading == null) return;
 
     updateCompassArrow('compass-mark-arrow', phoneHeading);
+    updateCompassArrow('compass-port-arrow', phoneHeading);
+    updateCompassArrow('compass-stbd-arrow', phoneHeading);
     updateCompassArrow('compass-intercept-arrow', phoneHeading);
     updateCompassArrow('compass-cog-arrow', phoneHeading);
 
