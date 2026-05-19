@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.7.0';
+  var APP_VERSION = '0.7.2';
   var APP_BUILD = '2026-05-18';
-  var CACHE_NAME = 'anna-mai-v24';
+  var CACHE_NAME = 'anna-mai-v26';
   var gpsWatchId = null;
   var compassWatchActive = false;
   var compassLastSave = 0;
@@ -1815,6 +1815,7 @@
 
     var context = tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual);
     var boatSvg = context.project(context.boatPoint);
+    var mapViewBox = tacticalSvgViewBox(context.zoom, boatSvg);
     var nextSvg = context.project(context.nextPoint);
     var routePoints = [context.boatPoint].concat(context.routeMarks.map(function (item) { return item.point; }));
     var routeSvg = routePoints.map(function (point) { return svgPointText(context.project(point)); }).join(' ');
@@ -1837,7 +1838,7 @@
 
     return '<div class="ll-svg-wrap">' + title +
       mapZoomControls(context) +
-      '<svg id="tactical-map-svg" class="layline-svg" viewBox="0 0 320 300" role="img" aria-label="Live tactical layline map" data-span-x="' + svgNumber(context.bounds.spanX) + '" data-span-y="' + svgNumber(context.bounds.spanY) + '" onpointerdown="return startTacticalPan(event)" onpointermove="return moveTacticalPan(event)" onpointerup="return endTacticalPan(event)" onpointercancel="return endTacticalPan(event)" ontouchstart="return startTacticalPan(event)" ontouchmove="return moveTacticalPan(event)" ontouchend="return endTacticalPan(event)" ontouchcancel="return endTacticalPan(event)">' +
+      '<svg id="tactical-map-svg" class="layline-svg" viewBox="' + mapViewBox + '" role="img" aria-label="Live tactical layline map" data-span-x="' + svgNumber(context.viewSpanX) + '" data-span-y="' + svgNumber(context.viewSpanY) + '" data-boat-x="' + svgNumber(boatSvg.x) + '" data-boat-y="' + svgNumber(boatSvg.y) + '" onpointerdown="return startTacticalPan(event)" onpointermove="return moveTacticalPan(event)" onpointerup="return endTacticalPan(event)" onpointercancel="return endTacticalPan(event)" ontouchstart="return startTacticalPan(event)" ontouchmove="return moveTacticalPan(event)" ontouchend="return endTacticalPan(event)" ontouchcancel="return endTacticalPan(event)">' +
         '<defs>' +
           '<marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#80CBC4"></path></marker>' +
           '<marker id="boatarr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#fff"></path></marker>' +
@@ -1907,6 +1908,7 @@
     var cogEnd = cog == null ? null : offsetPoint(boatPoint, cog, Math.max(0.16, Math.min(nav.distance * 0.45, 0.7)));
     var tack = hasLaylines && cog != null ? currentTackFromCog(cog, nav) : null;
     var intercept = tack ? lineRayLaylineIntercept(boatPoint, nextPoint, cog, tack.targetHeading) : null;
+    var interceptBearing = intercept ? bearingBetweenLocalPoints(boatPoint, intercept.point) : null;
     var speed = sog;
     var speedSource = speed != null && speed > 0.2 ? 'GPS SOG' : '';
 
@@ -1925,7 +1927,9 @@
     var rawBounds = tacticalMapBounds(boundsPoints);
     var zoom = tacticalMapZoom();
     var pan = tacticalMapPan();
-    var bounds = pannedMapBounds(zoomedMapBounds(rawBounds, boatPoint, zoom), pan);
+    var bounds = pannedMapBounds(rawBounds, pan);
+    var viewSpanX = bounds.spanX / zoom;
+    var viewSpanY = bounds.spanY / zoom;
 
     return {
       boatPoint: boatPoint,
@@ -1938,6 +1942,7 @@
       cogEnd: cogEnd,
       tack: tack,
       intercept: intercept,
+      interceptBearing: interceptBearing,
       interceptSeconds: interceptSeconds,
       interceptTimeLabel: interceptTimeLabel,
       speed: speed,
@@ -1945,7 +1950,9 @@
       zoom: zoom,
       pan: pan,
       areaLabel: rawBounds.spanX.toFixed(2) + ' x ' + rawBounds.spanY.toFixed(2) + 'nm',
-      viewLabel: bounds.spanX.toFixed(2) + ' x ' + bounds.spanY.toFixed(2) + 'nm',
+      viewSpanX: viewSpanX,
+      viewSpanY: viewSpanY,
+      viewLabel: viewSpanX.toFixed(2) + ' x ' + viewSpanY.toFixed(2) + 'nm',
       panLabel: pan.x || pan.y ? 'PAN ' + pan.x.toFixed(2) + ',' + pan.y.toFixed(2) + 'nm' : '',
       originLat: originLat,
       bounds: bounds,
@@ -1956,18 +1963,22 @@
 
   function mapZoomControls(context) {
     return '<div class="map-tools">' +
-      '<button type="button" onclick="return changeTacticalZoom(event,-0.5)">-</button>' +
+      '<button type="button" onclick="return zoomTacticalMap(-0.5)">-</button>' +
       '<span>ZOOM ' + context.zoom.toFixed(2) + 'x / ' + esc(context.viewLabel) + '</span>' +
-      '<button type="button" onclick="return changeTacticalZoom(event,0.5)">+</button>' +
-      '<button type="button" onclick="return resetTacticalZoom(event)">FIT</button>' +
+      '<button type="button" onclick="return zoomTacticalMap(0.5)">+</button>' +
+      '<button type="button" onclick="return fitTacticalMap()">FIT</button>' +
     '</div>';
+  }
+
+  function zoomTacticalMap(delta) {
+    return changeTacticalZoom(delta);
   }
 
   function changeTacticalZoom(eventOrDelta, maybeDelta) {
     if (eventOrDelta && eventOrDelta.preventDefault) eventOrDelta.preventDefault();
     var delta = maybeDelta == null ? Number(eventOrDelta) : Number(maybeDelta);
     var settings = activeSettings();
-    var next = Math.max(0.75, Math.min(4, tacticalMapZoom() + delta));
+    var next = clampTacticalZoom(tacticalMapZoom() + delta);
     settings.mapZoom = next.toFixed(2);
     saveState();
     renderCurrentView();
@@ -1986,7 +1997,11 @@
   }
 
   function tacticalMapZoom() {
-    return Math.max(0.75, Math.min(4, toNumber(activeSettings().mapZoom) || 1));
+    return clampTacticalZoom(toNumber(activeSettings().mapZoom) || 1);
+  }
+
+  function clampTacticalZoom(value) {
+    return Math.max(0.75, Math.min(4, Number(value) || 1));
   }
 
   function zoomedMapBounds(bounds, center, zoom) {
@@ -2003,6 +2018,16 @@
       spanX: spanX,
       spanY: spanY
     };
+  }
+
+  function tacticalSvgViewBox(zoom, center) {
+    var width = 320 / Math.max(1, zoom || 1);
+    var height = 300 / Math.max(1, zoom || 1);
+    var cx = center && Number.isFinite(center.x) ? center.x : 160;
+    var cy = center && Number.isFinite(center.y) ? center.y : 150;
+    var x = Math.max(0, Math.min(320 - width, cx - width / 2));
+    var y = Math.max(0, Math.min(300 - height, cy - height / 2));
+    return [svgNumber(x), svgNumber(y), svgNumber(width), svgNumber(height)].join(' ');
   }
 
   function tacticalMapPan() {
@@ -2026,47 +2051,92 @@
   }
 
   function startTacticalPan(event) {
+    var target = event.currentTarget || byId('tactical-map-svg');
+    var pinch = tacticalPinchInfo(event);
+    if (pinch && target) {
+      window.annaMaiMapGesture = {
+        mode: 'pinch',
+        startDistance: pinch.distance,
+        startZoom: tacticalMapZoom(),
+        nextZoom: tacticalMapZoom(),
+        center: tacticalSvgCenter(target),
+        moved: false,
+        target: target
+      };
+      if (event.preventDefault) event.preventDefault();
+      return false;
+    }
+
     var point = tacticalPanPoint(event);
     if (!point) return false;
-    var target = event.currentTarget || byId('tactical-map-svg');
     if (target && target.setPointerCapture && event.pointerId != null) {
       try { target.setPointerCapture(event.pointerId); } catch (err) {}
     }
-    window.annaMaiPan = {
+    window.annaMaiMapGesture = {
+      mode: 'pan',
       x: point.x,
       y: point.y,
       moved: false,
       spanX: toNumber(target && target.getAttribute('data-span-x')) || 1,
       spanY: toNumber(target && target.getAttribute('data-span-y')) || 1,
-      startPan: tacticalMapPan()
+      startPan: tacticalMapPan(),
+      nextPan: tacticalMapPan(),
+      startViewBox: tacticalCurrentViewBox(target),
+      target: target
     };
     if (event.preventDefault) event.preventDefault();
     return false;
   }
 
   function moveTacticalPan(event) {
-    if (!window.annaMaiPan) return false;
+    var gesture = window.annaMaiMapGesture;
+    if (!gesture) return false;
+
+    if (gesture.mode === 'pinch') {
+      var pinch = tacticalPinchInfo(event);
+      if (!pinch || !gesture.startDistance) return false;
+      var nextZoom = clampTacticalZoom(gesture.startZoom * (pinch.distance / gesture.startDistance));
+      gesture.nextZoom = nextZoom;
+      gesture.moved = true;
+      if (gesture.target) {
+        gesture.target.setAttribute('viewBox', tacticalSvgViewBox(nextZoom, gesture.center));
+        updateMapZoomLabel(nextZoom, gesture.target);
+      }
+      if (event.preventDefault) event.preventDefault();
+      return false;
+    }
+
     var point = tacticalPanPoint(event);
     if (!point) return false;
-    var pan = window.annaMaiPan;
-    var dxPx = point.x - pan.x;
-    var dyPx = point.y - pan.y;
-    if (Math.abs(dxPx) + Math.abs(dyPx) > 2) pan.moved = true;
-    var dxNm = -dxPx / 320 * pan.spanX;
-    var dyNm = dyPx / 300 * pan.spanY;
-    var settings = activeSettings();
-    settings.mapPanX = (pan.startPan.x + dxNm).toFixed(4);
-    settings.mapPanY = (pan.startPan.y + dyNm).toFixed(4);
-    saveState();
-    renderCurrentView();
-    window.annaMaiPan = null;
+    var dxPx = point.x - gesture.x;
+    var dyPx = point.y - gesture.y;
+    if (Math.abs(dxPx) + Math.abs(dyPx) > 2) gesture.moved = true;
+    var dxNm = -dxPx / 320 * gesture.spanX;
+    var dyNm = dyPx / 300 * gesture.spanY;
+    gesture.nextPan = {
+      x: gesture.startPan.x + dxNm,
+      y: gesture.startPan.y + dyNm
+    };
+    updateTacticalPanViewBox(gesture, dxPx, dyPx);
     if (event.preventDefault) event.preventDefault();
     return false;
   }
 
   function endTacticalPan(event) {
-    if (event && event.preventDefault && window.annaMaiPan && window.annaMaiPan.moved) event.preventDefault();
-    window.annaMaiPan = null;
+    var gesture = window.annaMaiMapGesture;
+    if (event && event.preventDefault && gesture && gesture.moved) event.preventDefault();
+    if (gesture && gesture.moved) {
+      var settings = activeSettings();
+      if (gesture.mode === 'pinch') {
+        settings.mapZoom = clampTacticalZoom(gesture.nextZoom).toFixed(2);
+      } else if (gesture.mode === 'pan' && gesture.nextPan) {
+        settings.mapPanX = gesture.nextPan.x.toFixed(4);
+        settings.mapPanY = gesture.nextPan.y.toFixed(4);
+      }
+      saveState();
+      renderCurrentView();
+    }
+    window.annaMaiMapGesture = null;
     return false;
   }
 
@@ -2078,6 +2148,72 @@
     return { x: source.clientX, y: source.clientY };
   }
 
+  function tacticalPinchInfo(event) {
+    if (!event || !event.touches || event.touches.length < 2) return null;
+    var a = event.touches[0];
+    var b = event.touches[1];
+    var dx = b.clientX - a.clientX;
+    var dy = b.clientY - a.clientY;
+    var distance = Math.sqrt(dx * dx + dy * dy);
+    if (!distance || distance < 10) return null;
+    return {
+      distance: distance,
+      x: (a.clientX + b.clientX) / 2,
+      y: (a.clientY + b.clientY) / 2
+    };
+  }
+
+  function tacticalSvgCenter(target) {
+    return {
+      x: toNumber(target && target.getAttribute('data-boat-x')) || 160,
+      y: toNumber(target && target.getAttribute('data-boat-y')) || 150
+    };
+  }
+
+  function tacticalClientToSvg(target, clientX, clientY) {
+    if (!target || !target.getBoundingClientRect) return null;
+    var rect = target.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height) return null;
+    var viewBox = tacticalCurrentViewBox(target);
+    return {
+      x: viewBox.x + (clientX - rect.left) / rect.width * viewBox.width,
+      y: viewBox.y + (clientY - rect.top) / rect.height * viewBox.height
+    };
+  }
+
+  function tacticalCurrentViewBox(target) {
+    var value = target && target.getAttribute('viewBox');
+    var parts = String(value || '0 0 320 300').trim().split(/[,\s]+/).map(Number);
+    return {
+      x: Number.isFinite(parts[0]) ? parts[0] : 0,
+      y: Number.isFinite(parts[1]) ? parts[1] : 0,
+      width: Number.isFinite(parts[2]) && parts[2] > 0 ? parts[2] : 320,
+      height: Number.isFinite(parts[3]) && parts[3] > 0 ? parts[3] : 300
+    };
+  }
+
+  function updateTacticalPanViewBox(gesture, dxPx, dyPx) {
+    if (!gesture || !gesture.target || !gesture.startViewBox) return;
+    var rect = gesture.target.getBoundingClientRect ? gesture.target.getBoundingClientRect() : null;
+    var widthPx = rect && rect.width ? rect.width : 320;
+    var heightPx = rect && rect.height ? rect.height : 300;
+    var nextX = gesture.startViewBox.x - dxPx / widthPx * gesture.startViewBox.width;
+    var nextY = gesture.startViewBox.y - dyPx / heightPx * gesture.startViewBox.height;
+    nextX = Math.max(0, Math.min(320 - gesture.startViewBox.width, nextX));
+    nextY = Math.max(0, Math.min(300 - gesture.startViewBox.height, nextY));
+    gesture.target.setAttribute('viewBox', [
+      svgNumber(nextX),
+      svgNumber(nextY),
+      svgNumber(gesture.startViewBox.width),
+      svgNumber(gesture.startViewBox.height)
+    ].join(' '));
+  }
+
+  function updateMapZoomLabel(zoom, target) {
+    var label = target && target.parentNode ? target.parentNode.querySelector('.map-tools span') : null;
+    if (label) label.textContent = 'ZOOM ' + zoom.toFixed(2) + 'x';
+  }
+
   function compassBearingPanel(nav, next, context) {
     var phoneHeading = phoneCompassHeading();
     var basis = phoneHeading != null ? phoneHeading : context.cog;
@@ -2086,16 +2222,19 @@
     var markMeters = Math.round(nav.distance * 1852);
     var laylineMeters = context.intercept ? Math.round(context.intercept.distance * 1852) + 'm' : '--';
     var laylineTime = context.intercept ? context.interceptTimeLabel : '--';
-    var laylineLabel = context.intercept && context.tack ? context.tack.targetLayline + ' layline' : 'layline';
+    var laylineLabel = context.intercept && context.tack ? context.tack.targetLayline + ' layline ahead' : 'layline';
+    var laylineSub = context.intercept && context.tack
+      ? laylineTime + ' at current speed'
+      : context.cog == null ? 'needs GPS COG' : 'no forward intercept on current COG';
     var headingText = phoneHeading == null ? '--' : Math.round(phoneHeading) + ' deg';
     var markText = markRel == null ? Math.round(nav.bearing) + ' deg true' : relativeAngleLabel(markRel);
     var markCode = next ? next.code : 'MARK';
 
-    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-port-bearing="' + svgNumber(nav.port) + '" data-stbd-bearing="' + svgNumber(nav.stbd) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
+    return '<div id="phone-compass-panel" class="bearing-panel" data-mark-bearing="' + svgNumber(nav.bearing) + '" data-intercept-bearing="' + (context.interceptBearing == null ? '' : svgNumber(context.interceptBearing)) + '" data-cog-bearing="' + (context.cog == null ? '' : svgNumber(context.cog)) + '">' +
       '<div class="bearing-readout">' +
         '<div><span>Next mark</span><strong id="compass-mark-angle">' + esc(markText) + '</strong><em>' + esc(markCode) + ' / ' + markMeters + 'm</em></div>' +
         '<div><span>Phone heading</span><strong id="compass-phone-heading">' + esc(headingText) + '</strong><em id="compass-heading-source">' + esc(basisLabel) + '</em></div>' +
-        '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineTime) + ' at current speed</em></div>' +
+        '<div><span>' + esc(laylineLabel) + '</span><strong>' + esc(laylineMeters) + '</strong><em>' + esc(laylineSub) + '</em></div>' +
       '</div>' +
       '<svg class="bearing-svg" viewBox="0 0 220 220" role="img" aria-label="Phone compass bearing to next mark and laylines">' +
         '<circle class="bearing-ring" cx="110" cy="110" r="92"></circle>' +
@@ -2108,8 +2247,7 @@
         '<text x="208" y="113">R</text>' +
         '<line class="phone-forward" x1="110" y1="110" x2="110" y2="26"></line>' +
         compassArrow('compass-mark-arrow', 'mark', nav.bearing, basis, markCode) +
-        (nav.portStatus === 'no wind' ? '' : compassArrow('compass-port-arrow', 'port', nav.port, basis, 'P')) +
-        (nav.stbdStatus === 'no wind' ? '' : compassArrow('compass-stbd-arrow', 'stbd', nav.stbd, basis, 'S')) +
+        (context.interceptBearing == null ? '' : compassArrow('compass-intercept-arrow', 'intercept', context.interceptBearing, basis, 'LL')) +
         (context.cog == null ? '' : compassArrow('compass-cog-arrow', 'cog', context.cog, basis, 'COG')) +
         '<circle class="bearing-center" cx="110" cy="110" r="5"></circle>' +
       '</svg>' +
@@ -2145,8 +2283,7 @@
     if (!panel || phoneHeading == null) return;
 
     updateCompassArrow('compass-mark-arrow', phoneHeading);
-    updateCompassArrow('compass-port-arrow', phoneHeading);
-    updateCompassArrow('compass-stbd-arrow', phoneHeading);
+    updateCompassArrow('compass-intercept-arrow', phoneHeading);
     updateCompassArrow('compass-cog-arrow', phoneHeading);
 
     var markBearing = toNumber(panel.getAttribute('data-mark-bearing'));
@@ -2456,14 +2593,14 @@
 
   function lineRayLaylineIntercept(boatPoint, markPoint, currentBearing, laylineHeading) {
     var a = bearingUnit(currentBearing);
-    var b = bearingUnit(laylineHeading);
+    var b = bearingUnit(normalize(laylineHeading + 180));
     var dx = markPoint.x - boatPoint.x;
     var dy = markPoint.y - boatPoint.y;
     var det = a.x * b.y - a.y * b.x;
     if (Math.abs(det) < 0.0001) return null;
 
     var t = (dx * b.y - dy * b.x) / det;
-    var s = (a.x * dy - a.y * dx) / det;
+    var s = (a.y * dx - a.x * dy) / det;
     if (t < 0 || s < 0) return null;
 
     return {
@@ -2474,6 +2611,10 @@
       distance: t,
       laylineDistance: s
     };
+  }
+
+  function bearingBetweenLocalPoints(fromPoint, toPoint) {
+    return normalize(toDeg(Math.atan2(toPoint.x - fromPoint.x, toPoint.y - fromPoint.y)));
   }
 
   function formatDurationShort(totalSeconds) {
@@ -3111,8 +3252,9 @@
     window.setRaceTab = setRaceTab;
     window.selectActualLeg = selectActualLeg;
     window.changeTacticalZoom = changeTacticalZoom;
-    window.zoomTacticalMap = changeTacticalZoom;
+    window.zoomTacticalMap = zoomTacticalMap;
     window.resetTacticalZoom = resetTacticalZoom;
+    window.fitTacticalMap = resetTacticalZoom;
     window.startTacticalPan = startTacticalPan;
     window.moveTacticalPan = moveTacticalPan;
     window.endTacticalPan = endTacticalPan;
