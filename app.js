@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.8.4';
+  var APP_VERSION = '0.8.5';
   var APP_BUILD = '2026-05-19';
-  var CACHE_NAME = 'anna-mai-v38';
+  var CACHE_NAME = 'anna-mai-v39';
   var MIN_TACTICAL_ZOOM = 0.75;
   var MAX_TACTICAL_ZOOM = 48;
   var PIN_PORT_DISTANCE_NM = 100 / 1852;
@@ -1486,9 +1486,9 @@
 
   function renderPlanRace(raceId, race, forecast, course) {
     return card(raceId + ' Conditions', forecastSummary(forecast), forecast.start || 'time TBC') +
+      preRaceSimulationCard(forecast, course) +
       raceOpsCard(race, course) +
       predictionAdviceCard(forecast, course) +
-      preRaceSimulationCard(forecast, course) +
       startLineCard(forecast, course) +
       courseCard(course) +
       laylineCard(forecast, course);
@@ -1504,27 +1504,9 @@
 
   function renderCourseRace(race, forecast, course) {
     return card(activeRaceId() + ' Conditions', forecastSummary(forecast), forecast.start || 'time TBC') +
-      raceSimulationCard() +
       actualNavCard(forecast, course) +
       telemetryCounterCard() +
       courseCard(course);
-  }
-
-  function raceSimulationCard() {
-    var sim = race1SimulationPreview();
-    return card('Race 1 Simulation',
-      '<div class="stat-row">' +
-        statCell('Start target', Math.round(sim.start.bearing) + ' deg / ' + sim.start.distance.toFixed(2) + 'nm', 'boat 0.40nm north') +
-        statCell('After start', Math.round(sim.firstMark.bearing) + ' deg / ' + sim.firstMark.distance.toFixed(2) + 'nm', 'to mark 3') +
-        statCell('First gate', sim.gate.call, sim.gate.deltaM + 'm split') +
-      '</div>' +
-      '<div class="sync-row">' +
-        '<div class="sync-btn" onclick="loadRace1SimulationStart()">LOAD START SIM</div>' +
-        '<div class="sync-btn" onclick="loadRace1SimulationGate()">SHOW GATE CALL</div>' +
-      '</div>' +
-      '<div class="api-note">Uses Race 1 WL normal: 3 at 180&deg;/0.8nm, 3A at 160&deg;/0.8nm, 4S at 200&deg;/0.2nm and 4P at 140&deg;/0.2nm from COM. The start sim sets the boat 0.40nm north of the start line; live GPS will overwrite the simulated boat position when enabled.</div>',
-      'RC 1 conditions'
-    );
   }
 
   function countdownCard(race, forecast) {
@@ -1640,27 +1622,29 @@
 
   function preRaceSimulationCard(forecast, course) {
     var legs = preRaceSimulationLegs(forecast, course);
-    var actions = activeRaceId() === 'R1'
-      ? '<div class="sync-row"><div class="sync-btn" onclick="loadRace1SimulationPlan()">LOAD RC1 GEOMETRY</div><div class="sync-btn" onclick="setRaceTab(\'course\')">OPEN LIVE NAV</div></div>'
-      : '<div class="sync-row"><div class="sync-btn" onclick="setRaceTab(\'course\')">OPEN LIVE NAV</div></div>';
+    var actions = simulationActionRow(legs.length > 0);
+    var tideModel = tideModelSummary(forecast);
+    var windDir = toNumber(forecast.windDir);
+    var windSpeed = toNumber(forecast.windSpeed);
 
     if (!legs.length) {
-      return card('Pre-Race Simulation',
-        '<div class="err">Set the course and RC mark positions before running the pre-race simulation.</div>' +
+      return card('Race Simulation',
+        '<div class="stat-row">' +
+          statCell('Course', simulationCourseLabel(course), 'awaiting RC data') +
+          statCell('Forecast wind', windDir == null ? '--' : Math.round(windDir) + ' deg', windSpeed == null ? 'speed not set' : windSpeed.toFixed(1) + 'kt') +
+          statCell('Tide model', tideModel.value, tideModel.sub) +
+        '</div>' +
         actions +
-        '<div class="api-note">The simulation uses the active race forecast, current model and polar targets once the course geometry exists.</div>',
-        activeRaceId()
+        '<div class="ll-advice">' + esc(simulationMissingText(course)) + '</div>',
+        activeRaceId() + ' / waiting'
       );
     }
 
     var totalDistance = legs.reduce(function (sum, leg) { return sum + leg.distance; }, 0);
     var totalMinutes = legs.reduce(function (sum, leg) { return sum + (leg.durationMinutes || 0); }, 0);
-    var tideModel = tideModelSummary(forecast);
-    var windDir = toNumber(forecast.windDir);
-    var windSpeed = toNumber(forecast.windSpeed);
     var rows = legs.map(preRaceSimulationRow).join('');
 
-    return card('Pre-Race Simulation',
+    return card('Race Simulation',
       '<div class="stat-row">' +
         statCell('Total course', totalDistance.toFixed(2) + 'nm', formatDurationShort(totalMinutes * 60)) +
         statCell('Forecast wind', windDir == null ? '--' : Math.round(windDir) + ' deg', windSpeed == null ? 'speed not set' : windSpeed.toFixed(1) + 'kt') +
@@ -1668,24 +1652,60 @@
       '</div>' +
       actions +
       '<div class="leg-rec-list">' + rows + '</div>' +
-      '<div class="api-note">Uses the selected course geometry, forecast wind direction/speed, tide timeline or single current set, and Anna Mai polar targets. Polar speeds start from the ORC baseline and are automatically blended with logged Actual samples.</div>',
+      '<div class="api-note">Calculated from the selected course, forecast wind, tide model and Anna Mai polar blend.</div>',
       activeRaceId() + ' / ' + (course.type === 'wl' ? 'WL ' + wlModel(course) : 'RTC')
     );
   }
 
   function preRaceSimulationRow(leg) {
     var gateText = leg.gateAdvice ? '<div class="leg-rec-body">' + esc(leg.gateAdvice) + '</div>' : '';
-    return '<div class="leg-rec">' +
+    return '<div class="leg-rec sim-leg">' +
       '<div class="leg-rec-title">' + esc('L' + (leg.index + 1) + ' +' + Math.round(leg.startMinutes) + 'm ' + leg.label) + '</div>' +
       '<div class="leg-rec-body">' +
         esc(leg.modeLabel) + ': ' + Math.round(leg.bearing) + '&deg; / ' + leg.distance.toFixed(2) + 'nm. ' +
         'Target ' + leg.targetSpeed.toFixed(1) + 'kt' + (leg.targetAngle ? ' at ' + leg.targetAngle + '&deg; TWA' : '') + '. ' +
         'Model SOG ' + leg.effectiveSpeed.toFixed(1) + 'kt, ETA ' + formatDurationShort((leg.durationMinutes || 0) * 60) + '. ' +
-        'Laylines P ' + leg.portHeading + ' / S ' + leg.stbdHeading + '. ' +
+        'Laylines ' + tackBadge('port', 'PORT ' + leg.portHeading) + ' ' + tackBadge('stbd', 'STBD ' + leg.stbdHeading) + '. ' +
         'Tide ' + leg.tideText + ', correction ' + signedDegreesText(leg.tideCorrection) + '.' +
       '</div>' +
       gateText +
     '</div>';
+  }
+
+  function simulationActionRow(hasLegs) {
+    return '<div class="sync-row">' +
+      '<div class="sync-btn" onclick="showView(\'marks\')">COURSE</div>' +
+      (hasLegs ? '<div class="sync-btn" onclick="setRaceTab(\'course\')">LIVE NAV</div>' : '<div class="sync-btn" onclick="refreshAll()">CALC</div>') +
+    '</div>';
+  }
+
+  function simulationCourseLabel(course) {
+    if (!course) return 'No course';
+    if (course.type === 'rtc') return 'RTC';
+    return 'WL ' + wlModel(course);
+  }
+
+  function simulationMissingText(course) {
+    var missing = missingSimulationMarks(course);
+    if (!missing.length) return 'Waiting for race forecast wind and course confirmation.';
+    return 'Waiting for RC course data: ' + missing.join(', ') + '.';
+  }
+
+  function missingSimulationMarks(course) {
+    if (!course) return ['course'];
+    var missing = [];
+    if (!courseStartReference(course)) missing.push('start line');
+    courseSequence(course).forEach(function (entry) {
+      var mark = markForCourseEntry(entry, course);
+      if (mark && hasCoords(mark)) return;
+      var label = navTargetLabel(entry) || entry.code;
+      if (missing.indexOf(label) === -1) missing.push(label);
+    });
+    return missing;
+  }
+
+  function tackBadge(side, text) {
+    return '<span class="tack-badge ' + side + '">' + esc(text) + '</span>';
   }
 
   function preRaceSimulationLegs(forecast, course) {
@@ -1724,8 +1744,8 @@
           targetSpeed: target.speed || speed,
           effectiveSpeed: speed,
           targetAngle: target.angle,
-          portHeading: windDir == null ? '--' : Math.round(normalize(windDir + tackAngle + correction)) + '&deg;',
-          stbdHeading: windDir == null ? '--' : Math.round(normalize(windDir - tackAngle + correction)) + '&deg;',
+          portHeading: windDir == null ? '--' : Math.round(normalize(windDir + tackAngle + correction)) + ' deg',
+          stbdHeading: windDir == null ? '--' : Math.round(normalize(windDir - tackAngle + correction)) + ' deg',
           tideCorrection: correction,
           tideText: simulationTideText(legForecast),
           gateAdvice: gateAdvice
@@ -2098,7 +2118,10 @@
 
   function actualLaylineCard(label, value, status, unit) {
     var display = value === '--' ? '--' : esc(value) + '<span class="ll-unit">' + esc(unit || 'deg') + '</span>';
-    return '<div class="ll-card" style="border-color:rgba(212,160,23,.28)"><div class="ll-tack">' + label + '</div><div class="ll-dist">' + display + '</div><div class="ll-status ll-crossed">' + esc(status) + '</div></div>';
+    var lower = String(label || '').toLowerCase();
+    var sideClass = lower.indexOf('port') !== -1 ? ' tack-port' : lower.indexOf('stbd') !== -1 || lower.indexOf('starboard') !== -1 ? ' tack-stbd' : '';
+    var border = sideClass === ' tack-port' ? 'rgba(229,57,53,.58)' : sideClass === ' tack-stbd' ? 'rgba(67,160,71,.58)' : 'rgba(212,160,23,.28)';
+    return '<div class="ll-card' + sideClass + '" style="border-color:' + border + '"><div class="ll-tack">' + label + '</div><div class="ll-dist">' + display + '</div><div class="ll-status ll-crossed">' + esc(status) + '</div></div>';
   }
 
   function tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) {
@@ -3602,8 +3625,8 @@
         '<td>' + esc('L' + (leg.index + 1) + ' +' + Math.round(leg.startMinutes) + 'm ' + leg.label) + '</td>' +
         '<td>' + Math.round(leg.bearing) + '&deg;</td>' +
         '<td>' + leg.distance.toFixed(2) + 'nm</td>' +
-        '<td>' + Math.round(normalize(portHeading + correction)) + '&deg;</td>' +
-        '<td>' + Math.round(normalize(stbdHeading + correction)) + '&deg;</td>' +
+        '<td class="tack-cell port">' + Math.round(normalize(portHeading + correction)) + '&deg;</td>' +
+        '<td class="tack-cell stbd">' + Math.round(normalize(stbdHeading + correction)) + '&deg;</td>' +
       '</tr>';
     }).join('');
 
@@ -3890,192 +3913,6 @@
       exit: exit,
       total: approach + exit
     };
-  }
-
-  function race1SimulationPreview() {
-    var marks = race1SimulationMarks();
-    var start = {
-      code: 'START',
-      lat: (Number(marks.PIN.lat) + Number(marks.COM.lat)) / 2,
-      lon: (Number(marks.PIN.lon) + Number(marks.COM.lon)) / 2
-    };
-    var boat = destinationPoint(start, 0, 0.4);
-    var startTarget = startLineTargetFromMarks(boat, marks.PIN, marks.COM);
-    var port = race1GateScore(marks['4P'], marks['3A'], marks['3']);
-    var stbd = race1GateScore(marks['4S'], marks['3A'], marks['3']);
-    var preferred = port.total <= stbd.total ? port : stbd;
-    var deltaM = Math.round(Math.abs(port.total - stbd.total) * 1852);
-    var call = deltaM < 20 ? 'Even gate' : preferred.code;
-
-    return {
-      start: {
-        bearing: bearingTo(boat, startTarget),
-        distance: distanceNm(boat, startTarget)
-      },
-      firstMark: {
-        bearing: bearingTo(boat, marks['3']),
-        distance: distanceNm(boat, marks['3'])
-      },
-      gate: {
-        call: call,
-        deltaM: deltaM
-      }
-    };
-  }
-
-  function race1SimulationMarks() {
-    var committee = { code: 'COM', name: 'Race 1 simulation committee', lat: 50.66667, lon: -1.89500 };
-    var marks = {
-      COM: committee,
-      PIN: destinationPoint(committee, 90, PIN_PORT_DISTANCE_NM),
-      FIN: destinationPoint(committee, 270, FIN_STBD_DISTANCE_NM),
-      '3': destinationPoint(committee, 180, 0.8),
-      '3A': destinationPoint(committee, 160, 0.8),
-      '4S': destinationPoint(committee, 200, 0.2),
-      '4P': destinationPoint(committee, 140, 0.2)
-    };
-
-    Object.keys(marks).forEach(function (code) {
-      marks[code].code = code;
-      marks[code].name = marks[code].name || code + ' Race 1 simulation';
-    });
-    return marks;
-  }
-
-  function race1GateScore(mark, from, afterMark) {
-    var approach = distanceNm(from, mark);
-    var exit = distanceNm(mark, afterMark);
-    return {
-      code: mark.code,
-      approach: approach,
-      exit: exit,
-      total: approach + exit
-    };
-  }
-
-  function loadRace1SimulationStart() {
-    var sim = setupRace1Simulation('course');
-    var actual = state.actuals.R1;
-    var start = startMidpoint(sim.course);
-    var boat = start ? destinationPoint(start, 0, 0.4) : destinationPoint(sim.marks.COM, 0, 0.4);
-    setSimulationBoat(actual, boat, 0, 'Race 1 simulation: 0.40nm north of start line');
-    actual.startCrossed = '';
-    actual.startCrossedRace = '';
-    actual.lastLineSide = '';
-    actual.lastLineSideRace = '';
-    saveState();
-    renderCurrentView();
-  }
-
-  function loadRace1SimulationGate() {
-    var sim = setupRace1Simulation('course');
-    var actual = state.actuals.R1;
-    setSimulationBoat(actual, sim.marks['3A'], 3, 'Race 1 simulation: first gate call from 3A');
-    actual.startCrossed = 'simulation';
-    actual.startCrossedRace = 'R1';
-    actual.lastLineSide = '';
-    actual.lastLineSideRace = 'R1';
-    actual.lastMarkCode = '';
-    actual.lastMarkDistance = '';
-    actual.closestMarkDistance = '';
-    saveState();
-    renderCurrentView();
-  }
-
-  function loadRace1SimulationPlan() {
-    setupRace1Simulation('plan');
-    saveState();
-    renderCurrentView();
-  }
-
-  function setupRace1Simulation(tab) {
-    state.selectedRace = 'R1';
-    state.currentView = 'race';
-    state.raceTab = tab || 'course';
-
-    var race = RACES.find(function (item) { return item.id === 'R1'; }) || RACES[0];
-    var forecast = state.forecasts.R1 = Object.assign(defaultForecast(race), state.forecasts.R1 || {});
-    forecast.start = forecast.start || race.annaMaiStart;
-    forecast.windDir = forecast.windDir || '180';
-    forecast.windSpeed = forecast.windSpeed || '10';
-    forecast.apiUpdated = forecast.apiUpdated || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    forecast.apiSource = forecast.apiSource || 'Race 1 simulation fallback';
-
-    var course = state.courses.R1 = Object.assign(defaultCourse(), state.courses.R1 || {});
-    course.type = 'wl';
-    course.wlCourse = 'normal';
-    course.committee = 'COM';
-    course.pin = 'PIN';
-    course.windward = '3';
-    course.offset = '3A';
-    course.gatePort = '4P';
-    course.gateStbd = '4S';
-    course.finish = 'FIN';
-    course.boatSpeed = course.boatSpeed || '5.5';
-    course.tackAngle = course.tackAngle || '42';
-
-    var marks = race1SimulationMarks();
-    setSimulationMark('COM', marks.COM, '', '');
-    setSimulationMark('3', marks['3'], '180', '0.8');
-    setSimulationMark('3A', marks['3A'], '160', '0.8');
-    setSimulationMark('4S', marks['4S'], '200', '0.2');
-    setSimulationMark('4P', marks['4P'], '140', '0.2');
-    applyLineAssumption(course);
-
-    marks.PIN = findMark('PIN') || marks.PIN;
-    marks.FIN = findMark('FIN') || marks.FIN;
-    return {
-      course: course,
-      forecast: forecast,
-      marks: marks
-    };
-  }
-
-  function setSimulationMark(code, point, bearing, distance) {
-    var mark = findMark(code);
-    if (!mark) {
-      mark = { code: code, name: code + ' Race 1 simulation', lat: '', lon: '', role: 'custom' };
-      state.marks.push(mark);
-    }
-    mark.lat = Number(point.lat).toFixed(5);
-    mark.lon = Number(point.lon).toFixed(5);
-    mark.rcBearing = bearing;
-    mark.rcDistance = distance;
-  }
-
-  function setSimulationBoat(actual, point, legIndex, note) {
-    actual.legIndex = legIndex;
-    actual.boatLat = Number(point.lat).toFixed(5);
-    actual.boatLon = Number(point.lon).toFixed(5);
-    actual.gpsAccuracy = 'simulation';
-    actual.gpsSpeed = '5.5kt';
-    actual.gpsCourse = legIndex === 0 ? '180deg' : '200deg';
-    actual.gpsMode = 'simulation';
-    actual.lastFix = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    actual.lastAutoAdvance = note;
-    activeSettings().lastGpsLat = actual.boatLat;
-    activeSettings().lastGpsLon = actual.boatLon;
-    activeSettings().lastGps = actual.boatLat + ', ' + actual.boatLon;
-    activeSettings().lastGpsTime = actual.lastFix;
-    activeSettings().gpsStatus = 'Simulation';
-    activeSettings().gpsSpeed = actual.gpsSpeed;
-    activeSettings().gpsCourse = actual.gpsCourse;
-    activeSettings().gpsAccuracy = actual.gpsAccuracy;
-  }
-
-  function startLineTargetFromMarks(boat, pin, committee) {
-    var originLat = (Number(pin.lat) + Number(committee.lat) + Number(boat.lat)) / 3;
-    var p = localNmPoint(pin, originLat);
-    var c = localNmPoint(committee, originLat);
-    var b = localNmPoint(boat, originLat);
-    var vx = c.x - p.x;
-    var vy = c.y - p.y;
-    var wx = b.x - p.x;
-    var wy = b.y - p.y;
-    var len2 = vx * vx + vy * vy;
-    if (!len2) return committee;
-    var t = Math.max(0, Math.min(1, (wx * vx + wy * vy) / len2));
-    return localNmToMark({ x: p.x + t * vx, y: p.y + t * vy }, originLat, 'START', 'Nearest point on start line');
   }
 
   function startLineMarksForCourse(course) {
@@ -4378,9 +4215,6 @@
     window.saveActualStart = saveActualStart;
     window.saveStartPage = saveStartPage;
     window.syncRcStart = syncRcStart;
-    window.loadRace1SimulationPlan = loadRace1SimulationPlan;
-    window.loadRace1SimulationStart = loadRace1SimulationStart;
-    window.loadRace1SimulationGate = loadRace1SimulationGate;
     window.saveSettings = saveSettings;
     window.requestGpsPermission = requestGpsPermission;
     window.toggleLiveGps = toggleLiveGps;
