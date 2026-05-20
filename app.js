@@ -2,13 +2,14 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.8.5';
+  var APP_VERSION = '0.9.3';
   var APP_BUILD = '2026-05-19';
-  var CACHE_NAME = 'anna-mai-v39';
+  var CACHE_NAME = 'anna-mai-v47';
   var MIN_TACTICAL_ZOOM = 0.75;
   var MAX_TACTICAL_ZOOM = 48;
   var PIN_PORT_DISTANCE_NM = 100 / 1852;
   var FIN_STBD_DISTANCE_NM = 50 / 1852;
+  var TACK_LOSS_SECONDS = 18;
   var TELEMETRY_MIN_INTERVAL_MS = 5000;
   var TELEMETRY_MAX_SAMPLES = 30000;
   var gpsWatchId = null;
@@ -161,6 +162,7 @@
       offset: '3A',
       gatePort: '4P',
       gateStbd: '4S',
+      finalLeeward: '4P',
       finish: 'FIN',
       lineBearing: '',
       boatSpeed: '5.5',
@@ -1303,6 +1305,7 @@
     course.offset = '3A';
     course.gatePort = '4P';
     course.gateStbd = '4S';
+    course.finalLeeward = '4P';
     course.finish = 'FIN';
     course.lineBearing = valueOf('mk-line-bearing');
     course.boatSpeed = valueOf('mk-boat-speed');
@@ -1487,6 +1490,7 @@
   function renderPlanRace(raceId, race, forecast, course) {
     return card(raceId + ' Conditions', forecastSummary(forecast), forecast.start || 'time TBC') +
       preRaceSimulationCard(forecast, course) +
+      planCourseMapCard(forecast, course) +
       raceOpsCard(race, course) +
       predictionAdviceCard(forecast, course) +
       startLineCard(forecast, course) +
@@ -1598,7 +1602,7 @@
     var windSpeed = toNumber(forecast.windSpeed) || 10;
     var target = polarTarget(windSpeed, 'upwind');
     var downwind = polarTarget(windSpeed, 'downwind');
-    var legs = timedCourseLegs(courseLegs(course), forecast, course);
+    var legs = timedCourseLegs(courseLegs(course, forecast), forecast, course);
     var tideModel = tideModelSummary(forecast);
     var legNote = legs.length
       ? legs.map(function (leg) {
@@ -1643,6 +1647,7 @@
     var totalDistance = legs.reduce(function (sum, leg) { return sum + leg.distance; }, 0);
     var totalMinutes = legs.reduce(function (sum, leg) { return sum + (leg.durationMinutes || 0); }, 0);
     var rows = legs.map(preRaceSimulationRow).join('');
+    var gatePanel = gateCallPanel(firstGateCallModel(forecast, course), 'First Gate');
 
     return card('Race Simulation',
       '<div class="stat-row">' +
@@ -1651,6 +1656,7 @@
         statCell('Tide model', tideModel.value, tideModel.sub) +
       '</div>' +
       actions +
+      gatePanel +
       '<div class="leg-rec-list">' + rows + '</div>' +
       '<div class="api-note">Calculated from the selected course, forecast wind, tide model and Anna Mai polar blend.</div>',
       activeRaceId() + ' / ' + (course.type === 'wl' ? 'WL ' + wlModel(course) : 'RTC')
@@ -1659,13 +1665,22 @@
 
   function preRaceSimulationRow(leg) {
     var gateText = leg.gateAdvice ? '<div class="leg-rec-body">' + esc(leg.gateAdvice) + '</div>' : '';
+    var sailText = leg.directSailable
+      ? 'Direct-sailable: ' + leg.sailability + '. '
+      : 'Not direct: ' + leg.sailability + '; modelled as ' + leg.sailingPlan + ' over ' + leg.sailedDistance.toFixed(2) + 'nm plus ' + leg.manoeuvreLossSeconds + 's tack loss. ';
+    var arrivalText = leg.arrivalAdvice ? leg.arrivalAdvice + ' ' : '';
+    var boardPlanText = leg.boardPlan ? leg.boardPlan.text + ' ' : '';
+    var angleLabel = leg.mode === 'downwind' ? 'Gybe angles' : 'Laylines';
     return '<div class="leg-rec sim-leg">' +
       '<div class="leg-rec-title">' + esc('L' + (leg.index + 1) + ' +' + Math.round(leg.startMinutes) + 'm ' + leg.label) + '</div>' +
       '<div class="leg-rec-body">' +
         esc(leg.modeLabel) + ': ' + Math.round(leg.bearing) + '&deg; / ' + leg.distance.toFixed(2) + 'nm. ' +
         'Target ' + leg.targetSpeed.toFixed(1) + 'kt' + (leg.targetAngle ? ' at ' + leg.targetAngle + '&deg; TWA' : '') + '. ' +
+        sailText +
+        esc(boardPlanText) +
+        arrivalText +
         'Model SOG ' + leg.effectiveSpeed.toFixed(1) + 'kt, ETA ' + formatDurationShort((leg.durationMinutes || 0) * 60) + '. ' +
-        'Laylines ' + tackBadge('port', 'PORT ' + leg.portHeading) + ' ' + tackBadge('stbd', 'STBD ' + leg.stbdHeading) + '. ' +
+        esc(angleLabel) + ' ' + tackBadge('port', (leg.mode === 'downwind' ? 'PORT gybe ' : 'PORT ') + leg.portHeading) + ' ' + tackBadge('stbd', (leg.mode === 'downwind' ? 'STBD gybe ' : 'STBD ') + leg.stbdHeading) + '. ' +
         'Tide ' + leg.tideText + ', correction ' + signedDegreesText(leg.tideCorrection) + '.' +
       '</div>' +
       gateText +
@@ -1708,15 +1723,389 @@
     return '<span class="tack-badge ' + side + '">' + esc(text) + '</span>';
   }
 
+  function planCourseMapCard(forecast, course) {
+    var model = planCourseMapModel(forecast, course);
+    if (!model) {
+      return card('Course Map',
+        '<div class="ll-svg-wrap"><div class="map-title"><span>Course Map</span><span>pre-race overview</span></div>' +
+          '<div class="err">' + esc(simulationMissingText(course)) + '</div>' +
+        '</div>',
+        activeRaceId()
+      );
+    }
+
+    var windDir = toNumber(forecast.windDir);
+    var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180 + model.rotation), 28);
+    var routeSvg = model.route.map(function (item) { return svgPointText(item.svg); }).join(' ');
+    var worldTransform = model.rotation ? ' transform="rotate(' + svgNumber(model.rotation) + ' 160 142)"' : '';
+    var labelled = {};
+    var labels = model.route.map(function (item, index) {
+      var label = item.label || '';
+      var showLabel = !labelled[label] && label.indexOf('GATE') === -1;
+      labelled[label] = true;
+      return '<circle class="' + (index === 0 ? 'line-dot' : 'mark-dot') + '" cx="' + svgNumber(item.svg.x) + '" cy="' + svgNumber(item.svg.y) + '" r="' + (index === 0 ? 4 : 5) + '"></circle>' +
+        (showLabel ? '<text x="' + boundedLabelX(item.svg.x) + '" y="' + boundedLabelY(item.svg.y - 8) + '">' + esc(label) + '</text>' : '');
+    }).join('');
+    var startLineSvg = model.startLine ? (
+      '<line class="start-line" x1="' + svgNumber(model.startLine.pinSvg.x) + '" y1="' + svgNumber(model.startLine.pinSvg.y) + '" x2="' + svgNumber(model.startLine.committeeSvg.x) + '" y2="' + svgNumber(model.startLine.committeeSvg.y) + '"></line>' +
+      (model.startLine.finishSvg ? '<line class="finish-line" x1="' + svgNumber(model.startLine.committeeSvg.x) + '" y1="' + svgNumber(model.startLine.committeeSvg.y) + '" x2="' + svgNumber(model.startLine.finishSvg.x) + '" y2="' + svgNumber(model.startLine.finishSvg.y) + '"></line>' : '') +
+      '<circle class="line-dot" cx="' + svgNumber(model.startLine.pinSvg.x) + '" cy="' + svgNumber(model.startLine.pinSvg.y) + '" r="4"></circle>' +
+      '<circle class="line-dot" cx="' + svgNumber(model.startLine.committeeSvg.x) + '" cy="' + svgNumber(model.startLine.committeeSvg.y) + '" r="4"></circle>' +
+      (model.startLine.finishSvg ? '<circle class="finish-dot" cx="' + svgNumber(model.startLine.finishSvg.x) + '" cy="' + svgNumber(model.startLine.finishSvg.y) + '" r="4"></circle>' : '')
+    ) : '';
+    var gatesSvg = model.gates.map(function (gate) {
+      return '<line class="gate-line" x1="' + svgNumber(gate.stbdSvg.x) + '" y1="' + svgNumber(gate.stbdSvg.y) + '" x2="' + svgNumber(gate.portSvg.x) + '" y2="' + svgNumber(gate.portSvg.y) + '"></line>' +
+        '<circle class="gate-dot" cx="' + svgNumber(gate.stbdSvg.x) + '" cy="' + svgNumber(gate.stbdSvg.y) + '" r="4"></circle>' +
+        '<circle class="gate-dot" cx="' + svgNumber(gate.portSvg.x) + '" cy="' + svgNumber(gate.portSvg.y) + '" r="4"></circle>' +
+        '<text x="' + boundedLabelX(gate.stbdSvg.x) + '" y="' + boundedLabelY(gate.stbdSvg.y - 7) + '">' + esc(gate.stbd.code) + '</text>' +
+        '<text x="' + boundedLabelX(gate.portSvg.x) + '" y="' + boundedLabelY(gate.portSvg.y - 7) + '">' + esc(gate.port.code) + '</text>';
+    }).join('');
+    var chartTiles = '<g' + worldTransform + '>' + chartTileLayerSvg(model.context).replace(/chartclip/g, 'planmapclip') + '</g>';
+    var gridSvg = '<g clip-path="url(#planmapclip)"' + worldTransform + '>' +
+      '<line class="thin" x1="16" y1="79" x2="304" y2="79"></line>' +
+      '<line class="thin" x1="16" y1="142" x2="304" y2="142"></line>' +
+      '<line class="thin" x1="16" y1="205" x2="304" y2="205"></line>' +
+      '<line class="thin" x1="88" y1="16" x2="88" y2="268"></line>' +
+      '<line class="thin" x1="160" y1="16" x2="160" y2="268"></line>' +
+      '<line class="thin" x1="232" y1="16" x2="232" y2="268"></line>' +
+    '</g>';
+    var gatePanel = gateCallPanel(firstGateCallModel(forecast, course), 'Gate Call');
+    var sailingSvg = model.sailingSegments.map(function (segment) {
+      var points = segment.points.map(svgPointText).join(' ');
+      return '<polyline class="plan-sail-track ' + segment.side + '" points="' + points + '"></polyline>' +
+        (segment.tackPoint ? '<circle class="tack-dot" cx="' + svgNumber(segment.tackPoint.x) + '" cy="' + svgNumber(segment.tackPoint.y) + '" r="3"></circle>' : '');
+    }).join('');
+    var recommendedGateSvg = model.recommendedGateSvg ? '<circle class="recommended-gate-ring" cx="' + svgNumber(model.recommendedGateSvg.x) + '" cy="' + svgNumber(model.recommendedGateSvg.y) + '" r="10"></circle><text x="' + boundedLabelX(model.recommendedGateSvg.x) + '" y="' + boundedLabelY(model.recommendedGateSvg.y + 18) + '">ROUND ' + esc(model.recommendedGateCode) + '</text>' : '';
+
+    return card('Course Map',
+      '<div class="ll-svg-wrap">' +
+        '<div class="map-title"><span>Course Map</span><span>' + esc(model.summary) + '</span></div>' +
+        '<svg class="layline-svg course-map-svg" viewBox="0 0 320 300" role="img" aria-label="Pre-race course map">' +
+          '<defs><clipPath id="planmapclip"><rect x="16" y="16" width="288" height="252" rx="4"></rect></clipPath></defs>' +
+          chartTiles +
+          '<rect class="sail-area" x="16" y="16" width="288" height="252" rx="4"></rect>' +
+          gridSvg +
+          '<text x="132" y="18">UPWIND UP</text>' +
+          '<text class="chart-attrib" x="18" y="30">Map tiles: OpenStreetMap / OpenSeaMap</text>' +
+          (windPoint ? '<line class="wind-line" x1="286" y1="52" x2="' + windPoint.x + '" y2="' + windPoint.y + '"></line><text x="245" y="34">TWD ' + Math.round(windDir) + '</text>' : '') +
+          startLineSvg +
+          gatesSvg +
+          '<polyline class="course-route plan-course-route" points="' + routeSvg + '"></polyline>' +
+          sailingSvg +
+          recommendedGateSvg +
+          labels +
+          '<text x="18" y="286">COURSE ' + esc(model.distance.toFixed(2)) + 'nm</text>' +
+          '<text x="188" y="286">' + esc(model.viewLabel) + '</text>' +
+        '</svg>' +
+        gatePanel +
+        '<div class="api-note">Pre-race map uses planned mark positions only; live GPS stays in Race &gt; Course.</div>' +
+      '</div>',
+      activeRaceId()
+    );
+  }
+
+  function planCourseMapModel(forecast, course) {
+    var sequence = courseSequence(course);
+    var start = courseStartReference(course);
+    var route = [];
+    var geoMarks = [];
+    var routeEntries = [];
+    var distance = 0;
+    var from = start;
+    var elapsed = 0;
+
+    if (start && hasCoords(start)) {
+      route.push({ mark: start, label: 'START', entry: { code: 'START', rounding: 'line' } });
+      geoMarks.push(start);
+    }
+
+    sequence.forEach(function (entry, index) {
+      var mark = resolvedCourseMarkForEntry(entry, course, from, sequence, index, forecast, elapsed);
+      if (mark && hasCoords(mark)) {
+        if (from && hasCoords(from)) {
+          var bearing = bearingTo(from, mark);
+          var legDistance = distanceNm(from, mark);
+          var legForecast = tideForecastForElapsed(forecast, elapsed);
+          var mode = sailingModeForLeg(bearing, legForecast);
+          var target = simulationPolarTarget(mode, legForecast, course);
+          var legModel = simulationLegModel(legDistance, bearing, legForecast, course, target, mode);
+          distance += legDistance;
+          if (legModel.durationMinutes > 0) elapsed += legModel.durationMinutes;
+        }
+        route.push({ mark: mark, label: entry.rounding === 'gate' ? 'ROUND ' + mark.code : navTargetLabel(entry), entry: entry });
+        routeEntries.push(entry);
+        geoMarks.push(mark);
+        from = mark;
+      }
+    });
+
+    var startLineMarks = startLineMarksForCourse(course);
+    if (startLineMarks) {
+      geoMarks.push(startLineMarks.pin, startLineMarks.committee);
+      if (startLineMarks.finish && hasCoords(startLineMarks.finish)) geoMarks.push(startLineMarks.finish);
+    }
+
+    var gates = uniqueGateEntries(sequence);
+    gates.forEach(function (gate) {
+      geoMarks.push(gate.stbd, gate.port);
+    });
+
+    geoMarks = geoMarks.filter(function (mark) { return mark && hasCoords(mark); });
+    if (route.length < 2 || geoMarks.length < 2) return null;
+
+    var originLat = geoMarks.reduce(function (sum, mark) { return sum + Number(mark.lat); }, 0) / geoMarks.length;
+    route.forEach(function (item) {
+      item.point = localNmPoint(item.mark, originLat);
+    });
+    var focusPoints = route.map(function (item) { return item.point; });
+    var sailingSegments = planSailingSegments(route, routeEntries, forecast, course, originLat);
+    sailingSegments.forEach(function (segment) {
+      segment.localPoints.forEach(function (point) { focusPoints.push(point); });
+    });
+    var gateModels = gates.map(function (gate) {
+      var stbdPoint = localNmPoint(gate.stbd, originLat);
+      var portPoint = localNmPoint(gate.port, originLat);
+      focusPoints.push(stbdPoint, portPoint);
+      return { stbd: gate.stbd, port: gate.port, stbdPoint: stbdPoint, portPoint: portPoint };
+    });
+    var startLine = null;
+    if (startLineMarks) {
+      startLine = {
+        pin: startLineMarks.pin,
+        committee: startLineMarks.committee,
+        finish: startLineMarks.finish || null,
+        pinPoint: localNmPoint(startLineMarks.pin, originLat),
+        committeePoint: localNmPoint(startLineMarks.committee, originLat),
+        finishPoint: startLineMarks.finish && hasCoords(startLineMarks.finish) ? localNmPoint(startLineMarks.finish, originLat) : null
+      };
+      focusPoints.push(startLine.pinPoint, startLine.committeePoint);
+      if (startLine.finishPoint) focusPoints.push(startLine.finishPoint);
+    }
+
+    var bounds = tacticalMapBounds(focusPoints);
+    var projector = tacticalMapProjector(bounds);
+    var rotation = planCourseMapRotation(route, forecast, course);
+    var displayProjector = function (point) {
+      return rotateSvgPoint(projector(point), rotation);
+    };
+    route.forEach(function (item) { item.svg = displayProjector(item.point); });
+    sailingSegments.forEach(function (segment) {
+      segment.points = segment.localPoints.map(displayProjector);
+      if (segment.localTackPoint) segment.tackPoint = displayProjector(segment.localTackPoint);
+    });
+    gateModels.forEach(function (gate) {
+      gate.stbdSvg = displayProjector(gate.stbdPoint);
+      gate.portSvg = displayProjector(gate.portPoint);
+    });
+    if (startLine) {
+      startLine.pinSvg = displayProjector(startLine.pinPoint);
+      startLine.committeeSvg = displayProjector(startLine.committeePoint);
+      if (startLine.finishPoint) startLine.finishSvg = displayProjector(startLine.finishPoint);
+    }
+
+    var gateCall = firstGateCallModel(forecast, course);
+    var recommendedGate = gateCall && gateCall.preferred ? findMark(gateCall.preferred.code) : null;
+    var recommendedGateSvg = recommendedGate && hasCoords(recommendedGate) ? displayProjector(localNmPoint(recommendedGate, originLat)) : null;
+
+    return {
+      route: route,
+      gates: gateModels,
+      sailingSegments: sailingSegments,
+      startLine: startLine,
+      distance: distance,
+      summary: simulationCourseLabel(course),
+      viewLabel: bounds.spanX.toFixed(2) + ' x ' + bounds.spanY.toFixed(2) + 'nm',
+      rotation: rotation,
+      recommendedGateCode: gateCall && gateCall.preferred ? gateCall.preferred.code : '',
+      recommendedGateSvg: recommendedGateSvg,
+      context: { bounds: bounds, originLat: originLat, project: projector }
+    };
+  }
+
+  function planCourseMapRotation(route, forecast, course) {
+    var windDir = course && course.type === 'wl' ? toNumber(forecast.windDir) : null;
+    if (windDir != null) return -windDir;
+    if (route && route.length > 1) return -bearingTo(route[0].mark, route[1].mark);
+    return 0;
+  }
+
+  function planSailingSegments(route, entries, forecast, course, originLat) {
+    var segments = [];
+    for (var i = 1; i < route.length; i += 1) {
+      var from = route[i - 1];
+      var to = route[i];
+      var entry = entries[i - 1] || to.entry;
+      var bearing = bearingTo(from.mark, to.mark);
+      var distance = distanceNm(from.mark, to.mark);
+      var mode = sailingModeForLeg(bearing, forecast);
+      var target = simulationPolarTarget(mode, forecast, course);
+      var model = simulationLegModel(distance, bearing, forecast, course, target, mode);
+      if (model.directSailable) {
+        segments.push({
+          side: directSailingSide(bearing, mode, forecast, course, target),
+          localPoints: [from.point, to.point]
+        });
+        continue;
+      }
+
+      if (mode === 'upwind') {
+        var tackSegments = upwindTackSegments(from.point, to.point, forecast, course, target, entry);
+        if (tackSegments.length) {
+          segments = segments.concat(tackSegments);
+          continue;
+        }
+      }
+
+      if (mode === 'downwind') {
+        var gybeSegments = downwindGybeSegments(from.point, to.point, forecast, course, target, preferredFirstSideForLeg(from.entry, mode));
+        if (gybeSegments.length) {
+          segments = segments.concat(gybeSegments);
+          continue;
+        }
+      }
+
+      segments.push({
+        side: 'direct-off-polar',
+        localPoints: [from.point, to.point]
+      });
+    }
+    return segments;
+  }
+
+  function directSailingSide(bearing, mode, forecast, course, target) {
+    if (mode !== 'upwind' && mode !== 'downwind') return 'direct';
+    var windDir = toNumber(forecast.windDir);
+    if (windDir == null) return 'direct';
+    var angle = target && target.angle || toNumber(course.tackAngle) || 42;
+    var correction = tideCorrection(forecast, bearing, target && target.speed || toNumber(course.boatSpeed) || 5.5);
+    var portHeading = normalize(windDir + angle + correction);
+    var stbdHeading = normalize(windDir - angle + correction);
+    return Math.abs(signedAngle(bearing - portHeading)) <= Math.abs(signedAngle(bearing - stbdHeading)) ? 'port' : 'stbd';
+  }
+
+  function upwindTackSegments(fromPoint, toPoint, forecast, course, target, entry) {
+    var windDir = toNumber(forecast.windDir);
+    if (windDir == null) return [];
+    var tackAngle = target && target.angle || toNumber(course.tackAngle) || 42;
+    var correction = tideCorrection(forecast, bearingBetweenLocalPoints(fromPoint, toPoint), target && target.speed || toNumber(course.boatSpeed) || 5.5);
+    var portHeading = normalize(windDir + tackAngle + correction);
+    var stbdHeading = normalize(windDir - tackAngle + correction);
+    var finalStbd = !entry || entry.rounding === 'port';
+    var firstHeading = finalStbd ? portHeading : stbdHeading;
+    var finalHeading = finalStbd ? stbdHeading : portHeading;
+    var intersect = lineRayLaylineIntercept(fromPoint, toPoint, firstHeading, finalHeading);
+
+    if (!intersect) {
+      firstHeading = finalStbd ? stbdHeading : portHeading;
+      finalHeading = finalStbd ? portHeading : stbdHeading;
+      intersect = lineRayLaylineIntercept(fromPoint, toPoint, firstHeading, finalHeading);
+    }
+    if (!intersect) return [];
+
+    var firstSide = Math.abs(signedAngle(firstHeading - portHeading)) < Math.abs(signedAngle(firstHeading - stbdHeading)) ? 'port' : 'stbd';
+    var finalSide = firstSide === 'port' ? 'stbd' : 'port';
+    return [
+      {
+        side: firstSide,
+        localPoints: [fromPoint, intersect.point],
+        localTackPoint: intersect.point
+      },
+      {
+        side: finalSide,
+        localPoints: [intersect.point, toPoint],
+        localTackPoint: intersect.point
+      }
+    ];
+  }
+
+  function downwindGybeSegments(fromPoint, toPoint, forecast, course, target, preferredFirstSide) {
+    var plan = downwindBoardPlan(fromPoint, toPoint, forecast, course, target, preferredFirstSide);
+    if (!plan) return [];
+    return [
+      {
+        side: plan.firstSide,
+        localPoints: [fromPoint, plan.gybePoint],
+        localTackPoint: plan.gybePoint
+      },
+      {
+        side: plan.finalSide,
+        localPoints: [plan.gybePoint, toPoint],
+        localTackPoint: plan.gybePoint
+      }
+    ];
+  }
+
+  function downwindBoardPlan(fromPoint, toPoint, forecast, course, target, preferredFirstSide) {
+    var windDir = toNumber(forecast.windDir);
+    if (windDir == null) return null;
+    var targetAngle = target && target.angle || 153;
+    var correction = tideCorrection(forecast, bearingBetweenLocalPoints(fromPoint, toPoint), target && target.speed || toNumber(course.boatSpeed) || 5.5);
+    var portHeading = normalize(windDir + targetAngle + correction);
+    var stbdHeading = normalize(windDir - targetAngle + correction);
+    var candidates = [
+      gybePlanCandidate(fromPoint, toPoint, 'stbd', stbdHeading, 'port', portHeading),
+      gybePlanCandidate(fromPoint, toPoint, 'port', portHeading, 'stbd', stbdHeading)
+    ].filter(Boolean);
+
+    if (!candidates.length) return null;
+    candidates.sort(function (a, b) {
+      var diff = a.totalDistance - b.totalDistance;
+      if (Math.abs(diff) > 0.03) return diff;
+      if (preferredFirstSide && a.firstSide === preferredFirstSide && b.firstSide !== preferredFirstSide) return -1;
+      if (preferredFirstSide && b.firstSide === preferredFirstSide && a.firstSide !== preferredFirstSide) return 1;
+      return diff;
+    });
+
+    var best = candidates[0];
+    return {
+      firstSide: best.firstSide,
+      finalSide: best.finalSide,
+      firstHeading: best.firstHeading,
+      finalHeading: best.finalHeading,
+      firstDistance: best.firstDistance,
+      finalDistance: best.finalDistance,
+      totalDistance: best.totalDistance,
+      gybePoint: best.gybePoint,
+      targetAngle: targetAngle,
+      text: 'Polar VMG plan: bear away set on ' + sideLabel(best.firstSide, 'downwind') + ' at ' + Math.round(best.firstHeading) + ' deg, gybe after ' + best.firstDistance.toFixed(2) + 'nm, then ' + sideLabel(best.finalSide, 'downwind') + ' at ' + Math.round(best.finalHeading) + ' deg to the mark.'
+    };
+  }
+
+  function gybePlanCandidate(fromPoint, toPoint, firstSide, firstHeading, finalSide, finalHeading) {
+    var intercept = lineRayLaylineIntercept(fromPoint, toPoint, firstHeading, finalHeading);
+    if (!intercept) return null;
+    return {
+      firstSide: firstSide,
+      finalSide: finalSide,
+      firstHeading: firstHeading,
+      finalHeading: finalHeading,
+      firstDistance: intercept.distance,
+      finalDistance: intercept.laylineDistance,
+      totalDistance: intercept.distance + intercept.laylineDistance,
+      gybePoint: intercept.point
+    };
+  }
+
+  function preferredFirstSideForLeg(fromEntry, mode) {
+    if (mode === 'downwind' && fromEntry && fromEntry.rounding === 'port') return 'stbd';
+    return '';
+  }
+
+  function sideLabel(side, mode) {
+    var label = side === 'stbd' ? 'STBD' : 'PORT';
+    return mode === 'downwind' ? label + ' gybe' : label + ' tack';
+  }
+
   function preRaceSimulationLegs(forecast, course) {
     var sequence = courseSequence(course);
     var start = courseStartReference(course);
     var legs = [];
     var from = start;
+    var fromEntry = { code: 'START', rounding: 'line' };
     var elapsed = 0;
 
     sequence.forEach(function (entry, index) {
-      var to = markForCourseEntry(entry, course);
+      var to = resolvedCourseMarkForEntry(entry, course, from, sequence, index, forecast, elapsed);
       if (from && to && hasCoords(from) && hasCoords(to)) {
         var bearing = bearingTo(from, to);
         var distance = distanceNm(from, to);
@@ -1724,16 +2113,30 @@
         var mode = sailingModeForLeg(bearing, legForecast);
         var target = simulationPolarTarget(mode, legForecast, course);
         var baseSpeed = target.speed || toNumber(course.boatSpeed) || 5.5;
-        var speed = simulationLegSpeed(bearing, legForecast, course, target);
-        var duration = speed > 0 ? distance / speed * 60 : 0;
+        var legModel = simulationLegModel(distance, bearing, legForecast, course, target, mode);
+        var speed = legModel.effectiveSpeed;
+        var duration = legModel.durationMinutes;
         var correction = tideCorrection(legForecast, bearing, baseSpeed);
         var windDir = toNumber(legForecast.windDir);
         var tackAngle = toNumber(course.tackAngle) || target.angle || 42;
         var gateAdvice = entry.rounding === 'gate' ? preRaceGateAdvice(entry, course, from, sequence, index, forecast, elapsed) : '';
+        var boardPlan = null;
+        if (mode === 'downwind' && !legModel.directSailable) {
+          var originLat = (Number(from.lat) + Number(to.lat)) / 2;
+          boardPlan = downwindBoardPlan(
+            localNmPoint(from, originLat),
+            localNmPoint(to, originLat),
+            legForecast,
+            course,
+            target,
+            preferredFirstSideForLeg(fromEntry, mode)
+          );
+        }
+        var labelTo = entry.rounding === 'gate' ? 'ROUND ' + to.code : entry.code;
 
         legs.push({
           index: index,
-          label: (from.code || 'START') + '-' + entry.code,
+          label: (from.code || 'START') + '-' + labelTo,
           entry: entry,
           bearing: bearing,
           distance: distance,
@@ -1744,6 +2147,14 @@
           targetSpeed: target.speed || speed,
           effectiveSpeed: speed,
           targetAngle: target.angle,
+          directSailable: legModel.directSailable,
+          sailedDistance: legModel.sailedDistance,
+          sailingPlan: legModel.sailingPlan,
+          sailability: legModel.sailability,
+          manoeuvreLossSeconds: legModel.manoeuvreLossSeconds,
+          tackCount: legModel.tackCount,
+          boardPlan: boardPlan,
+          arrivalAdvice: arrivalAdviceForEntry(entry, mode),
           portHeading: windDir == null ? '--' : Math.round(normalize(windDir + tackAngle + correction)) + ' deg',
           stbdHeading: windDir == null ? '--' : Math.round(normalize(windDir - tackAngle + correction)) + ' deg',
           tideCorrection: correction,
@@ -1752,7 +2163,10 @@
         });
         elapsed += duration;
       }
-      if (to) from = to;
+      if (to) {
+        from = to;
+        fromEntry = entry;
+      }
     });
 
     return legs;
@@ -1785,26 +2199,68 @@
     return Math.max(1, base + along);
   }
 
-  function preRaceGateAdvice(entry, course, from, sequence, index, forecast, elapsed) {
-    var gate = gateMarksForEntry(entry);
-    if (!gate || !from || !hasCoords(from)) return '';
+  function simulationLegModel(distance, bearing, forecast, course, target, mode) {
+    var base = target && target.speed || toNumber(course.boatSpeed) || 5.5;
+    var targetAngle = target && target.angle || toNumber(course.tackAngle) || 42;
+    var windDir = toNumber(forecast.windDir);
+    var twa = windDir == null ? null : Math.abs(signedAngle(bearing - windDir));
+    var directSailable = twa == null || mode === 'reach' || Math.abs(twa - targetAngle) <= 7;
+    var sailedDistance = distance;
+    var plan = 'direct';
+    var sailability = sailabilityLabel(twa, targetAngle, mode);
+    var tackCount = 0;
 
-    var afterEntry = sequence && sequence[index + 1];
+    if (mode === 'upwind' && twa != null && twa < targetAngle - 7) {
+      var upwindVmgFactor = Math.max(Math.cos(toRad(targetAngle)), 0.2);
+      sailedDistance = distance / upwindVmgFactor;
+      directSailable = false;
+      plan = 'a two-tack beat';
+      sailability = 'too tight to sail direct';
+      tackCount = 2;
+    } else if (mode === 'downwind' && twa != null && twa > targetAngle + 7) {
+      var downwindVmgFactor = Math.max(Math.cos(toRad(180 - targetAngle)), 0.2);
+      sailedDistance = distance / downwindVmgFactor;
+      directSailable = false;
+      plan = 'gybing angles';
+      sailability = 'too deep to sail direct';
+      tackCount = 1;
+    }
+
+    var tideSpeed = simulationLegSpeed(bearing, forecast, course, { speed: base });
+    var manoeuvreLossSeconds = tackCount * TACK_LOSS_SECONDS;
+    var duration = tideSpeed > 0 ? sailedDistance / tideSpeed * 60 + manoeuvreLossSeconds / 60 : 0;
+    return {
+      directSailable: directSailable,
+      sailedDistance: sailedDistance,
+      effectiveSpeed: tideSpeed,
+      durationMinutes: duration,
+      sailingPlan: plan,
+      sailability: sailability,
+      tackCount: tackCount,
+      manoeuvreLossSeconds: manoeuvreLossSeconds,
+      twa: twa
+    };
+  }
+
+  function preRaceGateAdvice(entry, course, from, sequence, index, forecast, elapsed) {
+    var call = gateCallForEntry(entry, course, from, sequence, index, forecast, elapsed);
+    if (!call) return gateRecommendationText(entry, course, from, sequence, index);
+    return gateCallText(call, 'Gate sim');
+  }
+
+  function gateCallForEntry(entry, course, from, sequence, index, forecast, elapsed) {
+    var gate = gateMarksForEntry(entry);
+    if (!gate || !from || !hasCoords(from)) return null;
+
+    var afterEntry = sequence && index >= 0 ? sequence[index + 1] : null;
     var afterMark = afterEntry ? markForCourseEntry(afterEntry, course) : null;
     var port = preRaceGateOption(gate.port, from, afterMark, forecast, course, elapsed);
     var stbd = preRaceGateOption(gate.stbd, from, afterMark, forecast, course, elapsed);
-    if (!port || !stbd) return gateRecommendationText(entry, course, from, sequence, index);
+    if (!port || !stbd) return null;
 
-    var preferred = port.totalMinutes <= stbd.totalMinutes ? port : stbd;
-    var other = preferred === port ? stbd : port;
-    var deltaSeconds = Math.round(Math.abs(preferred.totalMinutes - other.totalMinutes) * 60);
-    var call = deltaSeconds < 15 ? 'time is even; choose the cleaner exit' : 'favour ' + preferred.code;
-    var exitLabel = afterEntry ? navTargetLabel(afterEntry) : 'next leg';
-
-    return 'Gate sim: ' + call + '. ' +
-      preferred.code + ' model ' + formatDurationShort(preferred.totalMinutes * 60) + ' / ' + preferred.totalDistance.toFixed(2) + 'nm via exit to ' + exitLabel + '. ' +
-      other.code + ' model ' + formatDurationShort(other.totalMinutes * 60) + ' / ' + other.totalDistance.toFixed(2) + 'nm. ' +
-      'Split ' + deltaSeconds + 's using forecast wind, polar speed and tide set.';
+    port.gateCode = gate.code;
+    stbd.gateCode = gate.code;
+    return gateCallFromOptions(port, stbd, afterEntry);
   }
 
   function preRaceGateOption(mark, from, afterMark, forecast, course, elapsed) {
@@ -1813,26 +2269,185 @@
     var approachBearing = bearingTo(from, mark);
     var approachDistance = distanceNm(from, mark);
     var approachForecast = tideForecastForElapsed(forecast, elapsed);
-    var approachTarget = simulationPolarTarget(sailingModeForLeg(approachBearing, approachForecast), approachForecast, course);
-    var approachSpeed = simulationLegSpeed(approachBearing, approachForecast, course, approachTarget);
-    var approachMinutes = approachSpeed > 0 ? approachDistance / approachSpeed * 60 : 0;
+    var approachMode = sailingModeForLeg(approachBearing, approachForecast);
+    var approachTarget = simulationPolarTarget(approachMode, approachForecast, course);
+    var approachModel = simulationLegModel(approachDistance, approachBearing, approachForecast, course, approachTarget, approachMode);
+    var approachMinutes = approachModel.durationMinutes;
+    var afterRounding = afterMark && afterMark.code && afterMark.code.indexOf('3') === 0 ? 'port' : '';
     var exitDistance = 0;
     var exitMinutes = 0;
+    var exitBearing = null;
+    var exitTwa = null;
+    var exitTargetAngle = null;
+    var exitAngleError = 999;
+    var exitSpeed = 0;
+    var exitMode = 'target';
+    var exitDirectSailable = true;
+    var exitTackCount = 0;
+    var exitSailedDistance = exitDistance;
+    var exitManoeuvreLossSeconds = 0;
+    var exitInitialTack = 'tack --';
+    var exitFinalTack = 'tack --';
 
     if (afterMark && hasCoords(afterMark)) {
-      var exitBearing = bearingTo(mark, afterMark);
+      exitBearing = bearingTo(mark, afterMark);
       exitDistance = distanceNm(mark, afterMark);
       var exitForecast = tideForecastForElapsed(forecast, elapsed + approachMinutes);
-      var exitTarget = simulationPolarTarget(sailingModeForLeg(exitBearing, exitForecast), exitForecast, course);
-      var exitSpeed = simulationLegSpeed(exitBearing, exitForecast, course, exitTarget);
-      exitMinutes = exitSpeed > 0 ? exitDistance / exitSpeed * 60 : 0;
+      exitMode = sailingModeForLeg(exitBearing, exitForecast);
+      var exitTarget = simulationPolarTarget(exitMode, exitForecast, course);
+      var exitModel = simulationLegModel(exitDistance, exitBearing, exitForecast, course, exitTarget, exitMode);
+      exitSpeed = exitModel.effectiveSpeed;
+      exitMinutes = exitModel.durationMinutes;
+      exitDirectSailable = exitModel.directSailable;
+      exitTackCount = exitModel.tackCount;
+      exitSailedDistance = exitModel.sailedDistance;
+      exitManoeuvreLossSeconds = exitModel.manoeuvreLossSeconds;
+      exitTargetAngle = exitTarget.angle || toNumber(course.tackAngle) || 42;
+      var exitWindDir = toNumber(exitForecast.windDir);
+      exitTwa = exitWindDir == null ? null : Math.abs(signedAngle(exitBearing - exitWindDir));
+      exitAngleError = exitTwa == null ? 999 : Math.abs(exitTwa - exitTargetAngle);
+      exitInitialTack = exitTackName(exitBearing, exitForecast);
+      exitFinalTack = afterRounding === 'port' && exitMode === 'upwind' ? 'STBD final approach' : exitInitialTack;
     }
+    var totalManoeuvreLossSeconds = approachModel.manoeuvreLossSeconds + exitManoeuvreLossSeconds;
 
     return {
       code: mark.code,
+      approachDistance: approachDistance,
+      approachSailedDistance: approachModel.sailedDistance,
+      approachDirectSailable: approachModel.directSailable,
+      approachSailability: approachModel.sailability,
+      approachManoeuvreLossSeconds: approachModel.manoeuvreLossSeconds,
+      exitDistance: exitDistance,
+      exitSailedDistance: exitSailedDistance,
       totalDistance: approachDistance + exitDistance,
-      totalMinutes: approachMinutes + exitMinutes
+      totalMinutes: approachMinutes + exitMinutes,
+      exitBearing: exitBearing,
+      exitTwa: exitTwa,
+      exitTargetAngle: exitTargetAngle,
+      exitAngleError: exitAngleError,
+      exitSpeed: exitSpeed,
+      exitMode: exitMode,
+      exitDirectSailable: exitDirectSailable,
+      exitTackCount: exitTackCount,
+      exitInitialTack: exitInitialTack,
+      exitFinalTack: exitFinalTack,
+      exitTack: exitFinalTack,
+      starboardArrival: afterRounding === 'port' && exitFinalTack.indexOf('STBD') !== -1,
+      sailability: sailabilityLabel(exitTwa, exitTargetAngle, exitMode),
+      manoeuvreLossSeconds: totalManoeuvreLossSeconds
     };
+  }
+
+  function chooseGateOption(port, stbd) {
+    var deltaSeconds = Math.abs(port.totalMinutes - stbd.totalMinutes) * 60;
+    var angleDelta = Math.abs(port.exitAngleError - stbd.exitAngleError);
+
+    if (deltaSeconds >= 15) return port.totalMinutes <= stbd.totalMinutes ? port : stbd;
+    if (port.starboardArrival !== stbd.starboardArrival) return port.starboardArrival ? port : stbd;
+    if (port.exitDirectSailable !== stbd.exitDirectSailable) return port.exitDirectSailable ? port : stbd;
+    if (angleDelta >= 3) return port.exitAngleError <= stbd.exitAngleError ? port : stbd;
+
+    if (Math.abs(port.exitSpeed - stbd.exitSpeed) >= 0.05) return port.exitSpeed >= stbd.exitSpeed ? port : stbd;
+    return port.totalMinutes <= stbd.totalMinutes ? port : stbd;
+  }
+
+  function gateExitSummary(option) {
+    if (!option || option.exitBearing == null) return 'no exit mark set';
+    var twaText = option.exitTwa == null ? 'TWA --' : 'TWA ' + Math.round(option.exitTwa) + ' deg';
+    var targetText = option.exitTargetAngle == null ? 'target --' : 'target ' + Math.round(option.exitTargetAngle) + ' deg';
+    var speedText = option.exitSpeed ? option.exitSpeed.toFixed(1) + 'kt' : '--kt';
+    var sailedText = option.exitSailedDistance && option.exitSailedDistance > option.exitDistance + 0.02
+      ? ', sailed ' + option.exitSailedDistance.toFixed(2) + 'nm'
+      : '';
+    return Math.round(option.exitBearing) + ' deg, ' + option.exitTack + ', ' + twaText + ' vs polar ' + targetText + ', ' + option.sailability + sailedText + ', ' + simulationModeLabel(option.exitMode) + ' ' + speedText + ', tack loss ' + option.manoeuvreLossSeconds + 's';
+  }
+
+  function gateCallFromOptions(port, stbd, afterEntry) {
+    var preferred = chooseGateOption(port, stbd);
+    var other = preferred === port ? stbd : port;
+    var deltaSeconds = Math.round(Math.abs(preferred.totalMinutes - other.totalMinutes) * 60);
+    var angleDelta = Math.round(Math.abs(preferred.exitAngleError - other.exitAngleError));
+    var exitLabel = afterEntry ? navTargetLabel(afterEntry) : 'next leg';
+    var reason = deltaSeconds >= 15
+      ? preferred.code + ' is about ' + deltaSeconds + 's quicker including the leg to ' + exitLabel
+      : preferred.starboardArrival && !other.starboardArrival ? preferred.code + ' sets up the starboard approach to the port rounding'
+        : preferred.exitDirectSailable && !other.exitDirectSailable ? preferred.code + ' gives the cleaner sailable exit to ' + exitLabel
+          : angleDelta >= 3 ? preferred.code + ' is ' + angleDelta + ' deg closer to the polar exit angle back to ' + exitLabel
+            : preferred.code + ' is the best combined polar/time option; the split is close';
+
+    return {
+      preferred: preferred,
+      other: other,
+      deltaSeconds: deltaSeconds,
+      angleDelta: angleDelta,
+      exitLabel: exitLabel,
+      reason: reason
+    };
+  }
+
+  function gateCallText(call, prefix) {
+    if (!call) return '';
+    return prefix + ': ROUND ' + call.preferred.code + ' at the ' + (call.preferred.gateCode || 'gate') + ', then exit toward ' + call.exitLabel + '. ' +
+      call.preferred.code + ' exit ' + gateExitSummary(call.preferred) + '; ' +
+      call.other.code + ' exit ' + gateExitSummary(call.other) + '. ' +
+      'Reason: ' + call.reason + '.';
+  }
+
+  function gateCallPanel(call, title) {
+    if (!call) return '';
+    return '<div class="gate-call-panel">' +
+      '<div class="gate-call-k">' + esc(title || 'Gate Call') + '</div>' +
+      '<div class="gate-call-v">ROUND ' + esc(call.preferred.code) + '</div>' +
+      '<div class="gate-call-sub">' + esc((call.preferred.gateCode || 'gate') + ' / ' + call.preferred.exitTack + ' / ' + call.preferred.sailability + ' / tack loss ' + call.preferred.manoeuvreLossSeconds + 's / ' + call.reason) + '</div>' +
+    '</div>';
+  }
+
+  function firstGateCallModel(forecast, course) {
+    var sequence = courseSequence(course);
+    var from = courseStartReference(course);
+    var elapsed = 0;
+
+    for (var i = 0; i < sequence.length; i += 1) {
+      var entry = sequence[i];
+      var to = resolvedCourseMarkForEntry(entry, course, from, sequence, i, forecast, elapsed);
+      if (!from || !to || !hasCoords(from) || !hasCoords(to)) {
+        if (to) from = to;
+        continue;
+      }
+      if (entry.rounding === 'gate') {
+        return gateCallForEntry(entry, course, from, sequence, i, forecast, elapsed);
+      }
+      var legForecast = tideForecastForElapsed(forecast, elapsed);
+      var bearing = bearingTo(from, to);
+      var target = simulationPolarTarget(sailingModeForLeg(bearing, legForecast), legForecast, course);
+      var model = simulationLegModel(distanceNm(from, to), bearing, legForecast, course, target, sailingModeForLeg(bearing, legForecast));
+      if (model.durationMinutes > 0) elapsed += model.durationMinutes;
+      from = to;
+    }
+    return null;
+  }
+
+  function exitTackName(exitBearing, forecast) {
+    if (exitBearing == null) return 'tack --';
+    var windDir = toNumber(forecast.windDir);
+    if (windDir == null) return 'tack --';
+    return signedAngle(exitBearing - windDir) >= 0 ? 'PORT tack' : 'STBD tack';
+  }
+
+  function sailabilityLabel(twa, targetAngle, mode) {
+    if (twa == null || targetAngle == null) return 'needs TWD';
+    var diff = Math.abs(twa - targetAngle);
+    if (diff <= 5) return 'sailable on polar';
+    if (mode === 'upwind') return twa < targetAngle ? 'too high for polar' : 'footing low';
+    if (mode === 'downwind') return twa < targetAngle ? 'too hot' : 'too deep';
+    return diff <= 12 ? 'sailable reach' : 'off polar target';
+  }
+
+  function arrivalAdviceForEntry(entry, mode) {
+    if (!entry || entry.rounding !== 'port') return '';
+    if (mode === 'upwind') return 'Plan the final approach on STBD tack for the port rounding.';
+    return 'Protect a STBD-tack final approach if the leg becomes a beat near the mark.';
   }
 
   function simulationModeLabel(mode) {
@@ -1868,9 +2483,9 @@
 
   function wlModelText(course) {
     if (wlModel(course) === 'long') {
-      return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, Finish.';
+      return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4P port, Finish.';
     }
-    return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4S/4P gate, Finish.';
+    return 'Course pattern: Start, 3 port, 3A port, 4S/4P gate, 3 port, 3A port, 4P port, Finish.';
   }
 
   function genericCrewFocus(forecast, course) {
@@ -2093,8 +2708,8 @@
       '</div>' +
       tacticalMapPanel(nav, next, boat, mark, forecast, course, legIndex, actual) +
       '<div class="ll-hero">' +
-        actualLaylineCard('Port layline', nav && nav.portStatus !== 'no wind' ? Math.round(nav.port) : '--', nav ? nav.portStatus : 'needs fix', 'deg') +
-        actualLaylineCard('Stbd layline', nav && nav.stbdStatus !== 'no wind' ? Math.round(nav.stbd) : '--', nav ? nav.stbdStatus : 'needs fix', 'deg') +
+        actualLaylineCard(nav && nav.mode === 'downwind' ? 'Port gybe' : 'Port layline', nav && nav.portStatus !== 'no wind' ? Math.round(nav.port) : '--', nav ? nav.portStatus : 'needs fix', 'deg') +
+        actualLaylineCard(nav && nav.mode === 'downwind' ? 'Stbd gybe' : 'Stbd layline', nav && nav.stbdStatus !== 'no wind' ? Math.round(nav.stbd) : '--', nav ? nav.stbdStatus : 'needs fix', 'deg') +
       '</div>' +
       '<div class="ll-hero">' +
         actualLaylineCard('Dist to port', nav && nav.portDistance != null ? nav.portDistance.toFixed(2) : '--', 'cross-track', 'nm') +
@@ -2826,6 +3441,21 @@
     };
   }
 
+  function rotateSvgPoint(point, rotation) {
+    if (!rotation) return point;
+    var cx = 160;
+    var cy = 142;
+    var radians = toRad(rotation);
+    var cos = Math.cos(radians);
+    var sin = Math.sin(radians);
+    var dx = point.x - cx;
+    var dy = point.y - cy;
+    return {
+      x: cx + dx * cos - dy * sin,
+      y: cy + dx * sin + dy * cos
+    };
+  }
+
   function chartTileLayerSvg(context) {
     var tilePlan = chartTilePlan(context);
     if (!tilePlan.tiles.length) return '';
@@ -3080,8 +3710,10 @@
     var bearing = bearingTo(boat, mark);
     var distance = distanceNm(boat, mark);
     var windDir = toNumber(forecast.windDir);
-    var tackAngle = toNumber(course.tackAngle) || polarTarget(toNumber(forecast.windSpeed) || 10, 'upwind').angle;
-    var correction = tideCorrection(forecast, bearing, toNumber(course.boatSpeed) || 5.5);
+    var mode = sailingModeForLeg(bearing, forecast);
+    var target = simulationPolarTarget(mode, forecast, course);
+    var tackAngle = target.angle || toNumber(course.tackAngle) || polarTarget(toNumber(forecast.windSpeed) || 10, 'upwind').angle;
+    var correction = tideCorrection(forecast, bearing, target.speed || toNumber(course.boatSpeed) || 5.5);
     var port = windDir == null ? null : normalize(windDir + tackAngle + correction);
     var stbd = windDir == null ? null : normalize(windDir - tackAngle + correction);
     var portDelta = port == null ? null : Math.abs(signedAngle(bearing - port));
@@ -3090,12 +3722,13 @@
     var stbdDistance = stbd == null ? null : distanceToLayline(distance, bearing, stbd);
     var closerLayline = portDistance == null || stbdDistance == null ? '' : portDistance < stbdDistance ? 'Port' : 'Starboard';
     var closerDistance = closerLayline === 'Port' ? portDistance : closerLayline === 'Starboard' ? stbdDistance : null;
-    var best = portDelta == null ? 'Enter forecast wind direction for layline headings.' : portDelta < stbdDelta ? 'Port tack is closer to the mark bearing.' : 'Starboard tack is closer to the mark bearing.';
+    var best = navAngleAdvice(boat, mark, bearing, windDir, mode, target, forecast, course, portDelta, stbdDelta);
 
     return {
       bearing: bearing,
       distance: distance,
       windDir: windDir,
+      mode: mode,
       tackAngle: tackAngle,
       correction: correction,
       port: port == null ? 0 : port,
@@ -3108,6 +3741,28 @@
       closerDistance: closerDistance,
       advice: 'Bearing to next mark is ' + Math.round(bearing) + '&deg; at ' + distance.toFixed(2) + 'nm. ' + best + laylineDistanceText(portDistance, stbdDistance)
     };
+  }
+
+  function navAngleAdvice(boat, mark, bearing, windDir, mode, target, forecast, course, portDelta, stbdDelta) {
+    if (portDelta == null) return 'Enter forecast wind direction for layline headings.';
+    if (mode === 'downwind') {
+      var twa = Math.abs(signedAngle(bearing - windDir));
+      var targetAngle = target && target.angle || 153;
+      if (twa > targetAngle + 7) {
+        var originLat = (Number(boat.lat) + Number(mark.lat)) / 2;
+        var plan = downwindBoardPlan(
+          localNmPoint(boat, originLat),
+          localNmPoint(mark, originLat),
+          forecast,
+          course,
+          target,
+          'stbd'
+        );
+        if (plan) return plan.text + ' Polar target is ' + Math.round(targetAngle) + ' deg TWA.';
+      }
+      return portDelta < stbdDelta ? 'Port gybe is closer to the mark bearing.' : 'Starboard gybe is closer to the mark bearing.';
+    }
+    return portDelta < stbdDelta ? 'Port tack is closer to the mark bearing.' : 'Starboard tack is closer to the mark bearing.';
   }
 
   function distanceToLayline(distance, bearingToMark, laylineHeading) {
@@ -3608,7 +4263,7 @@
       return card('Laylines', '<div class="err">Enter forecast wind direction before calculating laylines.</div>');
     }
 
-    var legs = timedCourseLegs(courseLegs(course), forecast, course);
+    var legs = timedCourseLegs(courseLegs(course, forecast), forecast, course);
     if (!legs.length) {
       return card('Laylines', '<div class="err">Set course marks and mark positions before calculating laylines.</div>');
     }
@@ -3683,6 +4338,15 @@
     if (entry.code === 'START') {
       return boat ? startLineTargetForBoat(boat, course) : startMidpoint(course) || courseStartReference(course);
     }
+    if (entry.rounding === 'gate' && boat && hasCoords(boat)) {
+      var sequence = courseSequence(course);
+      var index = sequence.findIndex(function (candidate) {
+        return candidate.code === entry.code && candidate.rounding === 'gate';
+      });
+      var call = gateCallForEntry(entry, course, boat, sequence, index, activeForecast(), 0);
+      var preferred = preferredGateMark(call);
+      if (preferred && hasCoords(preferred)) return preferred;
+    }
     return markForCourseEntry(entry, course);
   }
 
@@ -3730,19 +4394,21 @@
     }
 
     var sequence = [];
-    var repeats = wlModel(course) === 'long' ? 3 : 2;
-    for (var lap = 0; lap < repeats; lap += 1) {
+    var beats = wlModel(course) === 'long' ? 3 : 2;
+    for (var lap = 0; lap < beats; lap += 1) {
       if (course.windward) sequence.push({ code: course.windward, rounding: 'port' });
       if (course.offset) sequence.push({ code: course.offset, rounding: 'port' });
-      if (lap < repeats - 1 && course.gatePort && course.gateStbd) {
+      if (lap < beats - 1 && course.gatePort && course.gateStbd) {
         sequence.push({ code: course.gateStbd + '/' + course.gatePort, rounding: 'gate' });
       }
     }
-    if (course.gatePort && course.gateStbd) {
-      sequence.push({ code: course.gateStbd + '/' + course.gatePort, rounding: 'gate' });
-    }
+    if (wlFinalLeewardCode(course)) sequence.push({ code: wlFinalLeewardCode(course), rounding: 'port' });
     if (course.finish) sequence.push({ code: course.finish, rounding: 'finish' });
     return sequence;
+  }
+
+  function wlFinalLeewardCode(course) {
+    return course.finalLeeward || course.gatePort || '4P';
   }
 
   function wlModel(course) {
@@ -3751,25 +4417,49 @@
     return course.wlCourse === 'long' ? 'long' : 'normal';
   }
 
-  function courseLegs(course) {
+  function courseLegs(course, forecast) {
     var sequence = courseSequence(course);
     var start = courseStartReference(course);
     var legs = [];
     var from = start;
+    var elapsed = 0;
 
-    sequence.forEach(function (entry) {
-      var to = markForCourseEntry(entry, course);
+    sequence.forEach(function (entry, index) {
+      var to = forecast
+        ? resolvedCourseMarkForEntry(entry, course, from, sequence, index, forecast, elapsed)
+        : markForCourseEntry(entry, course);
       if (from && to && hasCoords(from) && hasCoords(to)) {
+        var bearing = bearingTo(from, to);
+        var distance = distanceNm(from, to);
+        var legForecast = forecast ? tideForecastForElapsed(forecast, elapsed) : forecast;
+        var mode = forecast ? sailingModeForLeg(bearing, legForecast) : 'target';
+        var target = forecast ? simulationPolarTarget(mode, legForecast, course) : null;
+        var model = forecast ? simulationLegModel(distance, bearing, legForecast, course, target, mode) : null;
         legs.push({
           label: (from.code || 'START') + '-' + entry.code,
-          bearing: bearingTo(from, to),
-          distance: distanceNm(from, to)
+          bearing: bearing,
+          distance: distance
         });
+        if (model && model.durationMinutes > 0) elapsed += model.durationMinutes;
       }
       if (to) from = to;
     });
 
     return legs;
+  }
+
+  function resolvedCourseMarkForEntry(entry, course, from, sequence, index, forecast, elapsed) {
+    if (entry && entry.rounding === 'gate' && from && hasCoords(from)) {
+      var call = gateCallForEntry(entry, course, from, sequence, index, forecast, elapsed);
+      var preferred = preferredGateMark(call);
+      if (preferred && hasCoords(preferred)) return preferred;
+    }
+    return markForCourseEntry(entry, course);
+  }
+
+  function preferredGateMark(call) {
+    if (!call || !call.preferred || !call.preferred.code) return null;
+    return findMark(call.preferred.code);
   }
 
   function markForCourseEntry(entry, course) {
@@ -3885,22 +4575,27 @@
 
     var afterEntry = sequence && sequence[legIndex + 1];
     var afterMark = afterEntry ? navMarkForEntry(afterEntry, course, null) : null;
-    var stbd = gateOptionScore(gate.stbd, boat, afterMark);
-    var port = gateOptionScore(gate.port, boat, afterMark);
+    var forecast = activeForecast();
+    var stbd = preRaceGateOption(gate.stbd, boat, afterMark, forecast, course, 0);
+    var port = preRaceGateOption(gate.port, boat, afterMark, forecast, course, 0);
     if (!stbd || !port) return '';
 
-    var preferred = port.total <= stbd.total ? port : stbd;
+    var preferred = chooseGateOption(port, stbd);
     var other = preferred === port ? stbd : port;
-    var deltaM = Math.round(Math.abs(preferred.total - other.total) * 1852);
+    var deltaSeconds = Math.round(Math.abs(preferred.totalMinutes - other.totalMinutes) * 60);
     var exitLabel = afterEntry ? navTargetLabel(afterEntry) : 'next leg';
-    var call = deltaM < 20 ? 'keep both options open and choose the cleaner exit' : 'favour ' + preferred.code;
-    var reason = deltaM < 20
-      ? 'Distances are close; make the final call on traffic, pressure and clean exit.'
-      : preferred.code + ' is shorter by about ' + deltaM + 'm including the exit to ' + exitLabel + '.';
+    var angleDelta = Math.round(Math.abs(preferred.exitAngleError - other.exitAngleError));
+    var reason = deltaSeconds >= 15
+      ? preferred.code + ' is about ' + deltaSeconds + 's quicker including the leg to ' + exitLabel + '.'
+      : preferred.starboardArrival && !other.starboardArrival ? preferred.code + ' sets up the starboard approach to the port rounding.'
+        : angleDelta >= 2 ? preferred.code + ' has an exit angle about ' + angleDelta + ' deg closer to target back to ' + exitLabel + '.'
+          : 'The model is close; use traffic, pressure and clean exit as the final tie-break.';
 
-    return 'Gate call: pass between ' + gate.port.code + ' and ' + gate.stbd.code + ', ' + call + '. ' +
-      preferred.code + ' approach ' + preferred.approach.toFixed(2) + 'nm, exit ' + preferred.exit.toFixed(2) + 'nm. ' +
-      other.code + ' approach ' + other.approach.toFixed(2) + 'nm, exit ' + other.exit.toFixed(2) + 'nm. ' + reason;
+    return 'Gate call: round ' + preferred.code + ' at the ' + gate.stbd.code + '/' + gate.port.code + ' gate, then exit toward ' + exitLabel + '. ' +
+      preferred.code + ' exit ' + gateExitSummary(preferred) + '; ' +
+      other.code + ' exit ' + gateExitSummary(other) + '. ' +
+      preferred.code + ' approach ' + preferred.approachDistance.toFixed(2) + 'nm, exit ' + preferred.exitDistance.toFixed(2) + 'nm. ' +
+      other.code + ' approach ' + other.approachDistance.toFixed(2) + 'nm, exit ' + other.exitDistance.toFixed(2) + 'nm. ' + reason;
   }
 
   function gateOptionScore(mark, boat, afterMark) {

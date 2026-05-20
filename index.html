@@ -377,6 +377,14 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .layline-svg .chart-attrib{font-size:7px;fill:rgba(255,255,255,.7)}
 .layline-svg .sail-area{fill:rgba(6,13,24,.18);stroke:rgba(144,202,249,.28);stroke-width:1}
 .layline-svg .course-route{fill:none;stroke:rgba(255,255,255,.4);stroke-width:2;stroke-dasharray:3 3}
+.layline-svg .plan-course-route{stroke:rgba(255,255,255,.28);stroke-width:1.6}
+.layline-svg .plan-sail-track{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.layline-svg .plan-sail-track.port{stroke:var(--ebb2)}
+.layline-svg .plan-sail-track.stbd{stroke:#A5D6A7}
+.layline-svg .plan-sail-track.direct{stroke:rgba(212,160,23,.82);stroke-width:3}
+.layline-svg .plan-sail-track.direct-off-polar{stroke:var(--amber);stroke-width:3;stroke-dasharray:7 4}
+.layline-svg .tack-dot{fill:#fff;stroke:var(--ink);stroke-width:1}
+.layline-svg .recommended-gate-ring{fill:none;stroke:#fff;stroke-width:3}
 .layline-svg .start-line{stroke:#fff;stroke-width:3;stroke-dasharray:2 3}
 .layline-svg .finish-line{stroke:var(--flood2);stroke-width:3;stroke-dasharray:2 3}
 .layline-svg .gate-line{stroke:var(--amber);stroke-width:3;stroke-dasharray:6 3}
@@ -413,6 +421,10 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .bearing-arrow.stbd line{stroke:#A5D6A7}.bearing-arrow.stbd path{fill:#A5D6A7}.bearing-arrow.stbd text{fill:#A5D6A7}
 .bearing-arrow.intercept line{stroke:var(--amber)}.bearing-arrow.intercept path{fill:var(--amber)}.bearing-arrow.intercept text{fill:var(--amber)}
 .bearing-arrow.cog line{stroke:#fff;stroke-dasharray:4 3}.bearing-arrow.cog path{fill:#fff}.bearing-arrow.cog text{fill:#fff}
+.gate-call-panel{width:100%;margin-top:8px;border:1px solid rgba(212,160,23,.35);background:rgba(212,160,23,.1);border-radius:8px;padding:9px 11px;text-align:center}
+.gate-call-k{font-family:ui-monospace,'Courier New',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
+.gate-call-v{font-family:'Arial Black',Impact,sans-serif;font-size:28px;line-height:1.05;color:#fff;margin-top:2px}
+.gate-call-sub{font-size:10px;color:var(--text);line-height:1.4;margin-top:4px}
 .wind-input-row{display:flex;gap:7px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:7px 10px;margin-bottom:8px}
 .wind-input-row label{font-size:8px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;min-width:55px;flex-shrink:0}
 .wind-input-row input{flex:1;background:transparent;border:none;color:#fff;font-family:ui-monospace,'Courier New',monospace;font-size:13px;font-weight:700;outline:none;width:60px}
