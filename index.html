@@ -368,7 +368,7 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .map-tools button{width:42px;min-height:30px;border:1px solid rgba(212,160,23,.3);border-radius:6px;background:rgba(212,160,23,.1);color:var(--gold);font-family:ui-monospace,'Courier New',monospace;font-size:12px;font-weight:800;touch-action:manipulation}
 .map-tools button:last-child{width:58px}
 .map-tools span{flex:1;text-align:center;color:var(--sub);font-family:ui-monospace,'Courier New',monospace;font-size:9px;letter-spacing:.8px}
-.layline-svg{width:100%;max-width:380px;background:#0b1624;border:1px solid rgba(255,255,255,.06);border-radius:8px;touch-action:none;user-select:none}
+.layline-svg{width:100%;max-width:560px;background:#0b1624;border:1px solid rgba(255,255,255,.06);border-radius:8px;touch-action:none;user-select:none}
 .layline-svg text{font-family:ui-monospace,'Courier New',monospace;font-size:9px;fill:var(--text)}
 .layline-svg .thin{stroke:rgba(255,255,255,.16);stroke-width:1}
 .layline-svg .ring{stroke:rgba(255,255,255,.1);stroke-width:1;fill:none}
@@ -383,6 +383,13 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .layline-svg .plan-sail-track.stbd{stroke:#A5D6A7}
 .layline-svg .plan-sail-track.direct{stroke:rgba(212,160,23,.82);stroke-width:3}
 .layline-svg .plan-sail-track.direct-off-polar{stroke:var(--amber);stroke-width:3;stroke-dasharray:7 4}
+.layline-svg .planned-track{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:10 5;opacity:.92}
+.layline-svg .planned-track.plan-port{stroke:#F6A5C0}
+.layline-svg .planned-track.plan-stbd{stroke:#80DEEA}
+.layline-svg .planned-track.plan-direct{stroke:#B0BEC5}
+.layline-svg .planned-track.plan-direct-off-polar{stroke:#FFD54F}
+.layline-svg .planned-turn{fill:#101824;stroke:#fff;stroke-width:1}
+.layline-svg .boat-trail{fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
 .layline-svg .tack-dot{fill:#fff;stroke:var(--ink);stroke-width:1}
 .layline-svg .recommended-gate-ring{fill:none;stroke:#fff;stroke-width:3}
 .layline-svg .start-line{stroke:#fff;stroke-width:3;stroke-dasharray:2 3}
@@ -400,7 +407,7 @@ hr.dim{border:none;border-top:1px solid rgba(255,255,255,.06);margin:8px 0}
 .layline-svg .finish-dot{fill:var(--flood2);stroke:#fff;stroke-width:1}
 .layline-svg .gate-dot{fill:var(--amber);stroke:#fff;stroke-width:1}
 .layline-svg .route-dot{fill:rgba(255,255,255,.74);stroke:rgba(212,160,23,.7);stroke-width:1}
-.bearing-panel{width:100%;max-width:380px;margin-top:8px;background:rgba(6,13,24,.62);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px}
+.bearing-panel{width:100%;max-width:560px;margin-top:8px;background:rgba(6,13,24,.62);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px}
 .bearing-readout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px}
 .bearing-readout.single{grid-template-columns:1fr;margin-top:-2px}
 .bearing-readout div{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:7px 6px;text-align:center;min-width:0}

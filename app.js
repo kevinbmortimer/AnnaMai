@@ -2,9 +2,9 @@
   'use strict';
 
   var STORE_KEY = 'raceBridge.ircEuropeans2026.v3';
-  var APP_VERSION = '0.9.3';
+  var APP_VERSION = '0.9.5';
   var APP_BUILD = '2026-05-19';
-  var CACHE_NAME = 'anna-mai-v47';
+  var CACHE_NAME = 'anna-mai-v49';
   var MIN_TACTICAL_ZOOM = 0.75;
   var MAX_TACTICAL_ZOOM = 48;
   var PIN_PORT_DISTANCE_NM = 100 / 1852;
@@ -564,7 +564,8 @@
     var last = state.telemetryLog.length ? state.telemetryLog[state.telemetryLog.length - 1] : null;
     var lastText = last ? (last.timeLocal || last.time || 'sample saved') : 'waiting for GPS';
     var status = gpsWatchId != null ? 'RUNNING' : activeSettings().telemetryStatus || 'READY';
-    var raceButton = raceDate === today ? '' : '<button class="btn-full" onclick="downloadTelemetryDay(\'' + raceDate + '\')" style="margin-top:7px">DOWNLOAD ' + esc(race.id) + ' LOG</button>';
+    var raceButton = race ? '<button class="btn-full" onclick="downloadTelemetryRace(\'' + esc(race.id) + '\')" style="margin-top:7px">DOWNLOAD ' + esc(race.id) + ' RACE LOG</button>' : '';
+    var raceDayButton = raceDate === today ? '' : '<button class="btn-full" onclick="downloadTelemetryDay(\'' + raceDate + '\')" style="margin-top:7px">DOWNLOAD ' + esc(race.id) + ' DAY LOG</button>';
     var dayButtons = telemetryDays().filter(function (day) { return day !== today && day !== raceDate; }).slice(-5).map(function (day) {
       return '<button class="btn-full" onclick="downloadTelemetryDay(\'' + day + '\')" style="margin-top:7px">DOWNLOAD ' + esc(day) + ' LOG</button>';
     }).join('');
@@ -578,6 +579,7 @@
       '</div>' +
       '<button class="btn-full" onclick="downloadTelemetryDay(\'' + today + '\')">DOWNLOAD TODAY LOG</button>' +
       raceButton +
+      raceDayButton +
       dayButtons +
       '<button class="btn-full" onclick="clearTelemetryDay(\'' + today + '\')" style="margin-top:7px">CLEAR TODAY LOG</button>' +
       '<div class="api-note">Log samples are captured automatically from Live GPS about every 5 seconds with GPS, COG/SOG, compass, forecast, active leg, mark bearing/distance, laylines and start-line distance.</div>',
@@ -2763,11 +2765,29 @@
     var cogSvg = context.cogEnd ? context.project(context.cogEnd) : null;
     var interceptSvg = context.intercept ? context.project(context.intercept.point) : null;
     var windDir = toNumber(forecast.windDir);
-    var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180), 28);
+    var windPoint = windDir == null ? null : svgPoint(286, 52, normalize(windDir + 180 + context.rotation), 28);
     var legText = nav.distance.toFixed(2) + 'nm / ' + Math.round(nav.bearing) + 'deg';
     var insight = tacticalInsightPanel(nav, boat, mark, forecast, context);
     var compass = compassBearingPanel(nav, next, context);
-    var chartTiles = chartTileLayerSvg(context);
+    var worldTransform = context.rotation ? ' transform="rotate(' + svgNumber(context.rotation) + ' 160 142)"' : '';
+    var chartContext = Object.assign({}, context, { project: context.chartProject || context.project });
+    var chartTiles = '<g' + worldTransform + '>' + chartTileLayerSvg(chartContext) + '</g>';
+    var gridSvg = '<g clip-path="url(#chartclip)"' + worldTransform + '>' +
+      '<line class="thin" x1="16" y1="79" x2="304" y2="79"></line>' +
+      '<line class="thin" x1="16" y1="142" x2="304" y2="142"></line>' +
+      '<line class="thin" x1="16" y1="205" x2="304" y2="205"></line>' +
+      '<line class="thin" x1="88" y1="16" x2="88" y2="268"></line>' +
+      '<line class="thin" x1="160" y1="16" x2="160" y2="268"></line>' +
+      '<line class="thin" x1="232" y1="16" x2="232" y2="268"></line>' +
+    '</g>';
+    var plannedSvg = context.plannedSegments.map(function (segment) {
+      var points = segment.points.map(svgPointText).join(' ');
+      return '<polyline class="planned-track plan-' + segment.side + '" points="' + points + '"></polyline>' +
+        (segment.tackPoint ? '<circle class="planned-turn" cx="' + svgNumber(segment.tackPoint.x) + '" cy="' + svgNumber(segment.tackPoint.y) + '" r="3"></circle>' : '');
+    }).join('');
+    var trailSvg = context.trailPoints.length > 1
+      ? '<polyline class="boat-trail" points="' + context.trailPoints.map(function (point) { return svgPointText(context.project(point)); }).join(' ') + '"></polyline>'
+      : '';
     var startLineSvg = context.startLine ? (
       '<line class="start-line" x1="' + svgNumber(context.startLine.pinSvg.x) + '" y1="' + svgNumber(context.startLine.pinSvg.y) + '" x2="' + svgNumber(context.startLine.committeeSvg.x) + '" y2="' + svgNumber(context.startLine.committeeSvg.y) + '"></line>' +
       (context.startLine.finishSvg ? '<line class="finish-line" x1="' + svgNumber(context.startLine.committeeSvg.x) + '" y1="' + svgNumber(context.startLine.committeeSvg.y) + '" x2="' + svgNumber(context.startLine.finishSvg.x) + '" y2="' + svgNumber(context.startLine.finishSvg.y) + '"></line>' : '') +
@@ -2802,19 +2822,16 @@
         '</defs>' +
         chartTiles +
         '<rect class="sail-area" x="16" y="16" width="288" height="252" rx="4"></rect>' +
-        '<line class="thin" x1="16" y1="79" x2="304" y2="79"></line>' +
-        '<line class="thin" x1="16" y1="142" x2="304" y2="142"></line>' +
-        '<line class="thin" x1="16" y1="205" x2="304" y2="205"></line>' +
-        '<line class="thin" x1="88" y1="16" x2="88" y2="268"></line>' +
-        '<line class="thin" x1="160" y1="16" x2="160" y2="268"></line>' +
-        '<line class="thin" x1="232" y1="16" x2="232" y2="268"></line>' +
-        '<text x="154" y="18">N</text>' +
+        gridSvg +
+        '<text x="' + (context.preStartView ? '132' : '154') + '" y="18">' + (context.preStartView ? 'UPWIND UP' : 'N') + '</text>' +
         '<text class="chart-attrib" x="18" y="30">Map tiles: OpenStreetMap / OpenSeaMap</text>' +
         '<text x="18" y="286">VIEW ' + esc(context.viewLabel) + (context.panLabel ? ' / ' + esc(context.panLabel) : '') + '</text>' +
         (windPoint ? '<line class="wind-line" x1="286" y1="52" x2="' + windPoint.x + '" y2="' + windPoint.y + '"></line><text x="245" y="34">TWD ' + Math.round(windDir) + '</text>' : '') +
         startLineSvg +
         gateLineSvg +
         '<polyline class="course-route" points="' + routeSvg + '"></polyline>' +
+        plannedSvg +
+        trailSvg +
         (portSvg ? '<line class="port-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(portSvg.x) + '" y2="' + svgNumber(portSvg.y) + '"></line>' : '') +
         (stbdSvg ? '<line class="stbd-line" x1="' + svgNumber(nextSvg.x) + '" y1="' + svgNumber(nextSvg.y) + '" x2="' + svgNumber(stbdSvg.x) + '" y2="' + svgNumber(stbdSvg.y) + '"></line>' : '') +
         '<line class="mark-line" x1="' + svgNumber(boatSvg.x) + '" y1="' + svgNumber(boatSvg.y) + '" x2="' + svgNumber(nextSvg.x) + '" y2="' + svgNumber(nextSvg.y) + '"></line>' +
@@ -2835,13 +2852,16 @@
 
   function tacticalMapContext(nav, next, boat, mark, forecast, course, legIndex, actual) {
     var sequence = navSequence(course);
-    var routeMarks = [{ mark: mark, label: next ? navTargetLabel(next) : mark.code, point: null }];
+    var preStartView = !next || next.code === 'START' || actual.startCrossedRace !== activeRaceId();
+    var routeMarks = [{ mark: mark, label: next ? navTargetLabel(next) : mark.code, entry: next, point: null }];
     var gateEntries = uniqueGateEntries(sequence.slice(legIndex));
     var startLineMarks = startLineMarksForCourse(course);
+    var previousEntry = legIndex > 0 ? sequence[legIndex - 1] : null;
+    var previousMark = previousEntry ? navMarkForEntry(previousEntry, course, null) : null;
     sequence.slice(legIndex + 1).forEach(function (entry) {
       var routeMark = navMarkForEntry(entry, course, null);
       if (routeMark && hasCoords(routeMark)) {
-        routeMarks.push({ mark: routeMark, label: navTargetLabel(entry), point: null });
+        routeMarks.push({ mark: routeMark, label: navTargetLabel(entry), entry: entry, point: null });
       }
     });
 
@@ -2851,6 +2871,10 @@
       latTotal += Number(item.mark.lat);
       latCount += 1;
     });
+    if (previousMark && hasCoords(previousMark)) {
+      latTotal += Number(previousMark.lat);
+      latCount += 1;
+    }
     gateEntries.forEach(function (gate) {
       latTotal += Number(gate.stbd.lat) + Number(gate.port.lat);
       latCount += 2;
@@ -2869,6 +2893,15 @@
     routeMarks.forEach(function (item) {
       item.point = localNmPoint(item.mark, originLat);
     });
+    var plannedRoute = [];
+    if (previousEntry && previousMark && hasCoords(previousMark)) {
+      plannedRoute.push({ mark: previousMark, label: navTargetLabel(previousEntry), entry: previousEntry, point: localNmPoint(previousMark, originLat) });
+    }
+    routeMarks.slice(0, preStartView ? routeMarks.length : Math.min(routeMarks.length, 3)).forEach(function (item) {
+      plannedRoute.push({ mark: item.mark, label: item.label, entry: item.entry || null, point: item.point });
+    });
+    var plannedEntries = plannedRoute.slice(1).map(function (item) { return item.entry || { code: item.mark.code, rounding: '' }; });
+    var plannedSegments = plannedRoute.length > 1 ? planSailingSegments(plannedRoute, plannedEntries, forecast, course, originLat) : [];
     var gateLines = gateEntries.map(function (gate) {
       var stbdPoint = localNmPoint(gate.stbd, originLat);
       var portPoint = localNmPoint(gate.port, originLat);
@@ -2917,7 +2950,12 @@
 
     var interceptSeconds = intercept && speed && speed > 0.2 ? intercept.distance / speed * 3600 : null;
     var interceptTimeLabel = interceptSeconds == null ? '--' : formatDurationShort(interceptSeconds);
-    var focusPoints = [boatPoint, nextPoint].concat(routeMarks.map(function (item) { return item.point; }));
+    var trailPoints = telemetryTrailPoints(originLat, activeRaceId(), 240);
+    var focusRouteMarks = preStartView ? routeMarks : routeMarks.slice(0, 2);
+    var focusPoints = [boatPoint, nextPoint].concat(focusRouteMarks.map(function (item) { return item.point; }));
+    plannedSegments.forEach(function (segment) {
+      segment.localPoints.forEach(function (point) { focusPoints.push(point); });
+    });
     gateLines.forEach(function (gate) {
       focusPoints.push(gate.stbdPoint, gate.portPoint);
     });
@@ -2930,12 +2968,21 @@
     var rawBounds = tacticalMapBounds(focusPoints);
     var zoom = tacticalMapZoom();
     var pan = tacticalMapPan();
-    var zoomBounds = zoomedMapBounds(rawBounds, boundsCenter(rawBounds), zoom);
+    var zoomCenter = preStartView ? boundsCenter(rawBounds) : boatPoint;
+    var zoomBounds = zoomedMapBounds(rawBounds, zoomCenter, zoom);
     var bounds = pannedMapBounds(zoomBounds, pan);
     var viewSpanX = bounds.spanX;
     var viewSpanY = bounds.spanY;
 
-    var projector = tacticalMapProjector(bounds);
+    var rawProjector = tacticalMapProjector(bounds);
+    var rotation = preStartView && course && course.type === 'wl' && toNumber(forecast.windDir) != null ? -toNumber(forecast.windDir) : 0;
+    var projector = function (point) {
+      return rotateSvgPoint(rawProjector(point), rotation);
+    };
+    plannedSegments.forEach(function (segment) {
+      segment.points = segment.localPoints.map(projector);
+      if (segment.localTackPoint) segment.tackPoint = projector(segment.localTackPoint);
+    });
     gateLines.forEach(function (gate) {
       gate.stbdSvg = projector(gate.stbdPoint);
       gate.portSvg = projector(gate.portPoint);
@@ -2951,6 +2998,8 @@
       nextPoint: nextPoint,
       routeMarks: routeMarks,
       gateLines: gateLines,
+      plannedSegments: plannedSegments,
+      trailPoints: trailPoints,
       startLine: startLine,
       portBack: portBack,
       stbdBack: stbdBack,
@@ -2976,8 +3025,22 @@
       originLat: originLat,
       bounds: bounds,
       rawBounds: rawBounds,
+      rotation: rotation,
+      preStartView: preStartView,
+      chartProject: rawProjector,
       project: projector
     };
+  }
+
+  function telemetryTrailPoints(originLat, raceId, limit) {
+    var samples = state.telemetryLog.filter(function (sample) {
+      return sample && sample.race === raceId && sample.gps &&
+        Number.isFinite(Number(sample.gps.lat)) && Number.isFinite(Number(sample.gps.lon));
+    });
+    samples = samples.slice(-Math.max(2, limit || 240));
+    return samples.map(function (sample) {
+      return localNmPoint({ lat: sample.gps.lat, lon: sample.gps.lon }, originLat);
+    });
   }
 
   function mapZoomControls(context) {
@@ -3839,12 +3902,16 @@
 
     var passedClose = closest != null && closest <= 0.055 && distance > closest + 0.015;
     var passedVeryClose = distance <= 0.025;
-    if ((passedClose || passedVeryClose) && legIndex < sequence.length - 1) {
+    var cog = gpsCourseNumber(actual);
+    var bearing = bearingTo(boat, mark);
+    var abeamAngle = cog == null ? null : Math.abs(Math.abs(signedAngle(bearing - cog)) - 90);
+    var passedAbeam = closest != null && closest <= 0.15 && distance > closest + 0.01 && abeamAngle != null && abeamAngle <= 18;
+    if ((passedClose || passedVeryClose || passedAbeam) && legIndex < sequence.length - 1) {
       actual.legIndex = legIndex + 1;
       actual.lastMarkCode = sequence[legIndex + 1].code;
       actual.lastMarkDistance = '';
       actual.closestMarkDistance = '';
-      actual.lastAutoAdvance = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' advanced after ' + next.code;
+      actual.lastAutoAdvance = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' advanced after ' + next.code + (passedAbeam ? ' abeam' : '');
       return;
     }
 
@@ -4135,6 +4202,29 @@
       polarSamples: polar
     };
     downloadJson(payload, 'anna-mai-log-' + targetDay + '.json');
+  }
+
+  function downloadTelemetryRace(raceId) {
+    var targetRace = raceId || activeRaceId();
+    var telemetry = state.telemetryLog.filter(function (sample) {
+      return sample.race === targetRace;
+    });
+    var polar = state.polarSamples.filter(function (sample) {
+      return sample.race === targetRace;
+    });
+    var race = RACES.find(function (item) { return item.id === targetRace; }) || activeRace();
+    var payload = {
+      boat: BOAT,
+      source: 'Anna Mai hybrid app race boat log',
+      exportedAt: new Date().toISOString(),
+      race: targetRace,
+      raceDate: race && race.date || '',
+      telemetryCount: telemetry.length,
+      polarSampleCount: polar.length,
+      telemetry: telemetry,
+      polarSamples: polar
+    };
+    downloadJson(payload, 'anna-mai-' + targetRace.toLowerCase() + '-race-log.json');
   }
 
   function clearTelemetryDay(day) {
@@ -4918,6 +5008,7 @@
     window.requestSoundPermission = requestSoundPermission;
     window.downloadPolarFile = downloadPolarFile;
     window.downloadTelemetryDay = downloadTelemetryDay;
+    window.downloadTelemetryRace = downloadTelemetryRace;
     window.clearTelemetryDay = clearTelemetryDay;
 
     if (activeSettings().compassHeading) startCompassWatch();

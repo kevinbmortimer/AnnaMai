@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Anna Mai R1 High Speed Simulation</title>
+  <style>
+    :root{--ink:#07111f;--panel:#0b1b2e;--line:#d7e4f2;--gold:#d4a017;--port:#f6a5c0;--stbd:#80deea;--live-port:#ff7f92;--live-stbd:#8de39b;--muted:#86a0b8}
+    *{box-sizing:border-box}
+    body{margin:0;background:#06101d;color:var(--line);font-family:ui-monospace,"Courier New",monospace}
+    main{max-width:1180px;margin:0 auto;padding:18px}
+    h1{margin:0 0 4px;font-size:18px;letter-spacing:3px;color:#fff}
+    .sub{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+    .grid{display:grid;grid-template-columns:1fr 310px;gap:14px}
+    .card{background:rgba(11,27,46,.86);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px}
+    svg{width:100%;height:auto;background:#6f8994;border:1px solid rgba(255,255,255,.28);border-radius:8px}
+    text{font-family:ui-monospace,"Courier New",monospace;fill:#eef6ff;font-size:10px}
+    .sim-track{fill:none;stroke:rgba(255,255,255,.18);stroke-width:1.2}
+    .best{fill:none;stroke:#fff;stroke-width:3.2}
+    .plan-port{fill:none;stroke:var(--port);stroke-width:4;stroke-dasharray:9 5}
+    .plan-stbd{fill:none;stroke:var(--stbd);stroke-width:4;stroke-dasharray:9 5}
+    .live-port{fill:none;stroke:var(--live-port);stroke-width:2.2}
+    .live-stbd{fill:none;stroke:var(--live-stbd);stroke-width:2.2}
+    .route{fill:none;stroke:rgba(255,255,255,.45);stroke-width:1.8;stroke-dasharray:4 4}
+    .start{stroke:#fff;stroke-width:3;stroke-dasharray:3 3}
+    .gate{stroke:#ffb74d;stroke-width:3;stroke-dasharray:8 4}
+    .mark{fill:#d4a017;stroke:#07111f;stroke-width:1.2}
+    .boat{fill:#fff;stroke:#07111f;stroke-width:1.2}
+    .legend{display:grid;gap:8px;margin-top:10px}
+    .row{display:flex;align-items:center;gap:8px;color:#c8d7e7;font-size:12px}
+    .sw{width:34px;height:0;border-top:4px solid #fff}
+    .sw.p{border-color:var(--port);border-style:dashed}
+    .sw.s{border-color:var(--stbd);border-style:dashed}
+    .sw.lp{border-color:var(--live-port)}
+    .sw.ls{border-color:var(--live-stbd)}
+    .sw.cloud{border-color:rgba(255,255,255,.3);border-width:2px}
+    .stat{display:grid;grid-template-columns:1fr auto;gap:8px;border-bottom:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:12px}
+    .stat span:first-child{color:var(--muted)}
+    .note{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#c8d7e7;line-height:1.45;font-size:13px;margin-top:10px}
+    @media(max-width:850px){.grid{grid-template-columns:1fr}main{padding:10px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>ANNA MAI R1 SIMULATION</h1>
+  <div class="sub">WL normal · course-up preview · 240 fast deterministic runs</div>
+  <div class="grid">
+    <div class="card">
+      <svg id="chart" viewBox="0 0 760 760" role="img" aria-label="Race 1 high speed simulation chart"></svg>
+      <div class="legend">
+        <div class="row"><span class="sw p"></span><span>Planned port board / tack</span></div>
+        <div class="row"><span class="sw s"></span><span>Planned starboard board / tack</span></div>
+        <div class="row"><span class="sw lp"></span><span>Example live port recommendation</span></div>
+        <div class="row"><span class="sw ls"></span><span>Example live starboard recommendation</span></div>
+        <div class="row"><span class="sw cloud"></span><span>Fast-run variation cloud from wind/tide/tack-loss perturbations</span></div>
+      </div>
+    </div>
+    <aside class="card">
+      <div id="stats"></div>
+      <p class="note">This preview uses the Race 1 sample geometry you gave: 3 at 180/0.8nm, 3A at 160/0.8nm, 4S at 200/0.2nm, 4P at 140/0.2nm, TWD base 173 degrees. It is not a live navigator; it is a visual check of the Course screen overlay concept.</p>
+      <p class="note">The app's live Course map now draws the actual GPS trail from the same telemetry log that is exported for polar analysis.</p>
+    </aside>
+  </div>
+</main>
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  var svg=document.getElementById('chart');
+  var stats=document.getElementById('stats');
+  var windBase=173;
+  var targetDown=152;
+  var targetUp=41;
+  var tackLossSeconds=18;
+  var marks={
+    RC:{x:0,y:0,label:'RC'},
+    PIN:{x:-0.054,y:0,label:'PIN'},
+    FIN:{x:0.027,y:0,label:'FIN'},
+    S:{x:Math.sin(180*Math.PI/180)*0.8,y:Math.cos(180*Math.PI/180)*0.8,label:'3'},
+    A:{x:Math.sin(160*Math.PI/180)*0.8,y:Math.cos(160*Math.PI/180)*0.8,label:'3A'},
+    Gs:{x:Math.sin(200*Math.PI/180)*0.2,y:Math.cos(200*Math.PI/180)*0.2,label:'4S'},
+    Gp:{x:Math.sin(140*Math.PI/180)*0.2,y:Math.cos(140*Math.PI/180)*0.2,label:'4P'}
+  };
+  var routeBase=[marks.RC,marks.S,marks.A,marks.Gs,marks.S,marks.A,marks.Gp,marks.FIN];
+  var bounds={minX:-0.42,maxX:0.42,minY:-0.92,maxY:0.18};
+  function norm(a){return ((a%360)+360)%360}
+  function signed(a){return ((a+540)%360)-180}
+  function unit(b){var r=b*Math.PI/180;return{x:Math.sin(r),y:Math.cos(r)}}
+  function bearing(a,b){return norm(Math.atan2(b.x-a.x,b.y-a.y)*180/Math.PI)}
+  function dist(a,b){var dx=b.x-a.x,dy=b.y-a.y;return Math.sqrt(dx*dx+dy*dy)}
+  function off(p,b,d){var u=unit(b);return{x:p.x+u.x*d,y:p.y+u.y*d}}
+  function project(p){var w=660,h=660,ox=50,oy=45;return{x:ox+(p.x-bounds.minX)/(bounds.maxX-bounds.minX)*w,y:oy+h-(p.y-bounds.minY)/(bounds.maxY-bounds.minY)*h}}
+  function path(points){return points.map(function(p){var q=project(p);return q.x.toFixed(1)+','+q.y.toFixed(1)}).join(' ')}
+  function el(name,attrs,text){var e=document.createElementNS(NS,name);Object.keys(attrs||{}).forEach(function(k){e.setAttribute(k,attrs[k])});if(text)e.textContent=text;svg.appendChild(e);return e}
+  function intercept(a,b,first,finalHead){
+    var u=unit(first), v=unit(norm(finalHead+180)), dx=b.x-a.x, dy=b.y-a.y;
+    var det=u.x*v.y-u.y*v.x;
+    if(Math.abs(det)<0.0001)return null;
+    var t=(dx*v.y-dy*v.x)/det, s=(u.y*dx-u.x*dy)/det;
+    if(t<0||s<0)return null;
+    return {p:{x:a.x+u.x*t,y:a.y+u.y*t},a:t,b:s,total:t+s};
+  }
+  function beat(a,b,wind){
+    var port=norm(wind+targetUp), stbd=norm(wind-targetUp);
+    var preferred=intercept(a,b,port,stbd)||intercept(a,b,stbd,port);
+    if(!preferred)return [{side:'direct',pts:[a,b],dist:dist(a,b)}];
+    return [{side:'port',pts:[a,preferred.p],dist:preferred.a},{side:'stbd',pts:[preferred.p,b],dist:preferred.b}];
+  }
+  function run(a,b,wind,preferStbd){
+    var port=norm(wind+targetDown), stbd=norm(wind-targetDown);
+    var c1=intercept(a,b,stbd,port), c2=intercept(a,b,port,stbd);
+    var c=!c2||c1&&c1.total<=c2.total+0.02||preferStbd?c1:c2;
+    if(!c)return [{side:Math.abs(signed(bearing(a,b)-port))<Math.abs(signed(bearing(a,b)-stbd))?'port':'stbd',pts:[a,b],dist:dist(a,b)}];
+    var first=c===c1?'stbd':'port', second=first==='stbd'?'port':'stbd';
+    return [{side:first,pts:[a,c.p],dist:c.a},{side:second,pts:[c.p,b],dist:c.b}];
+  }
+  function leg(a,b,wind,preferStbd){
+    var brg=bearing(a,b), twa=Math.abs(signed(brg-wind));
+    if(twa<70)return beat(a,b,wind);
+    if(twa>120)return run(a,b,wind,preferStbd);
+    return [{side:'direct',pts:[a,b],dist:dist(a,b)}];
+  }
+  function simulate(i){
+    var wind=windBase+Math.sin(i*1.7)*7+Math.cos(i*0.31)*3;
+    var tide=(Math.sin(i*0.43)*0.018);
+    var route=routeBase.slice();
+    var pts=[marks.RC];
+    var time=0, gates=0;
+    for(var r=1;r<route.length;r++){
+      var from=route[r-1], to=route[r];
+      if(r===3){
+        var toS=route[r], toP=marks.Gp;
+        var sTime=run(from,toS,wind,true).reduce(function(a,s){return a+s.dist/5.9*60},0);
+        var pTime=run(from,toP,wind,true).reduce(function(a,s){return a+s.dist/5.9*60},0);
+        if(pTime+0.08<sTime){to=toP;gates+=1}
+      }
+      var segs=leg(from,to,wind,from===marks.A);
+      segs.forEach(function(s){pts.push(s.pts[1]);time+=s.dist/(s.side==='direct'?6.6:5.9)*60+tide});
+      if(segs.length>1)time+=tackLossSeconds/60;
+      route[r]=to;
+    }
+    return{pts:pts,time:time,gateP:gates};
+  }
+  for(var x=-0.4;x<=0.4;x+=0.1)el('line',{x1:project({x:x,y:bounds.minY}).x,y1:project({x:x,y:bounds.minY}).y,x2:project({x:x,y:bounds.maxY}).x,y2:project({x:x,y:bounds.maxY}).y,stroke:'rgba(255,255,255,.15)'});
+  for(var y=-0.9;y<=0.1;y+=0.1)el('line',{x1:project({x:bounds.minX,y:y}).x,y1:project({x:bounds.minX,y:y}).y,x2:project({x:bounds.maxX,y:y}).x,y2:project({x:bounds.maxX,y:y}).y,stroke:'rgba(255,255,255,.15)'});
+  el('line',{class:'start',x1:project(marks.PIN).x,y1:project(marks.PIN).y,x2:project(marks.RC).x,y2:project(marks.RC).y});
+  el('line',{class:'gate',x1:project(marks.Gs).x,y1:project(marks.Gs).y,x2:project(marks.Gp).x,y2:project(marks.Gp).y});
+  el('polyline',{class:'route',points:path(routeBase)});
+  var runs=[], gateP=0;
+  for(var i=0;i<240;i++){var sim=simulate(i);runs.push(sim);gateP+=sim.gateP;el('polyline',{class:'sim-track',points:path(sim.pts)})}
+  runs.sort(function(a,b){return a.time-b.time});
+  var best=runs[0];
+  el('polyline',{class:'best',points:path(best.pts)});
+  var plan1=beat(marks.RC,marks.S,windBase).concat([{side:'direct',pts:[marks.S,marks.A]}],run(marks.A,marks.Gs,windBase,true),beat(marks.Gs,marks.S,windBase),[{side:'direct',pts:[marks.S,marks.A]}],run(marks.A,marks.Gp,windBase,true));
+  plan1.forEach(function(s){el('polyline',{class:s.side==='stbd'?'plan-stbd':s.side==='port'?'plan-port':'route',points:path(s.pts)})});
+  var livePort=off(marks.Gs,norm(windBase+targetUp+180),0.52), liveStbd=off(marks.Gs,norm(windBase-targetUp+180),0.52);
+  el('line',{class:'live-port',x1:project(marks.Gs).x,y1:project(marks.Gs).y,x2:project(livePort).x,y2:project(livePort).y});
+  el('line',{class:'live-stbd',x1:project(marks.Gs).x,y1:project(marks.Gs).y,x2:project(liveStbd).x,y2:project(liveStbd).y});
+  Object.keys(marks).forEach(function(k){var m=marks[k],p=project(m);el('circle',{class:k==='RC'||k==='PIN'||k==='FIN'?'boat':'mark',cx:p.x,cy:p.y,r:k==='RC'?7:6});el('text',{x:p.x+8,y:p.y-8},m.label)});
+  el('text',{x:58,y:68},'UPWIND UP · TWD 173');
+  el('text',{x:58,y:720},'Race 1 WL normal preview · generated locally');
+  stats.innerHTML=[
+    ['Runs','240'],
+    ['Best simulated time',runs[0].time.toFixed(1)+' min'],
+    ['Median time',runs[Math.floor(runs.length/2)].time.toFixed(1)+' min'],
+    ['Gate 4P chosen in first gate',(gateP/240*100).toFixed(0)+'%'],
+    ['Tack/gybe loss',tackLossSeconds+'s each'],
+    ['Downwind target','~'+targetDown+' deg TWA'],
+    ['Upwind target','~'+targetUp+' deg TWA']
+  ].map(function(r){return '<div class="stat"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>'}).join('');
+})();
+</script>
+</body>
+</html>
